@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "babel lib/index.js --out-file build/pmcrypto.js"
+    "build": "babel lib --out-dir build"
   },
   "repository": {
     "type": "git",
