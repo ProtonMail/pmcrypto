@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "babel lib --out-dir build"
+    "build": "browserify -t [ babelify ] lib/browser.js -o build/pmcrypto.js"
   },
   "repository": {
     "type": "git",
@@ -18,12 +18,13 @@
   },
   "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
   "devDependencies": {
-    "babel-cli": "^6.26.0",
     "babel-plugin-istanbul": "^4.1.4",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-plugin-transform-regenerator": "^6.24.1",
     "babel-plugin-transform-runtime": "^6.23.0",
     "babel-preset-es2015": "^6.24.1",
-    "babel-preset-stage-0": "^6.24.1"
+    "babel-preset-stage-0": "^6.24.1",
+    "babelify": "^7.3.0",
+    "browserify": "^14.4.0"
   }
 }
