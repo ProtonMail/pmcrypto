@@ -40,6 +40,7 @@ function pmcrypto() {
         signMessage: messageUtils.signMessage,
         splitMessage: messageUtils.splitMessage,
         verifyMessage: messageUtils.verifyMessage,
+        getCleartextMessage: messageUtils.getCleartextMessage,
 
         encryptMessage: require('./message/encrypt'),
         decryptMessage: decryptMessage.decryptMessage,
@@ -492,7 +493,7 @@ function decryptMessage(options) {
 
                 var verified = 0;
                 var signatures = [];
-                if (sigs) {
+                if (sigs && sigs.length) {
                     verified = 2;
                     for (var i = 0; i < sigs.length; i++) {
                         if (sigs[i].valid) {
@@ -639,7 +640,23 @@ function signMessage(options) {
 
 function verifyMessage(options) {
 
-    return openpgp.verify(options).catch(function (err) {
+    return openpgp.verify(options).then(function (_ref) {
+        var data = _ref.data,
+            sigs = _ref.signatures;
+
+        var verified = 0;
+        var signatures = [];
+        if (sigs && sigs.length) {
+            verified = 2;
+            for (var i = 0; i < sigs.length; i++) {
+                if (sigs[i].valid) {
+                    verified = 1;
+                    signatures.push(sigs[i].signature);
+                }
+            }
+        }
+        return { data: data, verified: verified, signatures: signatures };
+    }).catch(function (err) {
         console.log(err);
         return Promise.reject(new Error('Message verification failed'));
     });
@@ -682,12 +699,21 @@ function splitMessage(message) {
     };
 }
 
+function getCleartextMessage(message) {
+    if (openpgp.cleartext.CleartextMessage.prototype.isPrototypeOf(message)) {
+        return message;
+    } else {
+        return new openpgp.cleartext.CleartextMessage(message);
+    }
+}
+
 module.exports = {
     signMessage: signMessage,
     verifyMessage: verifyMessage,
     splitMessage: splitMessage,
     getMessage: getMessage,
-    getSignature: getSignature
+    getSignature: getSignature,
+    getCleartextMessage: getCleartextMessage
 };
 
 },{}],12:[function(require,module,exports){
