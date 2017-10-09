@@ -17,6 +17,12 @@
     "url": "https://github.com/ProtonMail/pmcrypto/issues"
   },
   "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
+  "dependencies": {
+	  "btoa": "*",
+	  "atob": "*",
+	  "es6-promise": "*",
+	  "openpgp": "*"
+  },
   "devDependencies": {
     "babel-plugin-istanbul": "^4.1.4",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
