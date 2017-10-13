@@ -644,12 +644,12 @@ function getCleartextMessage(message) {
     }
 }
 
-function createMessage(message) {
+function createMessage(source) {
 
-    if (Uint8Array.prototype.isPrototypeOf(message)) {
-        return openpgp.message.fromBinary(message);
+    if (Uint8Array.prototype.isPrototypeOf(source)) {
+        return openpgp.message.fromBinary(source);
     } else {
-        return openpgp.message.fromText(message);
+        return openpgp.message.fromText(source);
     }
 }
 
