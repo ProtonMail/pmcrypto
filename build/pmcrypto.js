@@ -45,6 +45,7 @@ function pmcrypto() {
         splitMessage: messageUtils.splitMessage,
         verifyMessage: messageUtils.verifyMessage,
         getCleartextMessage: messageUtils.getCleartextMessage,
+        createMessage: messageUtils.createMessage,
 
         encryptMessage: require('./message/encrypt'),
         decryptMessage: decryptMessage.decryptMessage,
@@ -634,6 +635,24 @@ function getSignature(signature) {
     }
 }
 
+function getCleartextMessage(message) {
+
+    if (openpgp.cleartext.CleartextMessage.prototype.isPrototypeOf(message)) {
+        return message;
+    } else {
+        return new openpgp.cleartext.CleartextMessage(message);
+    }
+}
+
+function createMessage(source) {
+
+    if (Uint8Array.prototype.isPrototypeOf(source)) {
+        return openpgp.message.fromBinary(source);
+    } else {
+        return openpgp.message.fromText(source);
+    }
+}
+
 function signMessage(options) {
 
     return openpgp.sign(options).catch(function (err) {
@@ -703,21 +722,14 @@ function splitMessage(message) {
     };
 }
 
-function getCleartextMessage(message) {
-    if (openpgp.cleartext.CleartextMessage.prototype.isPrototypeOf(message)) {
-        return message;
-    } else {
-        return new openpgp.cleartext.CleartextMessage(message);
-    }
-}
-
 module.exports = {
     signMessage: signMessage,
     verifyMessage: verifyMessage,
     splitMessage: splitMessage,
     getMessage: getMessage,
     getSignature: getSignature,
-    getCleartextMessage: getCleartextMessage
+    getCleartextMessage: getCleartextMessage,
+    createMessage: createMessage
 };
 
 },{}],12:[function(require,module,exports){
