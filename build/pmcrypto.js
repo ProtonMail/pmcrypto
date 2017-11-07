@@ -384,10 +384,10 @@ function reformatKey(privKey) {
 }
 
 function getKeys() {
-    var armoredKeys = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+    var rawKeys = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
 
 
-    var keys = openpgp.key.readArmored(armoredKeys);
+    var keys = rawKeys instanceof Uint8Array ? openpgp.key.read(rawKeys) : openpgp.key.readArmored(rawKeys);
 
     if (keys === undefined) {
         throw new Error('Cannot parse key(s)');
