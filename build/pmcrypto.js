@@ -260,7 +260,7 @@ var encryptMessage = require('../message/encrypt');
 var _require = require('./utils'),
     getKeys = _require.getKeys;
 
-function keyInfo(privKey, email) {
+function keyInfo(rawKey, email) {
     var expectEncrypted = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
 
 
@@ -314,7 +314,7 @@ function keyInfo(privKey, email) {
             };
         };
 
-        var keys = getKeys(privKey);
+        var keys = getKeys(rawKey);
 
         var obj = {
             version: keys[0].primaryKey.version,
