@@ -477,7 +477,8 @@ var _require = require('../utils'),
     arrayToBinaryString = _require.arrayToBinaryString;
 
 var _require2 = require('../key/utils'),
-    pickPrivate = _require2.pickPrivate;
+    pickPrivate = _require2.pickPrivate,
+    getMessage = _require2.getMessage;
 
 var _require3 = require('./compat'),
     getEncMessageFromEmailPM = _require3.getEncMessageFromEmailPM,
@@ -540,6 +541,7 @@ function decryptMessage(options) {
 }
 
 // Backwards-compatible decrypt message function
+// 'message' option must be a string!
 function decryptMessageLegacy(options) {
 
     return Promise.resolve().then(function () {
@@ -552,12 +554,16 @@ function decryptMessageLegacy(options) {
         var oldEncRandomKey = getEncRandomKeyFromEmailPM(options.message);
 
         // OpenPGP
-        if (oldEncMessage === '' || oldEncRandomKey === '') return decryptMessage(options);
+        if (oldEncMessage === '' || oldEncRandomKey === '') {
+            // Convert message string to object
+            options.message = getMessage(options.message);
+            return decryptMessage(options);
+        }
 
         // Old message encryption format
         var old_options = {
             privateKeys: options.privateKeys,
-            message: oldEncRandomKey
+            message: getMessage(oldEncRandomKey)
         };
 
         return decryptMessage(old_options).then(function (_ref2) {
