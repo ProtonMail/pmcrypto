@@ -477,12 +477,14 @@ var _require = require('../utils'),
     arrayToBinaryString = _require.arrayToBinaryString;
 
 var _require2 = require('../key/utils'),
-    pickPrivate = _require2.pickPrivate,
-    getMessage = _require2.getMessage;
+    pickPrivate = _require2.pickPrivate;
 
-var _require3 = require('./compat'),
-    getEncMessageFromEmailPM = _require3.getEncMessageFromEmailPM,
-    getEncRandomKeyFromEmailPM = _require3.getEncRandomKeyFromEmailPM;
+var _require3 = require('../message/utils'),
+    getMessage = _require3.getMessage;
+
+var _require4 = require('./compat'),
+    getEncMessageFromEmailPM = _require4.getEncMessageFromEmailPM,
+    getEncRandomKeyFromEmailPM = _require4.getEncRandomKeyFromEmailPM;
 
 function decryptMessage(options) {
 
@@ -599,7 +601,7 @@ module.exports = {
 };
 
 }).call(this,require('_process'))
-},{"../key/utils":7,"../utils":12,"./compat":8,"_process":13}],10:[function(require,module,exports){
+},{"../key/utils":7,"../message/utils":11,"../utils":12,"./compat":8,"_process":13}],10:[function(require,module,exports){
 "use strict";
 
 function encryptMessage(options) {
