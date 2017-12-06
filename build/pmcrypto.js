@@ -61,6 +61,7 @@ function pmcrypto() {
         arrayToBinaryString: utils.arrayToBinaryString,
         binaryStringToArray: utils.binaryStringToArray,
         concatArrays: openpgp.util.concatUint8Array,
+        stripArmor: utils.stripArmor,
 
         keyInfo: require('./key/info'),
         keyCheck: require('./key/check')
@@ -792,6 +793,10 @@ function getHashedPassword(password) {
     return btoa(arrayToBinaryString(openpgp.crypto.hash.sha512(binaryStringToArray(password))));
 }
 
+function stripArmor(input) {
+    return openpgp.armor.decode(input).data;
+}
+
 module.exports = {
     encode_utf8: encode_utf8,
     decode_utf8: decode_utf8,
@@ -801,7 +806,8 @@ module.exports = {
     decode_utf8_base64: decode_utf8_base64,
     binaryStringToArray: binaryStringToArray,
     arrayToBinaryString: arrayToBinaryString,
-    getHashedPassword: getHashedPassword
+    getHashedPassword: getHashedPassword,
+    stripArmor: stripArmor
 };
 
 },{}],13:[function(require,module,exports){
