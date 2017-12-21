@@ -1,6 +1,6 @@
 {
   "name": "pmcrypto",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -21,7 +21,7 @@
 	  "btoa": "*",
 	  "atob": "*",
 	  "es6-promise": "*",
-	  "openpgp": "*"
+	  "openpgp": "^2.6.0"
   },
   "devDependencies": {
     "babel-plugin-istanbul": "^4.1.4",
