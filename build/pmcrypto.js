@@ -492,26 +492,12 @@ function decryptMessage(options) {
     return Promise.resolve().then(function () {
 
         options = pickPrivate(options);
-        var _options = options,
-            _options$validateSigs = _options.validateSigs,
-            validateSigs = _options$validateSigs === undefined ? true : _options$validateSigs;
-
 
         try {
             return openpgp.decrypt(options).then(function (_ref) {
                 var data = _ref.data,
                     filename = _ref.filename,
                     sigs = _ref.signatures;
-
-                if (!validateSigs) {
-                    return { data: data,
-                        filename: filename,
-                        verified: sigs && sigs.length ? 2 : 0,
-                        signatures: sigs.map(function (_ref2) {
-                            var signature = _ref2.signature;
-                            return signature;
-                        }) || [] };
-                }
 
                 var verified = 0;
                 var signatures = [];
@@ -520,6 +506,8 @@ function decryptMessage(options) {
                     for (var i = 0; i < sigs.length; i++) {
                         if (sigs[i].valid) {
                             verified = 1;
+                        }
+                        if (sigs[i].valid || !options.publicKeys || !options.publicKeys.length) {
                             signatures.push(sigs[i].signature);
                         }
                     }
@@ -582,8 +570,8 @@ function decryptMessageLegacy(options) {
             message: getMessage(oldEncRandomKey)
         };
 
-        return decryptMessage(old_options).then(function (_ref3) {
-            var data = _ref3.data;
+        return decryptMessage(old_options).then(function (_ref2) {
+            var data = _ref2.data;
             return decode_utf8_base64(data);
         }).then(binaryStringToArray).then(function (randomKey) {
 
@@ -696,6 +684,8 @@ function verifyMessage(options) {
             for (var i = 0; i < sigs.length; i++) {
                 if (sigs[i].valid) {
                     verified = 1;
+                }
+                if (sigs[i].valid || !options.publicKeys || !options.publicKeys.length) {
                     signatures.push(sigs[i].signature);
                 }
             }
