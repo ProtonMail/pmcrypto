@@ -180,7 +180,7 @@ function decryptPrivateKey(privKey, privKeyPassCode) {
             return keys[0];
         }
 
-        return Promise.reject(new Error('Private key decryption failed')); // Do NOT make this an Error object
+        return Promise.reject(new Error('Private key decryption failed'));
     });
 }
 
@@ -200,12 +200,12 @@ function decryptSessionKey(options) {
 
                 return result;
             }).catch(function (err) {
-                console.log(err);
-                return Promise.reject(new Error('Session key decryption failed'));
+                console.error(err);
+                return Promise.reject(err);
             });
         } catch (err) {
             if (err.message === 'CFB decrypt: invalid key' && options.passwords && options.passwords.length) {
-                return Promise.reject(new Error('Incorrect message password')); // Bad password, reject without Error object
+                return Promise.reject(new Error('Incorrect message password'));
             }
             return Promise.reject(err);
         }
@@ -532,8 +532,8 @@ function decryptMessage(options) {
 
                 return { data: data, filename: filename, verified: verified, signatures: signatures };
             }).catch(function (err) {
-                console.log(err);
-                return Promise.reject(new Error('Decryption failed'));
+                console.error(err);
+                return Promise.reject(err);
             });
         } catch (err) {
             if (err.message === 'CFB decrypt: invalid key' && options.passwords && options.passwords.length) {
@@ -621,7 +621,7 @@ function encryptMessage(options) {
 module.exports = encryptMessage;
 
 },{}],11:[function(require,module,exports){
-'use strict';
+"use strict";
 
 function getMessage(message) {
 
@@ -666,8 +666,8 @@ function createMessage(source) {
 function signMessage(options) {
 
     return openpgp.sign(options).catch(function (err) {
-        console.log(err);
-        return Promise.reject(new Error('Message signing failed'));
+        console.error(err);
+        return Promise.reject(err);
     });
 }
 
@@ -692,8 +692,8 @@ function verifyMessage(options) {
         }
         return { data: data, verified: verified, signatures: signatures };
     }).catch(function (err) {
-        console.log(err);
-        return Promise.reject(new Error('Message verification failed'));
+        console.error(err);
+        return Promise.reject(err);
     });
 }
 
