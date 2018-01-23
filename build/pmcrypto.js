@@ -340,7 +340,9 @@ function keyInfo(rawKey, email) {
             obj.validationError = err.message;
         }
 
-        return encryptMessage({ data: 'test message', publicKeys: keys }).then(function () {
+        var encryptCheck = obj.encrypt ? encryptMessage({ data: 'test message', publicKeys: keys }) : Promise.resolve();
+
+        return encryptCheck.then(function () {
             return obj;
         });
     });
