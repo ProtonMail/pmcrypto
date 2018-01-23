@@ -11,7 +11,20 @@ openpgp.initWorker({ path: 'openpgp.worker.min.js' });
 
 window.pmcrypto = require('./index');
 
-},{"./index":2}],2:[function(require,module,exports){
+},{"./index":3}],2:[function(require,module,exports){
+"use strict";
+
+var constants = {
+    VERIFICATION_STATUS: {
+        NOT_SIGNED: 0,
+        SIGNED_AND_VALID: 1,
+        SIGNED_AND_INVALID: 2
+    }
+};
+
+module.exports = constants;
+
+},{}],3:[function(require,module,exports){
 'use strict';
 
 var utils = require('./utils');
@@ -70,7 +83,7 @@ function pmcrypto() {
 
 module.exports = pmcrypto();
 
-},{"./key/check":3,"./key/decrypt":4,"./key/encrypt":5,"./key/info":6,"./key/utils":7,"./message/decrypt":9,"./message/encrypt":10,"./message/utils":11,"./utils":12}],3:[function(require,module,exports){
+},{"./key/check":4,"./key/decrypt":5,"./key/encrypt":6,"./key/info":7,"./key/utils":8,"./message/decrypt":10,"./message/encrypt":11,"./message/utils":12,"./utils":13}],4:[function(require,module,exports){
 'use strict';
 
 function keyCheck(info, email, expectEncrypted) {
@@ -156,7 +169,7 @@ function keyCheck(info, email, expectEncrypted) {
 
 module.exports = keyCheck;
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 'use strict';
 
 var _require = require('./utils'),
@@ -214,7 +227,7 @@ function decryptSessionKey(options) {
 
 module.exports = { decryptPrivateKey: decryptPrivateKey, decryptSessionKey: decryptSessionKey };
 
-},{"./utils":7}],5:[function(require,module,exports){
+},{"./utils":8}],6:[function(require,module,exports){
 'use strict';
 
 function encryptPrivateKey(privKey, privKeyPassCode) {
@@ -252,7 +265,7 @@ module.exports = {
     encryptSessionKey: encryptSessionKey
 };
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 'use strict';
 
 var keyCheck = require('./check');
@@ -350,7 +363,7 @@ function keyInfo(rawKey, email) {
 
 module.exports = keyInfo;
 
-},{"../message/encrypt":10,"./check":3,"./utils":7}],7:[function(require,module,exports){
+},{"../message/encrypt":11,"./check":4,"./utils":8}],8:[function(require,module,exports){
 'use strict';
 
 // returns promise for generated RSA public and encrypted private keys
@@ -436,7 +449,7 @@ module.exports = {
     getKeys: getKeys
 };
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 'use strict';
 
 // Deprecated, backwards compatibility
@@ -470,7 +483,7 @@ module.exports = {
     getEncRandomKeyFromEmailPM: getEncRandomKeyFromEmailPM
 };
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -483,13 +496,26 @@ var _require2 = require('../key/utils'),
     pickPrivate = _require2.pickPrivate;
 
 var _require3 = require('../message/utils'),
-    getMessage = _require3.getMessage;
+    getMessage = _require3.getMessage,
+    verifyExpirationTime = _require3.verifyExpirationTime;
 
 var _require4 = require('./compat'),
     getEncMessageFromEmailPM = _require4.getEncMessageFromEmailPM,
     getEncRandomKeyFromEmailPM = _require4.getEncRandomKeyFromEmailPM;
 
+var _require5 = require('../constants.js'),
+    _require5$VERIFICATIO = _require5.VERIFICATION_STATUS,
+    NOT_SIGNED = _require5$VERIFICATIO.NOT_SIGNED,
+    SIGNED_AND_VALID = _require5$VERIFICATIO.SIGNED_AND_VALID,
+    SIGNED_AND_INVALID = _require5$VERIFICATIO.SIGNED_AND_INVALID;
+
 function decryptMessage(options) {
+    var _options = options,
+        _options$verification = _options.verificationTime,
+        verificationTime = _options$verification === undefined ? false : _options$verification,
+        _options$publicKeys = _options.publicKeys,
+        publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
+
 
     return Promise.resolve().then(function () {
 
@@ -501,13 +527,15 @@ function decryptMessage(options) {
                     filename = _ref.filename,
                     sigs = _ref.signatures;
 
-                var verified = 0;
+                var verified = NOT_SIGNED;
                 var signatures = [];
                 if (sigs && sigs.length) {
-                    verified = 2;
+                    verified = SIGNED_AND_INVALID;
                     for (var i = 0; i < sigs.length; i++) {
+                        sigs[i].valid = sigs[i].valid && verifyExpirationTime(sigs[i], publicKeys, verificationTime);
+
                         if (sigs[i].valid) {
-                            verified = 1;
+                            verified = SIGNED_AND_VALID;
                         }
                         if (sigs[i].valid || !options.publicKeys || !options.publicKeys.length) {
                             signatures.push(sigs[i].signature);
@@ -518,13 +546,13 @@ function decryptMessage(options) {
                 // Debugging
                 if (process.env.NODE_ENV !== 'production') {
                     switch (verified) {
-                        case 0:
+                        case NOT_SIGNED:
                             console.log('No message signature present');
                             break;
-                        case 1:
+                        case SIGNED_AND_VALID:
                             console.log('Verified message signature');
                             break;
-                        case 2:
+                        case SIGNED_AND_INVALID:
                             console.log('Message signature could not be verified');
                             break;
                         default:
@@ -605,7 +633,7 @@ module.exports = {
 };
 
 }).call(this,require('_process'))
-},{"../key/utils":7,"../message/utils":11,"../utils":12,"./compat":8,"_process":13}],10:[function(require,module,exports){
+},{"../constants.js":2,"../key/utils":8,"../message/utils":12,"../utils":13,"./compat":9,"_process":14}],11:[function(require,module,exports){
 "use strict";
 
 function encryptMessage(options) {
@@ -622,8 +650,14 @@ function encryptMessage(options) {
 
 module.exports = encryptMessage;
 
-},{}],11:[function(require,module,exports){
-"use strict";
+},{}],12:[function(require,module,exports){
+'use strict';
+
+var _require = require('../constants.js'),
+    _require$VERIFICATION = _require.VERIFICATION_STATUS,
+    NOT_SIGNED = _require$VERIFICATION.NOT_SIGNED,
+    SIGNED_AND_VALID = _require$VERIFICATION.SIGNED_AND_VALID,
+    SIGNED_AND_INVALID = _require$VERIFICATION.SIGNED_AND_INVALID;
 
 function getMessage(message) {
 
@@ -673,19 +707,42 @@ function signMessage(options) {
     });
 }
 
+function verifyExpirationTime(_ref, publicKeys, verificationTime) {
+    var keyid = _ref.keyid;
+
+    if (!verificationTime) {
+        return true;
+    }
+    var publickey = publicKeys.find(function (pk) {
+        return pk.primaryKey.keyid.bytes === keyid.bytes;
+    });
+    if (!publickey) {
+        return false;
+    }
+    var expirationTime = +publickey.getExpirationTime();
+    return expirationTime > verificationTime * 1000;
+}
+
 function verifyMessage(options) {
+    var _options$verification = options.verificationTime,
+        verificationTime = _options$verification === undefined ? false : _options$verification,
+        _options$publicKeys = options.publicKeys,
+        publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
 
-    return openpgp.verify(options).then(function (_ref) {
-        var data = _ref.data,
-            sigs = _ref.signatures;
 
-        var verified = 0;
+    return openpgp.verify(options).then(function (_ref2) {
+        var data = _ref2.data,
+            sigs = _ref2.signatures;
+
+        var verified = NOT_SIGNED;
         var signatures = [];
         if (sigs && sigs.length) {
-            verified = 2;
+            verified = SIGNED_AND_INVALID;
             for (var i = 0; i < sigs.length; i++) {
+                sigs[i].valid = sigs[i].valid && verifyExpirationTime(sigs[i], publicKeys, verificationTime);
+
                 if (sigs[i].valid) {
-                    verified = 1;
+                    verified = SIGNED_AND_VALID;
                 }
                 if (sigs[i].valid || !options.publicKeys || !options.publicKeys.length) {
                     signatures.push(sigs[i].signature);
@@ -741,12 +798,13 @@ module.exports = {
     verifyMessage: verifyMessage,
     splitMessage: splitMessage,
     getMessage: getMessage,
+    verifyExpirationTime: verifyExpirationTime,
     getSignature: getSignature,
     getCleartextMessage: getCleartextMessage,
     createMessage: createMessage
 };
 
-},{}],12:[function(require,module,exports){
+},{"../constants.js":2}],13:[function(require,module,exports){
 'use strict';
 
 var noop = function noop() {};
@@ -815,7 +873,7 @@ module.exports = {
     stripArmor: stripArmor
 };
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
