@@ -707,6 +707,10 @@ function signMessage(options) {
     });
 }
 
+function isExpiredKey(key) {
+    return key.getExpirationTime() !== null && key.getExpirationTime() < Date.now();
+}
+
 function verifyExpirationTime(_ref, publicKeys, verificationTime) {
     var keyid = _ref.keyid;
 
@@ -801,7 +805,8 @@ module.exports = {
     verifyExpirationTime: verifyExpirationTime,
     getSignature: getSignature,
     getCleartextMessage: getCleartextMessage,
-    createMessage: createMessage
+    createMessage: createMessage,
+    isExpiredKey: isExpiredKey
 };
 
 },{"../constants.js":2}],13:[function(require,module,exports){
