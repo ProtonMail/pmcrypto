@@ -725,8 +725,8 @@ function verifyExpirationTime(_ref, publicKeys, verificationTime) {
     if (!publickey) {
         return false;
     }
-    var expirationTime = +publickey.getExpirationTime();
-    return expirationTime > verificationTime * 1000;
+    var expirationTime = publickey.getExpirationTime();
+    return expirationTime === null || +expirationTime > verificationTime * 1000;
 }
 
 function verifyMessage(options) {
