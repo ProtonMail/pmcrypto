@@ -107,7 +107,7 @@ function keyCheck(info, email, expectEncrypted) {
         }
     }
 
-    if (info.bitSize < 1024) {
+    if (info.bitSize && info.bitSize < 1024) {
         throw new Error('Key is less than 1024 bits');
     }
 
@@ -321,6 +321,7 @@ function keyInfo(rawKey, email) {
         };
 
         var keys = getKeys(rawKey);
+        var algoInfo = keys[0].primaryKey.getAlgorithmInfo();
 
         var obj = {
             version: keys[0].primaryKey.version,
@@ -328,10 +329,11 @@ function keyInfo(rawKey, email) {
             fingerprint: keys[0].primaryKey.getFingerprint(),
             userIds: keys[0].getUserIds(),
             user: primaryUser(keys[0]),
-            bitSize: keys[0].primaryKey.getBitSize(),
+            bitSize: algoInfo.bits || null,
+            curve: algoInfo.curve || null,
             created: keys[0].primaryKey.created,
-            algorithm: openpgp.enums.publicKey[keys[0].primaryKey.algorithm],
-            algorithmName: keys[0].primaryKey.algorithm,
+            algorithm: openpgp.enums.publicKey[algoInfo.algorithm],
+            algorithmName: algoInfo.algorithm,
             expires: keys[0].getExpirationTime(),
             encrypt: packetInfo(keys[0].getEncryptionKeyPacket(), keys[0]),
             sign: packetInfo(keys[0].getSigningKeyPacket(), keys[0]),
