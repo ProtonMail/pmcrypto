@@ -135,11 +135,6 @@ function keyCheck(info, email, expectEncrypted) {
         throw new Error('Key will expire');
     }
 
-    // Algorithm check for RSA
-    if (info.algorithm !== openpgp.enums.publicKey.rsa_encrypt_sign && info.algorithm !== openpgp.enums.publicKey.rsa_sign || info.encrypt.algorithm !== openpgp.enums.publicKey.rsa_encrypt_sign && info.encrypt.algorithm !== openpgp.enums.publicKey.rsa_encrypt || info.sign.algorithm !== openpgp.enums.publicKey.rsa_encrypt_sign && info.sign.algorithm !== openpgp.enums.publicKey.rsa_sign) {
-        throw new Error('Key asymmetric algorithms must be RSA');
-    }
-
     // Hash algorithms
     if (info.user.hash && info.user.hash.length) {
         if (info.user.hash[0] !== openpgp.enums.hash.sha256) {
@@ -174,8 +169,7 @@ module.exports = keyCheck;
 'use strict';
 
 var _require = require('./utils'),
-    getKeys = _require.getKeys,
-    pickPrivate = _require.pickPrivate;
+    getKeys = _require.getKeys;
 
 function decryptPrivateKey(privKey, privKeyPassCode) {
 
@@ -202,17 +196,14 @@ function decryptSessionKey(options) {
 
     return Promise.resolve().then(function () {
 
-        options = pickPrivate(options);
-
         try {
-            return openpgp.decryptSessionKey(options).then(function (result) {
+            return openpgp.decryptSessionKeys(options).then(function (result) {
 
-                // FIXME this should be in openpgp.js
-                if (!result) {
-                    return Promise.reject(new Error('Invalid session key for decryption'));
+                if (result.length > 1) {
+                    return Promise.reject(new Error('Multiple decrypted session keys found'));
                 }
 
-                return result;
+                return result[0];
             }).catch(function (err) {
                 console.error(err);
                 return Promise.reject(err);
@@ -421,34 +412,11 @@ function getKeys() {
     return keys.keys;
 }
 
-function pickPrivate(options) {
-
-    if (options.privateKeys) {
-        // Pick correct private key
-        var encryptionKeyIds = options.message.getEncryptionKeyIds();
-        if (!encryptionKeyIds.length) {
-            throw new Error('No asymmetric session key packets found');
-        }
-
-        for (var i = 0; i < options.privateKeys.length; i++) {
-            if (options.privateKeys[i].getKeyPacket(encryptionKeyIds) !== null) {
-                options.privateKey = options.privateKeys[i];
-                break;
-            }
-        }
-    }
-
-    delete options.privateKeys;
-
-    return options;
-}
-
 function isExpiredKey(key) {
     return key.getExpirationTime() !== null && key.getExpirationTime() < Date.now();
 }
 
 module.exports = {
-    pickPrivate: pickPrivate,
     generateKey: generateKey,
     generateSessionKey: generateSessionKey,
     reformatKey: reformatKey,
@@ -499,34 +467,28 @@ var _require = require('../utils'),
     binaryStringToArray = _require.binaryStringToArray,
     arrayToBinaryString = _require.arrayToBinaryString;
 
-var _require2 = require('../key/utils'),
-    pickPrivate = _require2.pickPrivate;
+var _require2 = require('../message/utils'),
+    getMessage = _require2.getMessage,
+    verifyExpirationTime = _require2.verifyExpirationTime;
 
-var _require3 = require('../message/utils'),
-    getMessage = _require3.getMessage,
-    verifyExpirationTime = _require3.verifyExpirationTime;
+var _require3 = require('./compat'),
+    getEncMessageFromEmailPM = _require3.getEncMessageFromEmailPM,
+    getEncRandomKeyFromEmailPM = _require3.getEncRandomKeyFromEmailPM;
 
-var _require4 = require('./compat'),
-    getEncMessageFromEmailPM = _require4.getEncMessageFromEmailPM,
-    getEncRandomKeyFromEmailPM = _require4.getEncRandomKeyFromEmailPM;
-
-var _require5 = require('../constants.js'),
-    _require5$VERIFICATIO = _require5.VERIFICATION_STATUS,
-    NOT_SIGNED = _require5$VERIFICATIO.NOT_SIGNED,
-    SIGNED_AND_VALID = _require5$VERIFICATIO.SIGNED_AND_VALID,
-    SIGNED_AND_INVALID = _require5$VERIFICATIO.SIGNED_AND_INVALID;
+var _require4 = require('../constants.js'),
+    _require4$VERIFICATIO = _require4.VERIFICATION_STATUS,
+    NOT_SIGNED = _require4$VERIFICATIO.NOT_SIGNED,
+    SIGNED_AND_VALID = _require4$VERIFICATIO.SIGNED_AND_VALID,
+    SIGNED_AND_INVALID = _require4$VERIFICATIO.SIGNED_AND_INVALID;
 
 function decryptMessage(options) {
-    var _options = options,
-        _options$verification = _options.verificationTime,
+    var _options$verification = options.verificationTime,
         verificationTime = _options$verification === undefined ? false : _options$verification,
-        _options$publicKeys = _options.publicKeys,
+        _options$publicKeys = options.publicKeys,
         publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
 
 
     return Promise.resolve().then(function () {
-
-        options = pickPrivate(options);
 
         try {
             return openpgp.decrypt(options).then(function (_ref) {
@@ -640,7 +602,7 @@ module.exports = {
 };
 
 }).call(this,require('_process'))
-},{"../constants.js":2,"../key/utils":8,"../message/utils":12,"../utils":13,"./compat":9,"_process":14}],11:[function(require,module,exports){
+},{"../constants.js":2,"../message/utils":12,"../utils":13,"./compat":9,"_process":14}],11:[function(require,module,exports){
 "use strict";
 
 function encryptMessage(options) {
