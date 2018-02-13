@@ -340,6 +340,7 @@ function keyInfo(rawKey, email) {
             bitSize: keys[0].primaryKey.getBitSize(),
             created: keys[0].primaryKey.created,
             algorithm: openpgp.enums.publicKey[keys[0].primaryKey.algorithm],
+            algorithmName: keys[0].primaryKey.algorithm,
             expires: keys[0].getExpirationTime(),
             encrypt: packetInfo(keys[0].getEncryptionKeyPacket(), keys[0]),
             sign: packetInfo(keys[0].getSigningKeyPacket(), keys[0]),
