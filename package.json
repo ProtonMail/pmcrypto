@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify -t [ babelify ] lib/browser.js -o build/pmcrypto.js"
+    "build": "browserify -t [ babelify ] lib/browser.js -o build/pmcrypto.js",
+    "lint": "eslint $(find lib -type f -name '*.js')  --quiet"
   },
   "repository": {
     "type": "git",
