@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "ava -v",
     "build": "browserify -t [ babelify ] lib/browser.js -o build/pmcrypto.js",
     "lint": "eslint $(find lib -type f -name '*.js')  --quiet"
   },
@@ -25,6 +25,7 @@
     "openpgp": "2.6.2"
   },
   "devDependencies": {
+    "ava": "^0.25.0",
     "babel-plugin-istanbul": "^4.1.4",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-plugin-transform-regenerator": "^6.24.1",
