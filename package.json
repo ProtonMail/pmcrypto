@@ -5,23 +5,24 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify -t [ babelify ] lib/browser.js -o build/pmcrypto.js"
+    "build": "browserify -t [ babelify ] lib/browser.js -o build/pmcrypto.js",
+    "lint": "eslint $(find lib -type f -name '*.js')  --quiet"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ProtonMail/pmcrypto.git"
   },
   "author": "ProtonMail",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/ProtonMail/pmcrypto/issues"
   },
   "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
   "dependencies": {
-	  "btoa": "*",
-	  "atob": "*",
-	  "es6-promise": "*",
-	  "openpgp": "2.6.2"
+    "btoa": "*",
+    "atob": "*",
+    "es6-promise": "*",
+    "openpgp": "2.6.2"
   },
   "devDependencies": {
     "babel-plugin-istanbul": "^4.1.4",
@@ -31,6 +32,9 @@
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-stage-0": "^6.24.1",
     "babelify": "^7.3.0",
-    "browserify": "^14.4.0"
+    "browserify": "^14.4.0",
+    "eslint": "^4.18.1",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.9.0"
   }
 }
