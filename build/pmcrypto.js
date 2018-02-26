@@ -419,7 +419,9 @@ function getKeys() {
 }
 
 function isExpiredKey(key) {
-    return key.getExpirationTime() !== null && key.getExpirationTime() < Date.now();
+    return key.verifyPrimaryUser().then(function () {
+        return key.getExpirationTime() !== null && key.getExpirationTime() < Date.now();
+    });
 }
 
 module.exports = {
