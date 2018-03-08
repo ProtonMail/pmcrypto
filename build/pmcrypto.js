@@ -183,12 +183,12 @@ function decryptPrivateKey(privKey, privKeyPassCode) {
         }
 
         var keys = getKeys(privKey);
-
-        if (keys[0].decrypt(privKeyPassCode)) {
+        return keys[0].decrypt(privKeyPassCode).then(function (success) {
+            if (!success) {
+                throw new Error('Private key decryption failed');
+            }
             return keys[0];
-        }
-
-        return Promise.reject(new Error('Private key decryption failed'));
+        });
     });
 }
 
