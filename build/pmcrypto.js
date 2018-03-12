@@ -985,7 +985,7 @@ function splitMessage(message) {
     var splitPackets = function splitPackets(packetList) {
         var packets = [];
         for (var i = 0; i < packetList.length; i++) {
-            var newList = new openpgp.packet.PacketList();
+            var newList = new openpgp.packet.List();
             newList.push(packetList[i]);
             packets.push(newList.write());
         }
