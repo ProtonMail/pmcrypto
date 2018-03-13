@@ -111,7 +111,7 @@ function keyCheck(info, email, expectEncrypted) {
         throw new Error('Key is less than 1024 bits');
     }
 
-    if (info.expires) {
+    if (isFinite(info.expires)) {
         throw new Error('Key will expire');
     }
 
@@ -119,11 +119,11 @@ function keyCheck(info, email, expectEncrypted) {
         throw new Error('Key cannot be used for encryption');
     }
 
-    if (info.encrypt.expires) {
+    if (isFinite(info.encrypt.expires)) {
         throw new Error('Key will expire');
     }
 
-    if (info.revocationSignature !== null) {
+    if (info.revocationSignatures.length) {
         throw new Error('Key is revoked');
     }
 
@@ -131,7 +131,7 @@ function keyCheck(info, email, expectEncrypted) {
         throw new Error('Key cannot be used for signing');
     }
 
-    if (info.sign.expires) {
+    if (isFinite(info.sign.expires)) {
         throw new Error('Key will expire');
     }
 
@@ -459,7 +459,7 @@ function keyInfo(rawKey, email) {
                         case 33:
                             _context3.t18 = _context3.sent;
                             _context3.t19 = keys[0].primaryKey.isDecrypted;
-                            _context3.t20 = keys[0].revocationSignature;
+                            _context3.t20 = keys[0].revocationSignatures;
                             obj = {
                                 version: _context3.t0,
                                 publicKeyArmored: _context3.t1,
@@ -475,7 +475,7 @@ function keyInfo(rawKey, email) {
                                 encrypt: _context3.t14,
                                 sign: _context3.t18,
                                 decrypted: _context3.t19,
-                                revocationSignature: _context3.t20,
+                                revocationSignatures: _context3.t20,
                                 validationError: null
                             };
 
