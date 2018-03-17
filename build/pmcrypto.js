@@ -61,7 +61,7 @@ function pmcrypto() {
         getCleartextMessage: messageUtils.getCleartextMessage,
         createMessage: messageUtils.createMessage,
 
-        encryptMessage: require('./message/encrypt'),
+        encryptMessage: openpgp.encrypt,
         decryptMessage: decryptMessage.decryptMessage,
         decryptMessageLegacy: decryptMessage.decryptMessageLegacy,
 
@@ -84,7 +84,7 @@ function pmcrypto() {
 
 module.exports = pmcrypto();
 
-},{"./key/check":4,"./key/decrypt":5,"./key/encrypt":6,"./key/info":7,"./key/utils":8,"./message/decrypt":10,"./message/encrypt":11,"./message/utils":12,"./utils":13}],4:[function(require,module,exports){
+},{"./key/check":4,"./key/decrypt":5,"./key/encrypt":6,"./key/info":7,"./key/utils":8,"./message/decrypt":10,"./message/utils":11,"./utils":12}],4:[function(require,module,exports){
 'use strict';
 
 function keyCheck(info, email, expectEncrypted) {
@@ -264,7 +264,6 @@ module.exports = {
 function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
 
 var keyCheck = require('./check');
-var encryptMessage = require('../message/encrypt');
 
 var _require = require('./utils'),
     getKeys = _require.getKeys;
@@ -273,6 +272,7 @@ function keyInfo(rawKey, email) {
     var _this = this;
 
     var expectEncrypted = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+    var date = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : new Date();
 
 
     return Promise.resolve(getKeys(rawKey)).then(function () {
@@ -351,7 +351,7 @@ function keyInfo(rawKey, email) {
                                     }, _callee, _this);
                                 }));
 
-                                return function packetInfo(_x3, _x4) {
+                                return function packetInfo(_x4, _x5) {
                                     return _ref2.apply(this, arguments);
                                 };
                             }();
@@ -364,7 +364,7 @@ function keyInfo(rawKey, email) {
                                             switch (_context2.prev = _context2.next) {
                                                 case 0:
                                                     _context2.next = 2;
-                                                    return key.getPrimaryUser();
+                                                    return key.getPrimaryUser(date);
 
                                                 case 2:
                                                     primary = _context2.sent;
@@ -409,7 +409,7 @@ function keyInfo(rawKey, email) {
                                     }, _callee2, _this);
                                 }));
 
-                                return function primaryUser(_x5) {
+                                return function primaryUser(_x6) {
                                     return _ref3.apply(this, arguments);
                                 };
                             }();
@@ -436,7 +436,7 @@ function keyInfo(rawKey, email) {
                             _context3.t10 = _context3.sent;
                             _context3.t11 = packetInfo;
                             _context3.next = 21;
-                            return keys[0].getEncryptionKeyPacket();
+                            return keys[0].getEncryptionKeyPacket(undefined, date);
 
                         case 21:
                             _context3.t12 = _context3.sent;
@@ -448,7 +448,7 @@ function keyInfo(rawKey, email) {
                             _context3.t14 = _context3.sent;
                             _context3.t15 = packetInfo;
                             _context3.next = 29;
-                            return keys[0].getSigningKeyPacket();
+                            return keys[0].getSigningKeyPacket(undefined, date);
 
                         case 29:
                             _context3.t16 = _context3.sent;
@@ -486,7 +486,7 @@ function keyInfo(rawKey, email) {
                                 obj.validationError = err.message;
                             }
 
-                            encryptCheck = obj.encrypt ? encryptMessage({ data: 'test message', publicKeys: keys }) : Promise.resolve();
+                            encryptCheck = obj.encrypt ? openpgp.encrypt({ data: 'test message', publicKeys: keys, date: date }) : Promise.resolve();
                             _context3.next = 41;
                             return encryptCheck;
 
@@ -501,7 +501,7 @@ function keyInfo(rawKey, email) {
             }, _callee3, _this);
         }));
 
-        return function (_x2) {
+        return function (_x3) {
             return _ref.apply(this, arguments);
         };
     }());
@@ -509,7 +509,7 @@ function keyInfo(rawKey, email) {
 
 module.exports = keyInfo;
 
-},{"../message/encrypt":11,"./check":4,"./utils":8}],8:[function(require,module,exports){
+},{"./check":4,"./utils":8}],8:[function(require,module,exports){
 'use strict';
 
 // returns promise for generated RSA public and encrypted private keys
@@ -817,24 +817,7 @@ module.exports = {
 };
 
 }).call(this,require('_process'))
-},{"../constants.js":2,"../message/utils":12,"../utils":13,"./compat":9,"_process":14}],11:[function(require,module,exports){
-"use strict";
-
-function encryptMessage(options) {
-
-    return openpgp.encrypt(options).catch(function (err) {
-        // Try without signing
-        if (options.privateKeys && options.privateKeys.length) {
-            options.privateKeys = [];
-            return openpgp.encrypt(options);
-        }
-        return Promise.reject(err);
-    });
-}
-
-module.exports = encryptMessage;
-
-},{}],12:[function(require,module,exports){
+},{"../constants.js":2,"../message/utils":11,"../utils":12,"./compat":9,"_process":13}],11:[function(require,module,exports){
 'use strict';
 
 var verifyExpirationTime = function () {
@@ -1022,7 +1005,7 @@ module.exports = {
     createMessage: createMessage
 };
 
-},{"../constants.js":2}],13:[function(require,module,exports){
+},{"../constants.js":2}],12:[function(require,module,exports){
 'use strict';
 
 var noop = function noop() {};
@@ -1091,7 +1074,7 @@ module.exports = {
     stripArmor: stripArmor
 };
 
-},{}],14:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
