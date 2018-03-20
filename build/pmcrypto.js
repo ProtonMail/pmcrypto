@@ -43,6 +43,7 @@ function pmcrypto() {
 
         generateKey: keyUtils.generateKey,
         getKeys: keyUtils.getKeys,
+        updateServerTime: utils.updateServerTime,
 
         reformatKey: keyUtils.reformatKey,
         generateSessionKey: keyUtils.generateSessionKey,
@@ -268,11 +269,14 @@ var keyCheck = require('./check');
 var _require = require('./utils'),
     getKeys = _require.getKeys;
 
+var _require2 = require('../utils'),
+    serverTime = _require2.serverTime;
+
 function keyInfo(rawKey, email) {
     var _this = this;
 
     var expectEncrypted = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-    var date = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : new Date();
+    var date = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : serverTime();
 
 
     return Promise.resolve(getKeys(rawKey)).then(function () {
@@ -509,12 +513,17 @@ function keyInfo(rawKey, email) {
 
 module.exports = keyInfo;
 
-},{"./check":4,"./utils":8}],8:[function(require,module,exports){
+},{"../utils":12,"./check":4,"./utils":8}],8:[function(require,module,exports){
 'use strict';
 
+var _require = require('../utils'),
+    serverTime = _require.serverTime;
 // returns promise for generated RSA public and encrypted private keys
-var generateKey = function generateKey(opt) {
-    return openpgp.generateKey(opt);
+
+
+var generateKey = function generateKey(options) {
+    options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
+    return openpgp.generateKey(options);
 };
 var generateSessionKey = function generateSessionKey(algorithm) {
     return openpgp.crypto.generateSessionKey(algorithm);
@@ -567,7 +576,7 @@ function getKeys() {
 
 function isExpiredKey(key) {
     return key.getExpirationTime().then(function (expirationTime) {
-        return !(key.primaryKey.created <= Date.now() && Date.now() < expirationTime);
+        return !(key.primaryKey.created <= +serverTime() && +serverTime() < expirationTime);
     });
 }
 
@@ -579,7 +588,7 @@ module.exports = {
     isExpiredKey: isExpiredKey
 };
 
-},{}],9:[function(require,module,exports){
+},{"../utils":12}],9:[function(require,module,exports){
 'use strict';
 
 // Deprecated, backwards compatibility
@@ -622,7 +631,8 @@ function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, a
 var _require = require('../utils'),
     decode_utf8_base64 = _require.decode_utf8_base64,
     binaryStringToArray = _require.binaryStringToArray,
-    arrayToBinaryString = _require.arrayToBinaryString;
+    arrayToBinaryString = _require.arrayToBinaryString,
+    serverTime = _require.serverTime;
 
 var _require2 = require('../message/utils'),
     getMessage = _require2.getMessage,
@@ -646,6 +656,7 @@ function decryptMessage(options) {
         _options$publicKeys = options.publicKeys,
         publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
 
+    options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
     return Promise.resolve().then(function () {
 
@@ -817,7 +828,7 @@ module.exports = {
 };
 
 }).call(this,require('_process'))
-},{"../constants.js":2,"../message/utils":11,"../utils":12,"./compat":9,"_process":13}],11:[function(require,module,exports){
+},{"../constants.js":2,"../message/utils":11,"../utils":12,"./compat":9,"_process":14}],11:[function(require,module,exports){
 'use strict';
 
 var verifyExpirationTime = function () {
@@ -876,6 +887,9 @@ var _require = require('../constants.js'),
     SIGNED_AND_VALID = _require$VERIFICATION.SIGNED_AND_VALID,
     SIGNED_AND_INVALID = _require$VERIFICATION.SIGNED_AND_INVALID;
 
+var _require2 = require('../utils'),
+    serverTime = _require2.serverTime;
+
 function getMessage(message) {
 
     if (openpgp.message.Message.prototype.isPrototypeOf(message)) {
@@ -917,6 +931,7 @@ function createMessage(source) {
 }
 
 function signMessage(options) {
+    options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
     return openpgp.sign(options).catch(function (err) {
         console.error(err);
@@ -930,6 +945,7 @@ function verifyMessage(options) {
         _options$publicKeys = options.publicKeys,
         publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
 
+    options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
     return openpgp.verify(options).then(function (_ref3) {
         var data = _ref3.data,
@@ -1005,8 +1021,13 @@ module.exports = {
     createMessage: createMessage
 };
 
-},{"../constants.js":2}],12:[function(require,module,exports){
+},{"../constants.js":2,"../utils":12}],12:[function(require,module,exports){
 'use strict';
+
+// Load window.performance in the browser, perf_hooks in node, and fall back on Date
+var _ref = require('perf_hooks') || { performance: window.performance },
+    _ref$performance = _ref.performance,
+    performance = _ref$performance === undefined ? Date : _ref$performance;
 
 var noop = function noop() {};
 var ifDefined = function ifDefined() {
@@ -1061,6 +1082,21 @@ function stripArmor(input) {
     return openpgp.armor.decode(input).data;
 }
 
+var lastServerTime = null;
+var clientTime = null;
+
+function serverTime() {
+    if (lastServerTime !== null) {
+        return new Date(+lastServerTime + (performance.now() - clientTime));
+    }
+    return new Date();
+}
+
+function updateServerTime(serverDate) {
+    lastServerTime = serverDate;
+    clientTime = performance.now();
+}
+
 module.exports = {
     encode_utf8: encode_utf8,
     decode_utf8: decode_utf8,
@@ -1071,10 +1107,14 @@ module.exports = {
     binaryStringToArray: binaryStringToArray,
     arrayToBinaryString: arrayToBinaryString,
     getHashedPassword: getHashedPassword,
-    stripArmor: stripArmor
+    stripArmor: stripArmor,
+    updateServerTime: updateServerTime,
+    serverTime: serverTime
 };
 
-},{}],13:[function(require,module,exports){
+},{"perf_hooks":13}],13:[function(require,module,exports){
+
+},{}],14:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 

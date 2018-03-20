@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify -t [ babelify ] lib/browser.js -o build/pmcrypto.js",
+    "build": "browserify -t [ babelify ] lib/browser.js -o build/pmcrypto.js -i perf_hooks",
     "lint": "eslint $(find lib -type f -name '*.js')  --quiet"
   },
   "repository": {
@@ -22,7 +22,7 @@
     "btoa": "*",
     "atob": "*",
     "es6-promise": "*",
-    "openpgp": "git@github.com:openpgpjs/openpgpjs.git#v3.0.3"
+    "openpgp": "git@github.com:KAYLukas/openpgpjs.git#master"
   },
   "devDependencies": {
     "babel-plugin-istanbul": "^4.1.4",
