@@ -636,7 +636,8 @@ var _require = require('../utils'),
 
 var _require2 = require('../message/utils'),
     getMessage = _require2.getMessage,
-    verifyExpirationTime = _require2.verifyExpirationTime;
+    verifyExpirationTime = _require2.verifyExpirationTime,
+    verifyInlineMessage = _require2.verifyInlineMessage;
 
 var _require3 = require('./compat'),
     getEncMessageFromEmailPM = _require3.getEncMessageFromEmailPM,
@@ -654,7 +655,9 @@ function decryptMessage(options) {
     var _options$verification = options.verificationTime,
         verificationTime = _options$verification === undefined ? false : _options$verification,
         _options$publicKeys = options.publicKeys,
-        publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
+        publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys,
+        _options$isInline = options.isInline,
+        isInline = _options$isInline === undefined ? false : _options$isInline;
 
     options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
@@ -718,34 +721,25 @@ function decryptMessage(options) {
                                     break;
 
                                 case 17:
-                                    if (!(process.env.NODE_ENV !== 'production')) {
-                                        _context.next = 28;
+                                    if (!(verified === SIGNED_AND_INVALID && isInline && options.publicKeys && options.publicKeys.length)) {
+                                        _context.next = 19;
                                         break;
                                     }
 
-                                    _context.t1 = verified;
-                                    _context.next = _context.t1 === NOT_SIGNED ? 21 : _context.t1 === SIGNED_AND_VALID ? 23 : _context.t1 === SIGNED_AND_INVALID ? 25 : 27;
-                                    break;
+                                    return _context.abrupt('return', verifyInlineMessage(sigs.map(function (_ref3) {
+                                        var signature = _ref3.signature;
+                                        return signature;
+                                    }), publicKeys, data, options.date).then(function (_ref4) {
+                                        var data = _ref4.data,
+                                            signatures = _ref4.signatures,
+                                            verified = _ref4.verified;
+                                        return { data: data, signatures: signatures, verified: verified, filename: filename };
+                                    }));
 
-                                case 21:
-                                    console.log('No message signature present');
-                                    return _context.abrupt('break', 28);
+                                case 19:
+                                    return _context.abrupt('return', { data: data, signatures: signatures, verified: verified, filename: filename });
 
-                                case 23:
-                                    console.log('Verified message signature');
-                                    return _context.abrupt('break', 28);
-
-                                case 25:
-                                    console.log('Message signature could not be verified');
-                                    return _context.abrupt('break', 28);
-
-                                case 27:
-                                    return _context.abrupt('return', Promise.reject('Unknown verified value'));
-
-                                case 28:
-                                    return _context.abrupt('return', { data: data, filename: filename, verified: verified, signatures: signatures });
-
-                                case 29:
+                                case 20:
                                 case 'end':
                                     return _context.stop();
                             }
@@ -756,7 +750,32 @@ function decryptMessage(options) {
                 return function (_x) {
                     return _ref.apply(this, arguments);
                 };
-            }()).catch(function (err) {
+            }()).then(function (_ref5) {
+                var data = _ref5.data,
+                    signatures = _ref5.signatures,
+                    verified = _ref5.verified,
+                    filename = _ref5.filename;
+
+
+                // Debugging
+                if (process.env.NODE_ENV !== 'production') {
+                    switch (verified) {
+                        case NOT_SIGNED:
+                            console.log('No message signature present');
+                            break;
+                        case SIGNED_AND_VALID:
+                            console.log('Verified message signature');
+                            break;
+                        case SIGNED_AND_INVALID:
+                            console.log('Message signature could not be verified');
+                            break;
+                        default:
+                            return Promise.reject('Unknown verified value');
+                    }
+                }
+
+                return { data: data, filename: filename, verified: verified, signatures: signatures };
+            }).catch(function (err) {
                 console.error(err);
                 return Promise.reject(err);
             });
@@ -795,8 +814,8 @@ function decryptMessageLegacy(options) {
             message: getMessage(oldEncRandomKey)
         };
 
-        return decryptMessage(old_options).then(function (_ref3) {
-            var data = _ref3.data;
+        return decryptMessage(old_options).then(function (_ref6) {
+            var data = _ref6.data;
             return decode_utf8_base64(data);
         }).then(binaryStringToArray).then(function (randomKey) {
 
@@ -830,6 +849,8 @@ module.exports = {
 }).call(this,require('_process'))
 },{"../constants.js":2,"../message/utils":11,"../utils":12,"./compat":9,"_process":14}],11:[function(require,module,exports){
 'use strict';
+
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
 var verifyExpirationTime = function () {
     var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(_ref2, publicKeys, verificationTime) {
@@ -888,7 +909,8 @@ var _require = require('../constants.js'),
     SIGNED_AND_INVALID = _require$VERIFICATION.SIGNED_AND_INVALID;
 
 var _require2 = require('../utils'),
-    serverTime = _require2.serverTime;
+    serverTime = _require2.serverTime,
+    arrayToBinaryString = _require2.arrayToBinaryString;
 
 function getMessage(message) {
 
@@ -943,7 +965,9 @@ function verifyMessage(options) {
     var _options$verification = options.verificationTime,
         verificationTime = _options$verification === undefined ? false : _options$verification,
         _options$publicKeys = options.publicKeys,
-        publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
+        publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys,
+        _options$isInline = options.isInline,
+        isInline = _options$isInline === undefined ? false : _options$isInline;
 
     options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
@@ -966,10 +990,55 @@ function verifyMessage(options) {
                 }
             }
         }
+        if (verified === SIGNED_AND_INVALID && isInline && options.publicKeys && options.publicKeys.length) {
+            return verifyInlineMessage(sigs.map(function (_ref4) {
+                var signature = _ref4.signature;
+                return signature;
+            }), publicKeys, arrayToBinaryString(data), options.date);
+        }
         return { data: data, verified: verified, signatures: signatures };
     }).catch(function (err) {
         console.error(err);
         return Promise.reject(err);
+    });
+}
+
+function verifySignatures(signatures, publicKeys, cleartext, date) {
+    return Promise.all(signatures.map(function (signature) {
+        return verifyMessage({
+            message: createMessage(cleartext),
+            signature: signature,
+            date: date,
+            publicKeys: publicKeys
+        }).then(function (_ref5) {
+            var data = _ref5.data,
+                verified = _ref5.verified,
+                signatures = _ref5.signatures;
+            return { data: arrayToBinaryString(data), verified: verified, signatures: signatures };
+        });
+    })).then(function (results) {
+        var _results$filter = results.filter(function (_ref6) {
+            var verified = _ref6.verified;
+            return verified === SIGNED_AND_VALID;
+        }),
+            _results$filter2 = _slicedToArray(_results$filter, 1),
+            _results$filter2$ = _results$filter2[0],
+            verifiedResult = _results$filter2$ === undefined ? false : _results$filter2$;
+
+        return verifiedResult || { data: cleartext, verified: SIGNED_AND_INVALID, signatures: [] };
+    });
+}
+
+function verifyInlineMessage(signatures, publicKeys, cleartext, date) {
+    return verifySignatures(signatures, publicKeys, cleartext, date).then(function (_ref7) {
+        var data = _ref7.data,
+            verified = _ref7.verified,
+            sigs = _ref7.signatures;
+
+        if (verified !== SIGNED_AND_INVALID) {
+            return { data: data, verified: verified, signatures: sigs };
+        }
+        return verifySignatures(signatures, publicKeys, cleartext.replace(/[\xa0]/g, ' '), date);
     });
 }
 
@@ -1013,6 +1082,7 @@ function splitMessage(message) {
 module.exports = {
     signMessage: signMessage,
     verifyMessage: verifyMessage,
+    verifyInlineMessage: verifyInlineMessage,
     splitMessage: splitMessage,
     getMessage: getMessage,
     verifyExpirationTime: verifyExpirationTime,
