@@ -19,6 +19,10 @@ var constants = {
         NOT_SIGNED: 0,
         SIGNED_AND_VALID: 1,
         SIGNED_AND_INVALID: 2
+    },
+    SIGNATURE_TYPES: {
+        BINARY: 0,
+        CANONICAL_TEXT: 1
     }
 };
 
@@ -626,8 +630,6 @@ module.exports = {
 (function (process){
 'use strict';
 
-function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
-
 var _require = require('../utils'),
     decode_utf8_base64 = _require.decode_utf8_base64,
     binaryStringToArray = _require.binaryStringToArray,
@@ -636,7 +638,7 @@ var _require = require('../utils'),
 
 var _require2 = require('../message/utils'),
     getMessage = _require2.getMessage,
-    verifyExpirationTime = _require2.verifyExpirationTime;
+    handleVerificationResult = _require2.handleVerificationResult;
 
 var _require3 = require('./compat'),
     getEncMessageFromEmailPM = _require3.getEncMessageFromEmailPM,
@@ -649,11 +651,7 @@ var _require4 = require('../constants.js'),
     SIGNED_AND_INVALID = _require4$VERIFICATIO.SIGNED_AND_INVALID;
 
 function decryptMessage(options) {
-    var _this = this;
-
-    var _options$verification = options.verificationTime,
-        verificationTime = _options$verification === undefined ? false : _options$verification,
-        _options$publicKeys = options.publicKeys,
+    var _options$publicKeys = options.publicKeys,
         publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
 
     options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
@@ -661,102 +659,33 @@ function decryptMessage(options) {
     return Promise.resolve().then(function () {
 
         try {
-            return openpgp.decrypt(options).then(function () {
-                var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(_ref2) {
-                    var data = _ref2.data,
-                        filename = _ref2.filename,
-                        sigs = _ref2.signatures;
-                    var verified, signatures, i;
-                    return regeneratorRuntime.wrap(function _callee$(_context) {
-                        while (1) {
-                            switch (_context.prev = _context.next) {
-                                case 0:
-                                    verified = NOT_SIGNED;
-                                    signatures = [];
+            return openpgp.decrypt(options).then(function (result) {
+                return handleVerificationResult(result, publicKeys, options.date);
+            }).then(function (_ref) {
+                var data = _ref.data,
+                    filename = _ref.filename,
+                    verified = _ref.verified,
+                    signatures = _ref.signatures;
 
-                                    if (!(sigs && sigs.length)) {
-                                        _context.next = 17;
-                                        break;
-                                    }
+                // Debugging
+                if (process.env.NODE_ENV !== 'production') {
+                    switch (verified) {
+                        case NOT_SIGNED:
+                            console.log('No message signature present');
+                            break;
+                        case SIGNED_AND_VALID:
+                            console.log('Verified message signature');
+                            break;
+                        case SIGNED_AND_INVALID:
+                            console.log('Message signature could not be verified');
+                            break;
+                        default:
+                            return Promise.reject('Unknown verified value');
+                    }
+                }
 
-                                    verified = SIGNED_AND_INVALID;
-                                    i = 0;
-
-                                case 5:
-                                    if (!(i < sigs.length)) {
-                                        _context.next = 17;
-                                        break;
-                                    }
-
-                                    _context.t0 = sigs[i].valid;
-
-                                    if (!_context.t0) {
-                                        _context.next = 11;
-                                        break;
-                                    }
-
-                                    _context.next = 10;
-                                    return verifyExpirationTime(sigs[i], publicKeys, verificationTime);
-
-                                case 10:
-                                    _context.t0 = _context.sent;
-
-                                case 11:
-                                    sigs[i].valid = _context.t0;
-
-
-                                    if (sigs[i].valid) {
-                                        verified = SIGNED_AND_VALID;
-                                    }
-                                    if (sigs[i].valid || !options.publicKeys || !options.publicKeys.length) {
-                                        signatures.push(sigs[i].signature);
-                                    }
-
-                                case 14:
-                                    i++;
-                                    _context.next = 5;
-                                    break;
-
-                                case 17:
-                                    if (!(process.env.NODE_ENV !== 'production')) {
-                                        _context.next = 28;
-                                        break;
-                                    }
-
-                                    _context.t1 = verified;
-                                    _context.next = _context.t1 === NOT_SIGNED ? 21 : _context.t1 === SIGNED_AND_VALID ? 23 : _context.t1 === SIGNED_AND_INVALID ? 25 : 27;
-                                    break;
-
-                                case 21:
-                                    console.log('No message signature present');
-                                    return _context.abrupt('break', 28);
-
-                                case 23:
-                                    console.log('Verified message signature');
-                                    return _context.abrupt('break', 28);
-
-                                case 25:
-                                    console.log('Message signature could not be verified');
-                                    return _context.abrupt('break', 28);
-
-                                case 27:
-                                    return _context.abrupt('return', Promise.reject('Unknown verified value'));
-
-                                case 28:
-                                    return _context.abrupt('return', { data: data, filename: filename, verified: verified, signatures: signatures });
-
-                                case 29:
-                                case 'end':
-                                    return _context.stop();
-                            }
-                        }
-                    }, _callee, _this);
-                }));
-
-                return function (_x) {
-                    return _ref.apply(this, arguments);
-                };
-            }()).catch(function (err) {
+                return { data: data, filename: filename, verified: verified, signatures: signatures };
+            }).catch(function (err) {
                 console.error(err);
                 return Promise.reject(err);
             });
@@ -775,7 +704,7 @@ function decryptMessageLegacy(options) {
 
     return Promise.resolve().then(function () {
 
-        if (options.messageTime === undefined || options.messageTime === '') {
+        if (options.date === undefined || !(options.date instanceof Date)) {
             throw new Error('Missing message time');
         }
 
@@ -795,8 +724,8 @@ function decryptMessageLegacy(options) {
             message: getMessage(oldEncRandomKey)
         };
 
-        return decryptMessage(old_options).then(function (_ref3) {
-            var data = _ref3.data;
+        return decryptMessage(old_options).then(function (_ref2) {
+            var data = _ref2.data;
             return decode_utf8_base64(data);
         }).then(binaryStringToArray).then(function (randomKey) {
 
@@ -809,7 +738,7 @@ function decryptMessageLegacy(options) {
             var data = void 0;
             try {
                 // cutoff time for enabling multilanguage support
-                if (options.messageTime > 1399086120) {
+                if (+options.date > 1399086120000) {
                     data = decode_utf8_base64(arrayToBinaryString(openpgp.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true)));
                 } else {
                     data = arrayToBinaryString(openpgp.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true));
@@ -831,42 +760,87 @@ module.exports = {
 },{"../constants.js":2,"../message/utils":11,"../utils":12,"./compat":9,"_process":14}],11:[function(require,module,exports){
 'use strict';
 
-var verifyExpirationTime = function () {
-    var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(_ref2, publicKeys, verificationTime) {
-        var keyid = _ref2.keyid;
-        var publickey, expirationTime;
+var handleVerificationResult = function () {
+    var _ref3 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(_ref4, publicKeys, date) {
+        var data = _ref4.data,
+            _ref4$filename = _ref4.filename,
+            filename = _ref4$filename === undefined ? 'msg.txt' : _ref4$filename,
+            sigs = _ref4.signatures;
+        var verified, signatures, i, verifiableSigs, text, textMessage, verificationPromises, verificationResults;
         return regeneratorRuntime.wrap(function _callee$(_context) {
             while (1) {
                 switch (_context.prev = _context.next) {
                     case 0:
-                        if (verificationTime) {
-                            _context.next = 2;
+                        verified = NOT_SIGNED;
+                        signatures = [];
+
+                        if (sigs && sigs.length) {
+                            verified = SIGNED_AND_INVALID;
+                            for (i = 0; i < sigs.length; i++) {
+                                if (sigs[i].valid) {
+                                    verified = SIGNED_AND_VALID;
+                                }
+                                if (sigs[i].valid || !publicKeys.length) {
+                                    signatures.push(sigs[i].signature);
+                                }
+                            }
+                        }
+
+                        if (!(verified === SIGNED_AND_INVALID)) {
+                            _context.next = 12;
                             break;
                         }
 
-                        return _context.abrupt('return', true);
-
-                    case 2:
-                        publickey = publicKeys.find(function (pk) {
-                            return pk.primaryKey.keyid.bytes === keyid.bytes;
+                        // enter extended text mode: some mail clients change spaces into nonbreaking spaces, we'll try to verify by normalizing this too.
+                        verifiableSigs = sigs.filter(function (_ref5) {
+                            var valid = _ref5.valid;
+                            return valid !== null;
+                        }).map(function (_ref6) {
+                            var signature = _ref6.signature;
+                            return signature;
+                        }).filter(isCanonicalTextSignature);
+                        text = typeof data === 'string' ? data : arrayToBinaryString(data);
+                        textMessage = createMessage(text.replace(/[\xa0]/g, ' '));
+                        verificationPromises = verifiableSigs.map(function (signature) {
+                            return openpgp.verify({
+                                message: textMessage,
+                                publicKeys: publicKeys,
+                                signature: signature,
+                                date: date
+                            }).then(function (_ref7) {
+                                var data = _ref7.data,
+                                    signatures = _ref7.signatures;
+                                return {
+                                    data: data,
+                                    signatures: signatures.map(function (_ref8) {
+                                        var signature = _ref8.signature;
+                                        return signature;
+                                    }),
+                                    verified: signatures[0].valid ? SIGNED_AND_VALID : SIGNED_AND_INVALID
+                                };
+                            });
                         });
+                        _context.next = 10;
+                        return Promise.all(verificationPromises);
 
-                        if (publickey) {
-                            _context.next = 5;
-                            break;
-                        }
+                    case 10:
+                        verificationResults = _context.sent;
+                        return _context.abrupt('return', verificationResults.filter(function (_ref9) {
+                            var verified = _ref9.verified;
+                            return verified === SIGNED_AND_VALID;
+                        }).reduceRight(function (acc, result) {
+                            if (acc.verified !== SIGNED_AND_VALID) {
+                                acc.verified = result.verified;
+                                acc.data = arrayToBinaryString(result.data);
+                            }
+                            acc.signatures = acc.signatures.concat(result.signature);
+                            return acc;
+                        }, { data: data, verified: verified, filename: filename, signatures: signatures }));
 
-                        return _context.abrupt('return', false);
+                    case 12:
+                        return _context.abrupt('return', { data: data, verified: verified, filename: filename, signatures: signatures });
 
-                    case 5:
-                        _context.next = 7;
-                        return publickey.getExpirationTime();
-
-                    case 7:
-                        expirationTime = _context.sent;
-                        return _context.abrupt('return', expirationTime === null || +expirationTime > verificationTime * 1000);
-
-                    case 9:
+                    case 13:
                     case 'end':
                         return _context.stop();
                 }
@@ -874,8 +848,8 @@ var verifyExpirationTime = function () {
         }, _callee, this);
     }));
 
-    return function verifyExpirationTime(_x, _x2, _x3) {
-        return _ref.apply(this, arguments);
+    return function handleVerificationResult(_x, _x2, _x3) {
+        return _ref3.apply(this, arguments);
     };
 }();
 
@@ -885,10 +859,12 @@ var _require = require('../constants.js'),
     _require$VERIFICATION = _require.VERIFICATION_STATUS,
     NOT_SIGNED = _require$VERIFICATION.NOT_SIGNED,
     SIGNED_AND_VALID = _require$VERIFICATION.SIGNED_AND_VALID,
-    SIGNED_AND_INVALID = _require$VERIFICATION.SIGNED_AND_INVALID;
+    SIGNED_AND_INVALID = _require$VERIFICATION.SIGNED_AND_INVALID,
+    CANONICAL_TEXT = _require.SIGNATURE_TYPES.CANONICAL_TEXT;
 
 var _require2 = require('../utils'),
-    serverTime = _require2.serverTime;
+    serverTime = _require2.serverTime,
+    arrayToBinaryString = _require2.arrayToBinaryString;
 
 function getMessage(message) {
 
@@ -939,33 +915,28 @@ function signMessage(options) {
     });
 }
 
+function isCanonicalTextSignature(_ref) {
+    var packets = _ref.packets;
+
+    return Object.values(packets).some(function (_ref2) {
+        var _ref2$signatureType = _ref2.signatureType,
+            signatureType = _ref2$signatureType === undefined ? false : _ref2$signatureType;
+        return signatureType === CANONICAL_TEXT;
+    });
+}
+
 function verifyMessage(options) {
-    var _options$verification = options.verificationTime,
-        verificationTime = _options$verification === undefined ? false : _options$verification,
-        _options$publicKeys = options.publicKeys,
+    var _options$publicKeys = options.publicKeys,
         publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
 
     options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
-    return openpgp.verify(options).then(function (_ref3) {
-        var data = _ref3.data,
-            sigs = _ref3.signatures;
-
-        var verified = NOT_SIGNED;
-        var signatures = [];
-        if (sigs && sigs.length) {
-            verified = SIGNED_AND_INVALID;
-            for (var i = 0; i < sigs.length; i++) {
-                sigs[i].valid = sigs[i].valid && verifyExpirationTime(sigs[i], publicKeys, verificationTime);
-
-                if (sigs[i].valid) {
-                    verified = SIGNED_AND_VALID;
-                }
-                if (sigs[i].valid || !options.publicKeys || !options.publicKeys.length) {
-                    signatures.push(sigs[i].signature);
-                }
-            }
-        }
+    return openpgp.verify(options).then(function (result) {
+        return handleVerificationResult(result, publicKeys, options.date);
+    }).then(function (_ref10) {
+        var data = _ref10.data,
+            verified = _ref10.verified,
+            signatures = _ref10.signatures;
         return { data: data, verified: verified, signatures: signatures };
     }).catch(function (err) {
         console.error(err);
@@ -1015,10 +986,10 @@ module.exports = {
     verifyMessage: verifyMessage,
     splitMessage: splitMessage,
     getMessage: getMessage,
-    verifyExpirationTime: verifyExpirationTime,
     getSignature: getSignature,
     getCleartextMessage: getCleartextMessage,
-    createMessage: createMessage
+    createMessage: createMessage,
+    handleVerificationResult: handleVerificationResult
 };
 
 },{"../constants.js":2,"../utils":12}],12:[function(require,module,exports){
