@@ -576,7 +576,7 @@ function getKeys() {
 
 function isExpiredKey(key) {
     return key.getExpirationTime().then(function (expirationTime) {
-        return !(key.primaryKey.created <= +serverTime() && +serverTime() < expirationTime);
+        return !(key.primaryKey.created <= +serverTime() && +serverTime() < expirationTime) || key.revocationSignatures.length > 0;
     });
 }
 
