@@ -1,4 +1,10 @@
-(function(){function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s}return e})()({1:[function(require,module,exports){
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+'use strict';
+
+require('./vendor');
+window.pmcrypto = require('../lib/main')(window.performance);
+
+},{"../lib/main":9,"./vendor":2}],2:[function(require,module,exports){
 'use strict';
 
 /**
@@ -9,9 +15,9 @@ openpgp.config.integrity_protect = true;
 openpgp.config.use_native = true;
 openpgp.initWorker({ path: 'openpgp.worker.min.js' });
 
-window.pmcrypto = require('./index');
+module.exports = {};
 
-},{"./index":3}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 "use strict";
 
 var constants = {
@@ -28,68 +34,7 @@ var constants = {
 
 module.exports = constants;
 
-},{}],3:[function(require,module,exports){
-'use strict';
-
-var utils = require('./utils');
-var keyUtils = require('./key/utils');
-var decryptKey = require('./key/decrypt');
-var encryptKey = require('./key/encrypt');
-var decryptMessage = require('./message/decrypt');
-var messageUtils = require('./message/utils');
-
-function pmcrypto() {
-
-    var config = { debug: true };
-
-    return {
-        config: config,
-
-        generateKey: keyUtils.generateKey,
-        getKeys: keyUtils.getKeys,
-        updateServerTime: utils.updateServerTime,
-
-        reformatKey: keyUtils.reformatKey,
-        generateSessionKey: keyUtils.generateSessionKey,
-        isExpiredKey: keyUtils.isExpiredKey,
-
-        encryptSessionKey: encryptKey.encryptSessionKey,
-        decryptSessionKey: decryptKey.decryptSessionKey,
-        encryptPrivateKey: encryptKey.encryptPrivateKey,
-        decryptPrivateKey: decryptKey.decryptPrivateKey,
-
-        getMessage: messageUtils.getMessage,
-        getSignature: messageUtils.getSignature,
-        signMessage: messageUtils.signMessage,
-        splitMessage: messageUtils.splitMessage,
-        verifyMessage: messageUtils.verifyMessage,
-        getCleartextMessage: messageUtils.getCleartextMessage,
-        createMessage: messageUtils.createMessage,
-
-        encryptMessage: openpgp.encrypt,
-        decryptMessage: decryptMessage.decryptMessage,
-        decryptMessageLegacy: decryptMessage.decryptMessageLegacy,
-
-        encode_utf8: utils.encode_utf8,
-        decode_utf8: utils.decode_utf8,
-        encode_base64: utils.encode_base64,
-        decode_base64: utils.decode_base64,
-        encode_utf8_base64: utils.encode_utf8_base64,
-        decode_utf8_base64: utils.decode_utf8_base64,
-        getHashedPassword: utils.getHashedPassword,
-        arrayToBinaryString: utils.arrayToBinaryString,
-        binaryStringToArray: utils.binaryStringToArray,
-        concatArrays: openpgp.util.concatUint8Array,
-        stripArmor: utils.stripArmor,
-
-        keyInfo: require('./key/info'),
-        keyCheck: require('./key/check')
-    };
-}
-
-module.exports = pmcrypto();
-
-},{"./key/check":4,"./key/decrypt":5,"./key/encrypt":6,"./key/info":7,"./key/utils":8,"./message/decrypt":10,"./message/utils":11,"./utils":12}],4:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 'use strict';
 
 function keyCheck(info, email, expectEncrypted) {
@@ -517,7 +462,7 @@ function keyInfo(rawKey, email) {
 
 module.exports = keyInfo;
 
-},{"../utils":12,"./check":4,"./utils":8}],8:[function(require,module,exports){
+},{"../utils":14,"./check":4,"./utils":8}],8:[function(require,module,exports){
 'use strict';
 
 var _require = require('../utils'),
@@ -592,7 +537,70 @@ module.exports = {
     isExpiredKey: isExpiredKey
 };
 
-},{"../utils":12}],9:[function(require,module,exports){
+},{"../utils":14}],9:[function(require,module,exports){
+'use strict';
+
+var utils = require('./utils');
+var timing = require('./timing');
+var keyUtils = require('./key/utils');
+var decryptKey = require('./key/decrypt');
+var encryptKey = require('./key/encrypt');
+var decryptMessage = require('./message/decrypt');
+var messageUtils = require('./message/utils');
+
+function pmcrypto(performance) {
+
+    var config = { debug: true };
+    var perf = timing(performance);
+
+    return {
+        config: config,
+
+        generateKey: keyUtils.generateKey,
+        getKeys: keyUtils.getKeys,
+        updateServerTime: utils.updateServerTime,
+
+        reformatKey: keyUtils.reformatKey,
+        generateSessionKey: keyUtils.generateSessionKey,
+        isExpiredKey: keyUtils.isExpiredKey,
+
+        encryptSessionKey: encryptKey.encryptSessionKey,
+        decryptSessionKey: decryptKey.decryptSessionKey,
+        encryptPrivateKey: encryptKey.encryptPrivateKey,
+        decryptPrivateKey: decryptKey.decryptPrivateKey,
+
+        getMessage: messageUtils.getMessage,
+        getSignature: messageUtils.getSignature,
+        signMessage: messageUtils.signMessage,
+        splitMessage: messageUtils.splitMessage,
+        verifyMessage: messageUtils.verifyMessage,
+        getCleartextMessage: messageUtils.getCleartextMessage,
+        createMessage: messageUtils.createMessage,
+
+        encryptMessage: openpgp.encrypt,
+        decryptMessage: decryptMessage.decryptMessage,
+        decryptMessageLegacy: decryptMessage.decryptMessageLegacy,
+
+        encode_utf8: utils.encode_utf8,
+        decode_utf8: utils.decode_utf8,
+        encode_base64: utils.encode_base64,
+        decode_base64: utils.decode_base64,
+        encode_utf8_base64: utils.encode_utf8_base64,
+        decode_utf8_base64: utils.decode_utf8_base64,
+        getHashedPassword: utils.getHashedPassword,
+        arrayToBinaryString: utils.arrayToBinaryString,
+        binaryStringToArray: utils.binaryStringToArray,
+        concatArrays: openpgp.util.concatUint8Array,
+        stripArmor: utils.stripArmor,
+
+        keyInfo: require('./key/info'),
+        keyCheck: require('./key/check')
+    };
+}
+
+module.exports = pmcrypto;
+
+},{"./key/check":4,"./key/decrypt":5,"./key/encrypt":6,"./key/info":7,"./key/utils":8,"./message/decrypt":11,"./message/utils":12,"./timing":13,"./utils":14}],10:[function(require,module,exports){
 'use strict';
 
 // Deprecated, backwards compatibility
@@ -626,7 +634,7 @@ module.exports = {
     getEncRandomKeyFromEmailPM: getEncRandomKeyFromEmailPM
 };
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -757,7 +765,7 @@ module.exports = {
 };
 
 }).call(this,require('_process'))
-},{"../constants.js":2,"../message/utils":11,"../utils":12,"./compat":9,"_process":14}],11:[function(require,module,exports){
+},{"../constants.js":3,"../message/utils":12,"../utils":14,"./compat":10,"_process":15}],12:[function(require,module,exports){
 'use strict';
 
 var handleVerificationResult = function () {
@@ -992,22 +1000,33 @@ module.exports = {
     handleVerificationResult: handleVerificationResult
 };
 
-},{"../constants.js":2,"../utils":12}],12:[function(require,module,exports){
-'use strict';
+},{"../constants.js":3,"../utils":14}],13:[function(require,module,exports){
+"use strict";
 
-// Load window.performance in the browser, perf_hooks in node, and fall back on Date
-var requirePerfHooks = function requirePerfHooks() {
-    try {
-        var result = require('perf_hooks');
-        if (result && result.performance) {
-            return result;
+module.exports = function () {
+    var performance = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : Date;
+
+
+    var lastServerTime = null;
+    var clientTime = null;
+
+    function serverTime() {
+        if (lastServerTime !== null) {
+            return new Date(+lastServerTime + (performance.now() - clientTime));
         }
-    } catch (e) {}
+        return new Date();
+    }
+
+    function updateServerTime(serverDate) {
+        lastServerTime = serverDate;
+        clientTime = performance.now();
+    }
+
+    return { serverTime: serverTime, updateServerTime: updateServerTime };
 };
 
-var _ref = requirePerfHooks() || window || {},
-    _ref$performance = _ref.performance,
-    performance = _ref$performance === undefined ? Date : _ref$performance;
+},{}],14:[function(require,module,exports){
+'use strict';
 
 var noop = function noop() {};
 var ifDefined = function ifDefined() {
@@ -1087,14 +1106,10 @@ module.exports = {
     binaryStringToArray: binaryStringToArray,
     arrayToBinaryString: arrayToBinaryString,
     getHashedPassword: getHashedPassword,
-    stripArmor: stripArmor,
-    updateServerTime: updateServerTime,
-    serverTime: serverTime
+    stripArmor: stripArmor
 };
 
-},{"perf_hooks":13}],13:[function(require,module,exports){
-
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 

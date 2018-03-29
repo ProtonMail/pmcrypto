@@ -3,9 +3,10 @@
   "version": "2.0.6",
   "description": "",
   "main": "index.js",
+  "browser": "browser/lib.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify -t [ babelify ] lib/browser.js -o build/pmcrypto.js -i perf_hooks",
+    "build": "browserify -t [ babelify ] browser/index.js -o build/pmcrypto.js -i perf_hooks",
     "lint": "eslint $(find lib -type f -name '*.js')  --quiet"
   },
   "repository": {
