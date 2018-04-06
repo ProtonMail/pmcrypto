@@ -22,7 +22,7 @@
     "btoa": "*",
     "atob": "*",
     "es6-promise": "*",
-    "openpgp": "git@github.com:KAYLukas/openpgpjs.git#master"
+    "openpgp": "3.0.4"
   },
   "devDependencies": {
     "babel-plugin-istanbul": "^4.1.4",
