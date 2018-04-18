@@ -36,6 +36,7 @@ var keyUtils = require('./key/utils');
 var decryptKey = require('./key/decrypt');
 var encryptKey = require('./key/encrypt');
 var decryptMessage = require('./message/decrypt');
+var encryptMessage = require('./message/encrypt');
 var messageUtils = require('./message/utils');
 
 function pmcrypto() {
@@ -66,7 +67,7 @@ function pmcrypto() {
         getCleartextMessage: messageUtils.getCleartextMessage,
         createMessage: messageUtils.createMessage,
 
-        encryptMessage: openpgp.encrypt,
+        encryptMessage: encryptMessage,
         decryptMessage: decryptMessage.decryptMessage,
         decryptMessageLegacy: decryptMessage.decryptMessageLegacy,
 
@@ -89,7 +90,7 @@ function pmcrypto() {
 
 module.exports = pmcrypto();
 
-},{"./key/check":4,"./key/decrypt":5,"./key/encrypt":6,"./key/info":7,"./key/utils":8,"./message/decrypt":10,"./message/utils":11,"./utils":12}],4:[function(require,module,exports){
+},{"./key/check":4,"./key/decrypt":5,"./key/encrypt":6,"./key/info":7,"./key/utils":8,"./message/decrypt":10,"./message/encrypt":11,"./message/utils":12,"./utils":13}],4:[function(require,module,exports){
 'use strict';
 
 function keyCheck(info, email, expectEncrypted) {
@@ -517,7 +518,7 @@ function keyInfo(rawKey, email) {
 
 module.exports = keyInfo;
 
-},{"../utils":12,"./check":4,"./utils":8}],8:[function(require,module,exports){
+},{"../utils":13,"./check":4,"./utils":8}],8:[function(require,module,exports){
 'use strict';
 
 var _require = require('../utils'),
@@ -592,7 +593,7 @@ module.exports = {
     isExpiredKey: isExpiredKey
 };
 
-},{"../utils":12}],9:[function(require,module,exports){
+},{"../utils":13}],9:[function(require,module,exports){
 'use strict';
 
 // Deprecated, backwards compatibility
@@ -757,7 +758,21 @@ module.exports = {
 };
 
 }).call(this,require('_process'))
-},{"../constants.js":2,"../message/utils":11,"../utils":12,"./compat":9,"_process":14}],11:[function(require,module,exports){
+},{"../constants.js":2,"../message/utils":12,"../utils":13,"./compat":9,"_process":15}],11:[function(require,module,exports){
+'use strict';
+
+var _require = require('../utils'),
+    serverTime = _require.serverTime;
+
+function encryptMessage(options) {
+    options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
+    options.compression = options.compression ? openpgp.enums.compression.zlib : undefined;
+    return openpgp.encrypt(options);
+}
+
+module.exports = encryptMessage;
+
+},{"../utils":13}],12:[function(require,module,exports){
 'use strict';
 
 var handleVerificationResult = function () {
@@ -992,7 +1007,7 @@ module.exports = {
     handleVerificationResult: handleVerificationResult
 };
 
-},{"../constants.js":2,"../utils":12}],12:[function(require,module,exports){
+},{"../constants.js":2,"../utils":13}],13:[function(require,module,exports){
 'use strict';
 
 // Load window.performance in the browser, perf_hooks in node, and fall back on Date
@@ -1092,9 +1107,9 @@ module.exports = {
     serverTime: serverTime
 };
 
-},{"perf_hooks":13}],13:[function(require,module,exports){
+},{"perf_hooks":14}],14:[function(require,module,exports){
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
