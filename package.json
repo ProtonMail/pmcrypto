@@ -1,11 +1,11 @@
 {
   "name": "pmcrypto",
-  "version": "2.0.5",
+  "version": "3.0.4",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "ava -v",
-    "build": "browserify -t [ babelify ] lib/browser.js -o build/pmcrypto.js",
+    "build": "browserify -t [ babelify ] lib/browser.js -o build/pmcrypto.js -i perf_hooks",
     "lint": "eslint $(find lib -type f -name '*.js')  --quiet"
   },
   "repository": {
@@ -22,7 +22,7 @@
     "btoa": "*",
     "atob": "*",
     "es6-promise": "*",
-    "openpgp": "2.6.2"
+    "openpgp": "3.0.7"
   },
   "devDependencies": {
     "ava": "^0.25.0",

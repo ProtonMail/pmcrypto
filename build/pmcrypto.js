@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(){function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s}return e})()({1:[function(require,module,exports){
 'use strict';
 
 /**
@@ -19,6 +19,10 @@ var constants = {
         NOT_SIGNED: 0,
         SIGNED_AND_VALID: 1,
         SIGNED_AND_INVALID: 2
+    },
+    SIGNATURE_TYPES: {
+        BINARY: 0,
+        CANONICAL_TEXT: 1
     }
 };
 
@@ -32,6 +36,7 @@ var keyUtils = require('./key/utils');
 var decryptKey = require('./key/decrypt');
 var encryptKey = require('./key/encrypt');
 var decryptMessage = require('./message/decrypt');
+var encryptMessage = require('./message/encrypt');
 var messageUtils = require('./message/utils');
 
 function pmcrypto() {
@@ -43,6 +48,7 @@ function pmcrypto() {
 
         generateKey: keyUtils.generateKey,
         getKeys: keyUtils.getKeys,
+        updateServerTime: utils.updateServerTime,
 
         reformatKey: keyUtils.reformatKey,
         generateSessionKey: keyUtils.generateSessionKey,
@@ -61,7 +67,7 @@ function pmcrypto() {
         getCleartextMessage: messageUtils.getCleartextMessage,
         createMessage: messageUtils.createMessage,
 
-        encryptMessage: require('./message/encrypt'),
+        encryptMessage: encryptMessage,
         decryptMessage: decryptMessage.decryptMessage,
         decryptMessageLegacy: decryptMessage.decryptMessageLegacy,
 
@@ -107,11 +113,11 @@ function keyCheck(info, email, expectEncrypted) {
         }
     }
 
-    if (info.bitSize < 1024) {
+    if (info.bitSize && info.bitSize < 1024) {
         throw new Error('Key is less than 1024 bits');
     }
 
-    if (info.expires) {
+    if (isFinite(info.expires)) {
         throw new Error('Key will expire');
     }
 
@@ -119,11 +125,11 @@ function keyCheck(info, email, expectEncrypted) {
         throw new Error('Key cannot be used for encryption');
     }
 
-    if (info.encrypt.expires) {
+    if (isFinite(info.encrypt.expires)) {
         throw new Error('Key will expire');
     }
 
-    if (info.revocationSignature !== null) {
+    if (info.revocationSignatures.length) {
         throw new Error('Key is revoked');
     }
 
@@ -131,13 +137,8 @@ function keyCheck(info, email, expectEncrypted) {
         throw new Error('Key cannot be used for signing');
     }
 
-    if (info.sign.expires) {
+    if (isFinite(info.sign.expires)) {
         throw new Error('Key will expire');
-    }
-
-    // Algorithm check for RSA
-    if (info.algorithm !== openpgp.enums.publicKey.rsa_encrypt_sign && info.algorithm !== openpgp.enums.publicKey.rsa_sign || info.encrypt.algorithm !== openpgp.enums.publicKey.rsa_encrypt_sign && info.encrypt.algorithm !== openpgp.enums.publicKey.rsa_encrypt || info.sign.algorithm !== openpgp.enums.publicKey.rsa_encrypt_sign && info.sign.algorithm !== openpgp.enums.publicKey.rsa_sign) {
-        throw new Error('Key asymmetric algorithms must be RSA');
     }
 
     // Hash algorithms
@@ -174,8 +175,7 @@ module.exports = keyCheck;
 'use strict';
 
 var _require = require('./utils'),
-    getKeys = _require.getKeys,
-    pickPrivate = _require.pickPrivate;
+    getKeys = _require.getKeys;
 
 function decryptPrivateKey(privKey, privKeyPassCode) {
 
@@ -189,12 +189,12 @@ function decryptPrivateKey(privKey, privKeyPassCode) {
         }
 
         var keys = getKeys(privKey);
-
-        if (keys[0].decrypt(privKeyPassCode)) {
+        return keys[0].decrypt(privKeyPassCode).then(function (success) {
+            if (!success) {
+                throw new Error('Private key decryption failed');
+            }
             return keys[0];
-        }
-
-        return Promise.reject(new Error('Private key decryption failed'));
+        });
     });
 }
 
@@ -202,17 +202,14 @@ function decryptSessionKey(options) {
 
     return Promise.resolve().then(function () {
 
-        options = pickPrivate(options);
-
         try {
-            return openpgp.decryptSessionKey(options).then(function (result) {
+            return openpgp.decryptSessionKeys(options).then(function (result) {
 
-                // FIXME this should be in openpgp.js
-                if (!result) {
-                    return Promise.reject(new Error('Invalid session key for decryption'));
+                if (result.length > 1) {
+                    return Promise.reject(new Error('Multiple decrypted session keys found'));
                 }
 
-                return result;
+                return result[0];
             }).catch(function (err) {
                 console.error(err);
                 return Promise.reject(err);
@@ -252,8 +249,9 @@ function encryptPrivateKey(privKey, privKeyPassCode) {
         }
 
         privKey.primaryKey.encrypt(privKeyPassCode);
-        privKey.subKeys[0].subKey.encrypt(privKeyPassCode);
-        return privKey.armor();
+        return privKey.subKeys[0].subKey.encrypt(privKeyPassCode).then(function () {
+            return privKey.armor();
+        });
     });
 }
 
@@ -269,108 +267,268 @@ module.exports = {
 },{}],7:[function(require,module,exports){
 'use strict';
 
+function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+
 var keyCheck = require('./check');
-var encryptMessage = require('../message/encrypt');
 
 var _require = require('./utils'),
     getKeys = _require.getKeys;
 
+var _require2 = require('../utils'),
+    serverTime = _require2.serverTime;
+
 function keyInfo(rawKey, email) {
+    var _this = this;
+
     var expectEncrypted = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+    var date = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : serverTime();
 
 
-    return Promise.resolve().then(function () {
+    return Promise.resolve(getKeys(rawKey)).then(function () {
+        var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(keys) {
+            var packetInfo, primaryUser, algoInfo, obj, encryptCheck;
+            return regeneratorRuntime.wrap(function _callee3$(_context3) {
+                while (1) {
+                    switch (_context3.prev = _context3.next) {
+                        case 0:
+                            packetInfo = function () {
+                                var _ref2 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(packet, key) {
+                                    var i;
+                                    return regeneratorRuntime.wrap(function _callee$(_context) {
+                                        while (1) {
+                                            switch (_context.prev = _context.next) {
+                                                case 0:
+                                                    if (packet) {
+                                                        _context.next = 2;
+                                                        break;
+                                                    }
 
-        var packetInfo = function packetInfo(packet, key) {
-            if (!packet) {
-                return null;
-            }
+                                                    return _context.abrupt('return', null);
 
-            if (key.subKeys) {
-                for (var i = 0; i < key.subKeys.length; i++) {
-                    if (packet === key.subKeys[i].subKey) {
-                        return {
-                            algorithm: openpgp.enums.publicKey[packet.algorithm],
-                            expires: key.subKeys[i].getExpirationTime()
-                        };
+                                                case 2:
+                                                    if (!key.subKeys) {
+                                                        _context.next = 14;
+                                                        break;
+                                                    }
+
+                                                    i = 0;
+
+                                                case 4:
+                                                    if (!(i < key.subKeys.length)) {
+                                                        _context.next = 14;
+                                                        break;
+                                                    }
+
+                                                    if (!(packet === key.subKeys[i].subKey)) {
+                                                        _context.next = 11;
+                                                        break;
+                                                    }
+
+                                                    _context.t0 = openpgp.enums.publicKey[packet.algorithm];
+                                                    _context.next = 9;
+                                                    return key.subKeys[i].getExpirationTime();
+
+                                                case 9:
+                                                    _context.t1 = _context.sent;
+                                                    return _context.abrupt('return', {
+                                                        algorithm: _context.t0,
+                                                        expires: _context.t1
+                                                    });
+
+                                                case 11:
+                                                    i++;
+                                                    _context.next = 4;
+                                                    break;
+
+                                                case 14:
+                                                    _context.t2 = openpgp.enums.publicKey[packet.algorithm];
+                                                    _context.next = 17;
+                                                    return key.getExpirationTime();
+
+                                                case 17:
+                                                    _context.t3 = _context.sent;
+                                                    return _context.abrupt('return', {
+                                                        algorithm: _context.t2,
+                                                        expires: _context.t3
+                                                    });
+
+                                                case 19:
+                                                case 'end':
+                                                    return _context.stop();
+                                            }
+                                        }
+                                    }, _callee, _this);
+                                }));
+
+                                return function packetInfo(_x4, _x5) {
+                                    return _ref2.apply(this, arguments);
+                                };
+                            }();
+
+                            primaryUser = function () {
+                                var _ref3 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(key) {
+                                    var primary, cert;
+                                    return regeneratorRuntime.wrap(function _callee2$(_context2) {
+                                        while (1) {
+                                            switch (_context2.prev = _context2.next) {
+                                                case 0:
+                                                    _context2.next = 2;
+                                                    return key.getPrimaryUser(date);
+
+                                                case 2:
+                                                    primary = _context2.sent;
+
+                                                    if (primary) {
+                                                        _context2.next = 5;
+                                                        break;
+                                                    }
+
+                                                    return _context2.abrupt('return', null);
+
+                                                case 5:
+                                                    if (primary.user) {
+                                                        _context2.next = 7;
+                                                        break;
+                                                    }
+
+                                                    return _context2.abrupt('return', null);
+
+                                                case 7:
+                                                    if (primary.selfCertification) {
+                                                        _context2.next = 9;
+                                                        break;
+                                                    }
+
+                                                    return _context2.abrupt('return', null);
+
+                                                case 9:
+                                                    cert = primary.selfCertification;
+                                                    return _context2.abrupt('return', {
+                                                        userId: primary.user.userId.userid,
+                                                        symmetric: cert.preferredSymmetricAlgorithms ? cert.preferredSymmetricAlgorithms : [],
+                                                        hash: cert.preferredHashAlgorithms ? cert.preferredHashAlgorithms : [],
+                                                        compression: cert.preferredCompressionAlgorithms ? cert.preferredCompressionAlgorithms : []
+                                                    });
+
+                                                case 11:
+                                                case 'end':
+                                                    return _context2.stop();
+                                            }
+                                        }
+                                    }, _callee2, _this);
+                                }));
+
+                                return function primaryUser(_x6) {
+                                    return _ref3.apply(this, arguments);
+                                };
+                            }();
+
+                            algoInfo = keys[0].primaryKey.getAlgorithmInfo();
+                            _context3.t0 = keys[0].primaryKey.version;
+                            _context3.t1 = keys[0].toPublic().armor();
+                            _context3.t2 = keys[0].primaryKey.getFingerprint();
+                            _context3.t3 = keys[0].getUserIds();
+                            _context3.next = 9;
+                            return primaryUser(keys[0]);
+
+                        case 9:
+                            _context3.t4 = _context3.sent;
+                            _context3.t5 = algoInfo.bits || null;
+                            _context3.t6 = algoInfo.curve || null;
+                            _context3.t7 = keys[0].primaryKey.created;
+                            _context3.t8 = openpgp.enums.publicKey[algoInfo.algorithm];
+                            _context3.t9 = algoInfo.algorithm;
+                            _context3.next = 17;
+                            return keys[0].getExpirationTime();
+
+                        case 17:
+                            _context3.t10 = _context3.sent;
+                            _context3.t11 = packetInfo;
+                            _context3.next = 21;
+                            return keys[0].getEncryptionKeyPacket(undefined, date);
+
+                        case 21:
+                            _context3.t12 = _context3.sent;
+                            _context3.t13 = keys[0];
+                            _context3.next = 25;
+                            return (0, _context3.t11)(_context3.t12, _context3.t13);
+
+                        case 25:
+                            _context3.t14 = _context3.sent;
+                            _context3.t15 = packetInfo;
+                            _context3.next = 29;
+                            return keys[0].getSigningKeyPacket(undefined, date);
+
+                        case 29:
+                            _context3.t16 = _context3.sent;
+                            _context3.t17 = keys[0];
+                            _context3.next = 33;
+                            return (0, _context3.t15)(_context3.t16, _context3.t17);
+
+                        case 33:
+                            _context3.t18 = _context3.sent;
+                            _context3.t19 = keys[0].primaryKey.isDecrypted;
+                            _context3.t20 = keys[0].revocationSignatures;
+                            obj = {
+                                version: _context3.t0,
+                                publicKeyArmored: _context3.t1,
+                                fingerprint: _context3.t2,
+                                userIds: _context3.t3,
+                                user: _context3.t4,
+                                bitSize: _context3.t5,
+                                curve: _context3.t6,
+                                created: _context3.t7,
+                                algorithm: _context3.t8,
+                                algorithmName: _context3.t9,
+                                expires: _context3.t10,
+                                encrypt: _context3.t14,
+                                sign: _context3.t18,
+                                decrypted: _context3.t19,
+                                revocationSignatures: _context3.t20,
+                                validationError: null
+                            };
+
+
+                            try {
+                                keyCheck(obj, email, expectEncrypted);
+                            } catch (err) {
+                                obj.validationError = err.message;
+                            }
+
+                            encryptCheck = obj.encrypt ? openpgp.encrypt({ data: 'test message', publicKeys: keys, date: date }) : Promise.resolve();
+                            _context3.next = 41;
+                            return encryptCheck;
+
+                        case 41:
+                            return _context3.abrupt('return', obj);
+
+                        case 42:
+                        case 'end':
+                            return _context3.stop();
                     }
                 }
-            }
+            }, _callee3, _this);
+        }));
 
-            // Packet must be primary key
-            return {
-                algorithm: openpgp.enums.publicKey[packet.algorithm],
-                expires: key.getExpirationTime()
-            };
+        return function (_x3) {
+            return _ref.apply(this, arguments);
         };
-
-        var primaryUser = function primaryUser(key) {
-
-            var primary = key.getPrimaryUser();
-            if (!primary) {
-                return null;
-            }
-
-            if (!primary.user) {
-                return null;
-            }
-
-            if (!primary.selfCertificate) {
-                return null;
-            }
-
-            var cert = primary.selfCertificate;
-
-            return {
-                userId: primary.user.userId.userid,
-                symmetric: cert.preferredSymmetricAlgorithms ? cert.preferredSymmetricAlgorithms : [],
-                hash: cert.preferredHashAlgorithms ? cert.preferredHashAlgorithms : [],
-                compression: cert.preferredCompressionAlgorithms ? cert.preferredCompressionAlgorithms : []
-            };
-        };
-
-        var keys = getKeys(rawKey);
-
-        var obj = {
-            version: keys[0].primaryKey.version,
-            publicKeyArmored: keys[0].toPublic().armor(),
-            fingerprint: keys[0].primaryKey.getFingerprint(),
-            userIds: keys[0].getUserIds(),
-            user: primaryUser(keys[0]),
-            bitSize: keys[0].primaryKey.getBitSize(),
-            created: keys[0].primaryKey.created,
-            algorithm: openpgp.enums.publicKey[keys[0].primaryKey.algorithm],
-            algorithmName: keys[0].primaryKey.algorithm,
-            expires: keys[0].getExpirationTime(),
-            encrypt: packetInfo(keys[0].getEncryptionKeyPacket(), keys[0]),
-            sign: packetInfo(keys[0].getSigningKeyPacket(), keys[0]),
-            decrypted: keys[0].primaryKey.isDecrypted, // null if public key
-            revocationSignature: keys[0].revocationSignature,
-            validationError: null
-        };
-
-        try {
-            keyCheck(obj, email, expectEncrypted);
-        } catch (err) {
-            obj.validationError = err.message;
-        }
-
-        var encryptCheck = obj.encrypt ? encryptMessage({ data: 'test message', publicKeys: keys }) : Promise.resolve();
-
-        return encryptCheck.then(function () {
-            return obj;
-        });
-    });
+    }());
 }
 
 module.exports = keyInfo;
 
-},{"../message/encrypt":11,"./check":4,"./utils":8}],8:[function(require,module,exports){
+},{"../utils":13,"./check":4,"./utils":8}],8:[function(require,module,exports){
 'use strict';
 
+var _require = require('../utils'),
+    serverTime = _require.serverTime;
 // returns promise for generated RSA public and encrypted private keys
-var generateKey = function generateKey(opt) {
-    return openpgp.generateKey(opt);
+
+
+var generateKey = function generateKey(options) {
+    options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
+    return openpgp.generateKey(options);
 };
 var generateSessionKey = function generateSessionKey(algorithm) {
     return openpgp.crypto.generateSessionKey(algorithm);
@@ -421,34 +579,13 @@ function getKeys() {
     return keys.keys;
 }
 
-function pickPrivate(options) {
-
-    if (options.privateKeys) {
-        // Pick correct private key
-        var encryptionKeyIds = options.message.getEncryptionKeyIds();
-        if (!encryptionKeyIds.length) {
-            throw new Error('No asymmetric session key packets found');
-        }
-
-        for (var i = 0; i < options.privateKeys.length; i++) {
-            if (options.privateKeys[i].getKeyPacket(encryptionKeyIds) !== null) {
-                options.privateKey = options.privateKeys[i];
-                break;
-            }
-        }
-    }
-
-    delete options.privateKeys;
-
-    return options;
-}
-
 function isExpiredKey(key) {
-    return key.getExpirationTime() !== null && key.getExpirationTime() < Date.now();
+    return key.getExpirationTime().then(function (expirationTime) {
+        return !(key.primaryKey.created <= +serverTime() && +serverTime() < expirationTime) || key.revocationSignatures.length > 0;
+    });
 }
 
 module.exports = {
-    pickPrivate: pickPrivate,
     generateKey: generateKey,
     generateSessionKey: generateSessionKey,
     reformatKey: reformatKey,
@@ -456,7 +593,7 @@ module.exports = {
     isExpiredKey: isExpiredKey
 };
 
-},{}],9:[function(require,module,exports){
+},{"../utils":13}],9:[function(require,module,exports){
 'use strict';
 
 // Deprecated, backwards compatibility
@@ -497,58 +634,39 @@ module.exports = {
 var _require = require('../utils'),
     decode_utf8_base64 = _require.decode_utf8_base64,
     binaryStringToArray = _require.binaryStringToArray,
-    arrayToBinaryString = _require.arrayToBinaryString;
+    arrayToBinaryString = _require.arrayToBinaryString,
+    serverTime = _require.serverTime;
 
-var _require2 = require('../key/utils'),
-    pickPrivate = _require2.pickPrivate;
+var _require2 = require('../message/utils'),
+    getMessage = _require2.getMessage,
+    handleVerificationResult = _require2.handleVerificationResult;
 
-var _require3 = require('../message/utils'),
-    getMessage = _require3.getMessage,
-    verifyExpirationTime = _require3.verifyExpirationTime;
+var _require3 = require('./compat'),
+    getEncMessageFromEmailPM = _require3.getEncMessageFromEmailPM,
+    getEncRandomKeyFromEmailPM = _require3.getEncRandomKeyFromEmailPM;
 
-var _require4 = require('./compat'),
-    getEncMessageFromEmailPM = _require4.getEncMessageFromEmailPM,
-    getEncRandomKeyFromEmailPM = _require4.getEncRandomKeyFromEmailPM;
-
-var _require5 = require('../constants.js'),
-    _require5$VERIFICATIO = _require5.VERIFICATION_STATUS,
-    NOT_SIGNED = _require5$VERIFICATIO.NOT_SIGNED,
-    SIGNED_AND_VALID = _require5$VERIFICATIO.SIGNED_AND_VALID,
-    SIGNED_AND_INVALID = _require5$VERIFICATIO.SIGNED_AND_INVALID;
+var _require4 = require('../constants.js'),
+    _require4$VERIFICATIO = _require4.VERIFICATION_STATUS,
+    NOT_SIGNED = _require4$VERIFICATIO.NOT_SIGNED,
+    SIGNED_AND_VALID = _require4$VERIFICATIO.SIGNED_AND_VALID,
+    SIGNED_AND_INVALID = _require4$VERIFICATIO.SIGNED_AND_INVALID;
 
 function decryptMessage(options) {
-    var _options = options,
-        _options$verification = _options.verificationTime,
-        verificationTime = _options$verification === undefined ? false : _options$verification,
-        _options$publicKeys = _options.publicKeys,
+    var _options$publicKeys = options.publicKeys,
         publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
 
+    options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
     return Promise.resolve().then(function () {
 
-        options = pickPrivate(options);
-
         try {
-            return openpgp.decrypt(options).then(function (_ref) {
+            return openpgp.decrypt(options).then(function (result) {
+                return handleVerificationResult(result, publicKeys, options.date);
+            }).then(function (_ref) {
                 var data = _ref.data,
                     filename = _ref.filename,
-                    sigs = _ref.signatures;
-
-                var verified = NOT_SIGNED;
-                var signatures = [];
-                if (sigs && sigs.length) {
-                    verified = SIGNED_AND_INVALID;
-                    for (var i = 0; i < sigs.length; i++) {
-                        sigs[i].valid = sigs[i].valid && verifyExpirationTime(sigs[i], publicKeys, verificationTime);
-
-                        if (sigs[i].valid) {
-                            verified = SIGNED_AND_VALID;
-                        }
-                        if (sigs[i].valid || !options.publicKeys || !options.publicKeys.length) {
-                            signatures.push(sigs[i].signature);
-                        }
-                    }
-                }
+                    verified = _ref.verified,
+                    signatures = _ref.signatures;
 
                 // Debugging
                 if (process.env.NODE_ENV !== 'production') {
@@ -587,7 +705,7 @@ function decryptMessageLegacy(options) {
 
     return Promise.resolve().then(function () {
 
-        if (options.messageTime === undefined || options.messageTime === '') {
+        if (options.date === undefined || !(options.date instanceof Date)) {
             throw new Error('Missing message time');
         }
 
@@ -621,7 +739,7 @@ function decryptMessageLegacy(options) {
             var data = void 0;
             try {
                 // cutoff time for enabling multilanguage support
-                if (options.messageTime > 1399086120) {
+                if (+options.date > 1399086120000) {
                     data = decode_utf8_base64(arrayToBinaryString(openpgp.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true)));
                 } else {
                     data = arrayToBinaryString(openpgp.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true));
@@ -640,31 +758,131 @@ module.exports = {
 };
 
 }).call(this,require('_process'))
-},{"../constants.js":2,"../key/utils":8,"../message/utils":12,"../utils":13,"./compat":9,"_process":14}],11:[function(require,module,exports){
-"use strict";
+},{"../constants.js":2,"../message/utils":12,"../utils":13,"./compat":9,"_process":15}],11:[function(require,module,exports){
+'use strict';
+
+var _require = require('../utils'),
+    serverTime = _require.serverTime;
 
 function encryptMessage(options) {
-
-    return openpgp.encrypt(options).catch(function (err) {
-        // Try without signing
-        if (options.privateKeys && options.privateKeys.length) {
-            options.privateKeys = [];
-            return openpgp.encrypt(options);
-        }
-        return Promise.reject(err);
-    });
+    if (typeof options.data === 'string') {
+        options.data = options.data.replace(/[ \t]*$/mg, '');
+    }
+    options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
+    options.compression = options.compression ? openpgp.enums.compression.zlib : undefined;
+    return openpgp.encrypt(options);
 }
 
 module.exports = encryptMessage;
 
-},{}],12:[function(require,module,exports){
+},{"../utils":13}],12:[function(require,module,exports){
 'use strict';
+
+var handleVerificationResult = function () {
+    var _ref3 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(_ref4, publicKeys, date) {
+        var data = _ref4.data,
+            _ref4$filename = _ref4.filename,
+            filename = _ref4$filename === undefined ? 'msg.txt' : _ref4$filename,
+            sigs = _ref4.signatures;
+        var verified, signatures, i, verifiableSigs, text, textMessage, verificationPromises, verificationResults;
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+            while (1) {
+                switch (_context.prev = _context.next) {
+                    case 0:
+                        verified = NOT_SIGNED;
+                        signatures = [];
+
+                        if (sigs && sigs.length) {
+                            verified = SIGNED_AND_INVALID;
+                            for (i = 0; i < sigs.length; i++) {
+                                if (sigs[i].valid) {
+                                    verified = SIGNED_AND_VALID;
+                                }
+                                if (sigs[i].valid || !publicKeys.length) {
+                                    signatures.push(sigs[i].signature);
+                                }
+                            }
+                        }
+
+                        if (!(verified === SIGNED_AND_INVALID)) {
+                            _context.next = 12;
+                            break;
+                        }
+
+                        // enter extended text mode: some mail clients change spaces into nonbreaking spaces, we'll try to verify by normalizing this too.
+                        verifiableSigs = sigs.filter(function (_ref5) {
+                            var valid = _ref5.valid;
+                            return valid !== null;
+                        }).map(function (_ref6) {
+                            var signature = _ref6.signature;
+                            return signature;
+                        }).filter(isCanonicalTextSignature);
+                        text = typeof data === 'string' ? data : arrayToBinaryString(data);
+                        textMessage = createMessage(text.replace(/[\xa0]/g, ' '));
+                        verificationPromises = verifiableSigs.map(function (signature) {
+                            return openpgp.verify({
+                                message: textMessage,
+                                publicKeys: publicKeys,
+                                signature: signature,
+                                date: date
+                            }).then(function (_ref7) {
+                                var data = _ref7.data,
+                                    signatures = _ref7.signatures;
+                                return {
+                                    data: data,
+                                    signatures: signatures.map(function (_ref8) {
+                                        var signature = _ref8.signature;
+                                        return signature;
+                                    }),
+                                    verified: signatures[0].valid ? SIGNED_AND_VALID : SIGNED_AND_INVALID
+                                };
+                            });
+                        });
+                        _context.next = 10;
+                        return Promise.all(verificationPromises);
+
+                    case 10:
+                        verificationResults = _context.sent;
+                        return _context.abrupt('return', verificationResults.filter(function (_ref9) {
+                            var verified = _ref9.verified;
+                            return verified === SIGNED_AND_VALID;
+                        }).reduceRight(function (acc, result) {
+                            if (acc.verified !== SIGNED_AND_VALID) {
+                                acc.verified = result.verified;
+                                acc.data = arrayToBinaryString(result.data);
+                            }
+                            acc.signatures = acc.signatures.concat(result.signature);
+                            return acc;
+                        }, { data: data, verified: verified, filename: filename, signatures: signatures }));
+
+                    case 12:
+                        return _context.abrupt('return', { data: data, verified: verified, filename: filename, signatures: signatures });
+
+                    case 13:
+                    case 'end':
+                        return _context.stop();
+                }
+            }
+        }, _callee, this);
+    }));
+
+    return function handleVerificationResult(_x, _x2, _x3) {
+        return _ref3.apply(this, arguments);
+    };
+}();
+
+function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
 
 var _require = require('../constants.js'),
     _require$VERIFICATION = _require.VERIFICATION_STATUS,
     NOT_SIGNED = _require$VERIFICATION.NOT_SIGNED,
     SIGNED_AND_VALID = _require$VERIFICATION.SIGNED_AND_VALID,
-    SIGNED_AND_INVALID = _require$VERIFICATION.SIGNED_AND_INVALID;
+    SIGNED_AND_INVALID = _require$VERIFICATION.SIGNED_AND_INVALID,
+    CANONICAL_TEXT = _require.SIGNATURE_TYPES.CANONICAL_TEXT;
+
+var _require2 = require('../utils'),
+    serverTime = _require2.serverTime,
+    arrayToBinaryString = _require2.arrayToBinaryString;
 
 function getMessage(message) {
 
@@ -707,6 +925,7 @@ function createMessage(source) {
 }
 
 function signMessage(options) {
+    options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
     return openpgp.sign(options).catch(function (err) {
         console.error(err);
@@ -714,48 +933,28 @@ function signMessage(options) {
     });
 }
 
-function verifyExpirationTime(_ref, publicKeys, verificationTime) {
-    var keyid = _ref.keyid;
+function isCanonicalTextSignature(_ref) {
+    var packets = _ref.packets;
 
-    if (!verificationTime) {
-        return true;
-    }
-    var publickey = publicKeys.find(function (pk) {
-        return pk.primaryKey.keyid.bytes === keyid.bytes;
+    return Object.values(packets).some(function (_ref2) {
+        var _ref2$signatureType = _ref2.signatureType,
+            signatureType = _ref2$signatureType === undefined ? false : _ref2$signatureType;
+        return signatureType === CANONICAL_TEXT;
     });
-    if (!publickey) {
-        return false;
-    }
-    var expirationTime = publickey.getExpirationTime();
-    return expirationTime === null || +expirationTime > verificationTime * 1000;
 }
 
 function verifyMessage(options) {
-    var _options$verification = options.verificationTime,
-        verificationTime = _options$verification === undefined ? false : _options$verification,
-        _options$publicKeys = options.publicKeys,
+    var _options$publicKeys = options.publicKeys,
         publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
 
+    options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
-    return openpgp.verify(options).then(function (_ref2) {
-        var data = _ref2.data,
-            sigs = _ref2.signatures;
-
-        var verified = NOT_SIGNED;
-        var signatures = [];
-        if (sigs && sigs.length) {
-            verified = SIGNED_AND_INVALID;
-            for (var i = 0; i < sigs.length; i++) {
-                sigs[i].valid = sigs[i].valid && verifyExpirationTime(sigs[i], publicKeys, verificationTime);
-
-                if (sigs[i].valid) {
-                    verified = SIGNED_AND_VALID;
-                }
-                if (sigs[i].valid || !options.publicKeys || !options.publicKeys.length) {
-                    signatures.push(sigs[i].signature);
-                }
-            }
-        }
+    return openpgp.verify(options).then(function (result) {
+        return handleVerificationResult(result, publicKeys, options.date);
+    }).then(function (_ref10) {
+        var data = _ref10.data,
+            verified = _ref10.verified,
+            signatures = _ref10.signatures;
         return { data: data, verified: verified, signatures: signatures };
     }).catch(function (err) {
         console.error(err);
@@ -805,14 +1004,28 @@ module.exports = {
     verifyMessage: verifyMessage,
     splitMessage: splitMessage,
     getMessage: getMessage,
-    verifyExpirationTime: verifyExpirationTime,
     getSignature: getSignature,
     getCleartextMessage: getCleartextMessage,
-    createMessage: createMessage
+    createMessage: createMessage,
+    handleVerificationResult: handleVerificationResult
 };
 
-},{"../constants.js":2}],13:[function(require,module,exports){
+},{"../constants.js":2,"../utils":13}],13:[function(require,module,exports){
 'use strict';
+
+// Load window.performance in the browser, perf_hooks in node, and fall back on Date
+var requirePerfHooks = function requirePerfHooks() {
+    try {
+        var result = require('perf_hooks');
+        if (result && result.performance) {
+            return result;
+        }
+    } catch (e) {}
+};
+
+var _ref = requirePerfHooks() || window || {},
+    _ref$performance = _ref.performance,
+    performance = _ref$performance === undefined ? Date : _ref$performance;
 
 var noop = function noop() {};
 var ifDefined = function ifDefined() {
@@ -867,6 +1080,21 @@ function stripArmor(input) {
     return openpgp.armor.decode(input).data;
 }
 
+var lastServerTime = null;
+var clientTime = null;
+
+function serverTime() {
+    if (lastServerTime !== null) {
+        return new Date(+lastServerTime + (performance.now() - clientTime));
+    }
+    return new Date();
+}
+
+function updateServerTime(serverDate) {
+    lastServerTime = serverDate;
+    clientTime = performance.now();
+}
+
 module.exports = {
     encode_utf8: encode_utf8,
     decode_utf8: decode_utf8,
@@ -877,10 +1105,14 @@ module.exports = {
     binaryStringToArray: binaryStringToArray,
     arrayToBinaryString: arrayToBinaryString,
     getHashedPassword: getHashedPassword,
-    stripArmor: stripArmor
+    stripArmor: stripArmor,
+    updateServerTime: updateServerTime,
+    serverTime: serverTime
 };
 
-},{}],14:[function(require,module,exports){
+},{"perf_hooks":14}],14:[function(require,module,exports){
+
+},{}],15:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
