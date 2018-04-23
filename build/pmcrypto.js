@@ -267,6 +267,112 @@ module.exports = {
 },{}],7:[function(require,module,exports){
 'use strict';
 
+var keyInfo = function () {
+    var _ref3 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(rawKey, email) {
+        var expectEncrypted = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
+        var date = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : serverTime();
+        var keys, algoInfo, obj, encryptCheck;
+        return regeneratorRuntime.wrap(function _callee3$(_context3) {
+            while (1) {
+                switch (_context3.prev = _context3.next) {
+                    case 0:
+                        _context3.next = 2;
+                        return getKeys(rawKey);
+
+                    case 2:
+                        keys = _context3.sent;
+                        algoInfo = keys[0].primaryKey.getAlgorithmInfo();
+                        _context3.t0 = keys[0].primaryKey.version;
+                        _context3.t1 = keys[0].toPublic().armor();
+                        _context3.t2 = keys[0].primaryKey.getFingerprint();
+                        _context3.t3 = keys[0].getUserIds();
+                        _context3.next = 10;
+                        return primaryUser(keys[0], date);
+
+                    case 10:
+                        _context3.t4 = _context3.sent;
+                        _context3.t5 = algoInfo.bits || null;
+                        _context3.t6 = algoInfo.curve || null;
+                        _context3.t7 = keys[0].primaryKey.created;
+                        _context3.t8 = openpgp.enums.publicKey[algoInfo.algorithm];
+                        _context3.t9 = algoInfo.algorithm;
+                        _context3.next = 18;
+                        return keys[0].getExpirationTime();
+
+                    case 18:
+                        _context3.t10 = _context3.sent;
+                        _context3.t11 = packetInfo;
+                        _context3.next = 22;
+                        return keys[0].getEncryptionKeyPacket(undefined, date);
+
+                    case 22:
+                        _context3.t12 = _context3.sent;
+                        _context3.t13 = keys[0];
+                        _context3.next = 26;
+                        return (0, _context3.t11)(_context3.t12, _context3.t13);
+
+                    case 26:
+                        _context3.t14 = _context3.sent;
+                        _context3.t15 = packetInfo;
+                        _context3.next = 30;
+                        return keys[0].getSigningKeyPacket(undefined, date);
+
+                    case 30:
+                        _context3.t16 = _context3.sent;
+                        _context3.t17 = keys[0];
+                        _context3.next = 34;
+                        return (0, _context3.t15)(_context3.t16, _context3.t17);
+
+                    case 34:
+                        _context3.t18 = _context3.sent;
+                        _context3.t19 = keys[0].primaryKey.isDecrypted;
+                        _context3.t20 = keys[0].revocationSignatures;
+                        obj = {
+                            version: _context3.t0,
+                            publicKeyArmored: _context3.t1,
+                            fingerprint: _context3.t2,
+                            userIds: _context3.t3,
+                            user: _context3.t4,
+                            bitSize: _context3.t5,
+                            curve: _context3.t6,
+                            created: _context3.t7,
+                            algorithm: _context3.t8,
+                            algorithmName: _context3.t9,
+                            expires: _context3.t10,
+                            encrypt: _context3.t14,
+                            sign: _context3.t18,
+                            decrypted: _context3.t19,
+                            revocationSignatures: _context3.t20,
+                            validationError: null
+                        };
+
+
+                        try {
+                            keyCheck(obj, email, expectEncrypted);
+                        } catch (err) {
+                            obj.validationError = err.message;
+                        }
+
+                        encryptCheck = obj.encrypt ? openpgp.encrypt({ data: 'test message', publicKeys: keys, date: date }) : Promise.resolve();
+                        _context3.next = 42;
+                        return encryptCheck;
+
+                    case 42:
+                        return _context3.abrupt('return', obj);
+
+                    case 43:
+                    case 'end':
+                        return _context3.stop();
+                }
+            }
+        }, _callee3, this);
+    }));
+
+    return function keyInfo(_x5, _x6) {
+        return _ref3.apply(this, arguments);
+    };
+}();
+
 function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
 
 var keyCheck = require('./check');
@@ -277,244 +383,137 @@ var _require = require('./utils'),
 var _require2 = require('../utils'),
     serverTime = _require2.serverTime;
 
-function keyInfo(rawKey, email) {
-    var _this = this;
+var packetInfo = function () {
+    var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(packet, key) {
+        var i;
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+            while (1) {
+                switch (_context.prev = _context.next) {
+                    case 0:
+                        if (packet) {
+                            _context.next = 2;
+                            break;
+                        }
 
-    var expectEncrypted = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-    var date = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : serverTime();
+                        return _context.abrupt('return', null);
 
+                    case 2:
+                        if (!key.subKeys) {
+                            _context.next = 14;
+                            break;
+                        }
 
-    return Promise.resolve(getKeys(rawKey)).then(function () {
-        var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(keys) {
-            var packetInfo, primaryUser, algoInfo, obj, encryptCheck;
-            return regeneratorRuntime.wrap(function _callee3$(_context3) {
-                while (1) {
-                    switch (_context3.prev = _context3.next) {
-                        case 0:
-                            packetInfo = function () {
-                                var _ref2 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(packet, key) {
-                                    var i;
-                                    return regeneratorRuntime.wrap(function _callee$(_context) {
-                                        while (1) {
-                                            switch (_context.prev = _context.next) {
-                                                case 0:
-                                                    if (packet) {
-                                                        _context.next = 2;
-                                                        break;
-                                                    }
+                        i = 0;
 
-                                                    return _context.abrupt('return', null);
+                    case 4:
+                        if (!(i < key.subKeys.length)) {
+                            _context.next = 14;
+                            break;
+                        }
 
-                                                case 2:
-                                                    if (!key.subKeys) {
-                                                        _context.next = 14;
-                                                        break;
-                                                    }
+                        if (!(packet === key.subKeys[i].subKey)) {
+                            _context.next = 11;
+                            break;
+                        }
 
-                                                    i = 0;
+                        _context.t0 = openpgp.enums.publicKey[packet.algorithm];
+                        _context.next = 9;
+                        return key.subKeys[i].getExpirationTime();
 
-                                                case 4:
-                                                    if (!(i < key.subKeys.length)) {
-                                                        _context.next = 14;
-                                                        break;
-                                                    }
+                    case 9:
+                        _context.t1 = _context.sent;
+                        return _context.abrupt('return', {
+                            algorithm: _context.t0,
+                            expires: _context.t1
+                        });
 
-                                                    if (!(packet === key.subKeys[i].subKey)) {
-                                                        _context.next = 11;
-                                                        break;
-                                                    }
+                    case 11:
+                        i++;
+                        _context.next = 4;
+                        break;
 
-                                                    _context.t0 = openpgp.enums.publicKey[packet.algorithm];
-                                                    _context.next = 9;
-                                                    return key.subKeys[i].getExpirationTime();
+                    case 14:
+                        _context.t2 = openpgp.enums.publicKey[packet.algorithm];
+                        _context.next = 17;
+                        return key.getExpirationTime();
 
-                                                case 9:
-                                                    _context.t1 = _context.sent;
-                                                    return _context.abrupt('return', {
-                                                        algorithm: _context.t0,
-                                                        expires: _context.t1
-                                                    });
+                    case 17:
+                        _context.t3 = _context.sent;
+                        return _context.abrupt('return', {
+                            algorithm: _context.t2,
+                            expires: _context.t3
+                        });
 
-                                                case 11:
-                                                    i++;
-                                                    _context.next = 4;
-                                                    break;
-
-                                                case 14:
-                                                    _context.t2 = openpgp.enums.publicKey[packet.algorithm];
-                                                    _context.next = 17;
-                                                    return key.getExpirationTime();
-
-                                                case 17:
-                                                    _context.t3 = _context.sent;
-                                                    return _context.abrupt('return', {
-                                                        algorithm: _context.t2,
-                                                        expires: _context.t3
-                                                    });
-
-                                                case 19:
-                                                case 'end':
-                                                    return _context.stop();
-                                            }
-                                        }
-                                    }, _callee, _this);
-                                }));
-
-                                return function packetInfo(_x4, _x5) {
-                                    return _ref2.apply(this, arguments);
-                                };
-                            }();
-
-                            primaryUser = function () {
-                                var _ref3 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(key) {
-                                    var primary, cert;
-                                    return regeneratorRuntime.wrap(function _callee2$(_context2) {
-                                        while (1) {
-                                            switch (_context2.prev = _context2.next) {
-                                                case 0:
-                                                    _context2.next = 2;
-                                                    return key.getPrimaryUser(date);
-
-                                                case 2:
-                                                    primary = _context2.sent;
-
-                                                    if (primary) {
-                                                        _context2.next = 5;
-                                                        break;
-                                                    }
-
-                                                    return _context2.abrupt('return', null);
-
-                                                case 5:
-                                                    if (primary.user) {
-                                                        _context2.next = 7;
-                                                        break;
-                                                    }
-
-                                                    return _context2.abrupt('return', null);
-
-                                                case 7:
-                                                    if (primary.selfCertification) {
-                                                        _context2.next = 9;
-                                                        break;
-                                                    }
-
-                                                    return _context2.abrupt('return', null);
-
-                                                case 9:
-                                                    cert = primary.selfCertification;
-                                                    return _context2.abrupt('return', {
-                                                        userId: primary.user.userId.userid,
-                                                        symmetric: cert.preferredSymmetricAlgorithms ? cert.preferredSymmetricAlgorithms : [],
-                                                        hash: cert.preferredHashAlgorithms ? cert.preferredHashAlgorithms : [],
-                                                        compression: cert.preferredCompressionAlgorithms ? cert.preferredCompressionAlgorithms : []
-                                                    });
-
-                                                case 11:
-                                                case 'end':
-                                                    return _context2.stop();
-                                            }
-                                        }
-                                    }, _callee2, _this);
-                                }));
-
-                                return function primaryUser(_x6) {
-                                    return _ref3.apply(this, arguments);
-                                };
-                            }();
-
-                            algoInfo = keys[0].primaryKey.getAlgorithmInfo();
-                            _context3.t0 = keys[0].primaryKey.version;
-                            _context3.t1 = keys[0].toPublic().armor();
-                            _context3.t2 = keys[0].primaryKey.getFingerprint();
-                            _context3.t3 = keys[0].getUserIds();
-                            _context3.next = 9;
-                            return primaryUser(keys[0]);
-
-                        case 9:
-                            _context3.t4 = _context3.sent;
-                            _context3.t5 = algoInfo.bits || null;
-                            _context3.t6 = algoInfo.curve || null;
-                            _context3.t7 = keys[0].primaryKey.created;
-                            _context3.t8 = openpgp.enums.publicKey[algoInfo.algorithm];
-                            _context3.t9 = algoInfo.algorithm;
-                            _context3.next = 17;
-                            return keys[0].getExpirationTime();
-
-                        case 17:
-                            _context3.t10 = _context3.sent;
-                            _context3.t11 = packetInfo;
-                            _context3.next = 21;
-                            return keys[0].getEncryptionKeyPacket(undefined, date);
-
-                        case 21:
-                            _context3.t12 = _context3.sent;
-                            _context3.t13 = keys[0];
-                            _context3.next = 25;
-                            return (0, _context3.t11)(_context3.t12, _context3.t13);
-
-                        case 25:
-                            _context3.t14 = _context3.sent;
-                            _context3.t15 = packetInfo;
-                            _context3.next = 29;
-                            return keys[0].getSigningKeyPacket(undefined, date);
-
-                        case 29:
-                            _context3.t16 = _context3.sent;
-                            _context3.t17 = keys[0];
-                            _context3.next = 33;
-                            return (0, _context3.t15)(_context3.t16, _context3.t17);
-
-                        case 33:
-                            _context3.t18 = _context3.sent;
-                            _context3.t19 = keys[0].primaryKey.isDecrypted;
-                            _context3.t20 = keys[0].revocationSignatures;
-                            obj = {
-                                version: _context3.t0,
-                                publicKeyArmored: _context3.t1,
-                                fingerprint: _context3.t2,
-                                userIds: _context3.t3,
-                                user: _context3.t4,
-                                bitSize: _context3.t5,
-                                curve: _context3.t6,
-                                created: _context3.t7,
-                                algorithm: _context3.t8,
-                                algorithmName: _context3.t9,
-                                expires: _context3.t10,
-                                encrypt: _context3.t14,
-                                sign: _context3.t18,
-                                decrypted: _context3.t19,
-                                revocationSignatures: _context3.t20,
-                                validationError: null
-                            };
-
-
-                            try {
-                                keyCheck(obj, email, expectEncrypted);
-                            } catch (err) {
-                                obj.validationError = err.message;
-                            }
-
-                            encryptCheck = obj.encrypt ? openpgp.encrypt({ data: 'test message', publicKeys: keys, date: date }) : Promise.resolve();
-                            _context3.next = 41;
-                            return encryptCheck;
-
-                        case 41:
-                            return _context3.abrupt('return', obj);
-
-                        case 42:
-                        case 'end':
-                            return _context3.stop();
-                    }
+                    case 19:
+                    case 'end':
+                        return _context.stop();
                 }
-            }, _callee3, _this);
-        }));
+            }
+        }, _callee, undefined);
+    }));
 
-        return function (_x3) {
-            return _ref.apply(this, arguments);
-        };
-    }());
-}
+    return function packetInfo(_x, _x2) {
+        return _ref.apply(this, arguments);
+    };
+}();
+
+var primaryUser = function () {
+    var _ref2 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(key, date) {
+        var primary, cert;
+        return regeneratorRuntime.wrap(function _callee2$(_context2) {
+            while (1) {
+                switch (_context2.prev = _context2.next) {
+                    case 0:
+                        _context2.next = 2;
+                        return key.getPrimaryUser(date);
+
+                    case 2:
+                        primary = _context2.sent;
+
+                        if (primary) {
+                            _context2.next = 5;
+                            break;
+                        }
+
+                        return _context2.abrupt('return', null);
+
+                    case 5:
+                        if (primary.user) {
+                            _context2.next = 7;
+                            break;
+                        }
+
+                        return _context2.abrupt('return', null);
+
+                    case 7:
+                        if (primary.selfCertification) {
+                            _context2.next = 9;
+                            break;
+                        }
+
+                        return _context2.abrupt('return', null);
+
+                    case 9:
+                        cert = primary.selfCertification;
+                        return _context2.abrupt('return', {
+                            userId: primary.user.userId.userid,
+                            symmetric: cert.preferredSymmetricAlgorithms ? cert.preferredSymmetricAlgorithms : [],
+                            hash: cert.preferredHashAlgorithms ? cert.preferredHashAlgorithms : [],
+                            compression: cert.preferredCompressionAlgorithms ? cert.preferredCompressionAlgorithms : []
+                        });
+
+                    case 11:
+                    case 'end':
+                        return _context2.stop();
+                }
+            }
+        }, _callee2, undefined);
+    }));
+
+    return function primaryUser(_x3, _x4) {
+        return _ref2.apply(this, arguments);
+    };
+}();
 
 module.exports = keyInfo;
 
