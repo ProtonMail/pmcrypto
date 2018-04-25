@@ -248,8 +248,7 @@ function encryptPrivateKey(privKey, privKeyPassCode) {
             return Promise.reject(new Error('Missing primary key or subkey'));
         }
 
-        privKey.primaryKey.encrypt(privKeyPassCode);
-        return privKey.subKeys[0].subKey.encrypt(privKeyPassCode).then(function () {
+        return privKey.encrypt(privKeyPassCode).then(function () {
             return privKey.armor();
         });
     });
