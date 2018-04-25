@@ -22,7 +22,7 @@
     "btoa": "*",
     "atob": "*",
     "es6-promise": "*",
-    "openpgp": "3.0.7"
+    "openpgp": "3.0.8"
   },
   "devDependencies": {
     "babel-plugin-istanbul": "^4.1.4",
