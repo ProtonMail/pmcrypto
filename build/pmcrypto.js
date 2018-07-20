@@ -1,4 +1,4 @@
-(function(){function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s}return e})()({1:[function(require,module,exports){
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 'use strict';
 
 /**
@@ -23,7 +23,8 @@ var constants = {
     SIGNATURE_TYPES: {
         BINARY: 0,
         CANONICAL_TEXT: 1
-    }
+    },
+    TIME_OFFSET: 200 //ms
 };
 
 module.exports = constants;
@@ -58,6 +59,8 @@ function pmcrypto() {
         decryptSessionKey: decryptKey.decryptSessionKey,
         encryptPrivateKey: encryptKey.encryptPrivateKey,
         decryptPrivateKey: decryptKey.decryptPrivateKey,
+
+        compressKey: keyUtils.compressKey,
 
         getMessage: messageUtils.getMessage,
         getSignature: messageUtils.getSignature,
@@ -519,6 +522,8 @@ module.exports = keyInfo;
 },{"../utils":13,"./check":4,"./utils":8}],8:[function(require,module,exports){
 'use strict';
 
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
 var _require = require('../utils'),
     serverTime = _require.serverTime;
 // returns promise for generated RSA public and encrypted private keys
@@ -583,12 +588,27 @@ function isExpiredKey(key) {
     });
 }
 
+function compressKey(armoredKey) {
+    var _getKeys = getKeys(armoredKey),
+        _getKeys2 = _slicedToArray(_getKeys, 1),
+        k = _getKeys2[0];
+
+    var users = k.users;
+
+    users.forEach(function (_ref) {
+        var otherCertifications = _ref.otherCertifications;
+        return otherCertifications.length = 0;
+    });
+    return k.armor();
+}
+
 module.exports = {
     generateKey: generateKey,
     generateSessionKey: generateSessionKey,
     reformatKey: reformatKey,
     getKeys: getKeys,
-    isExpiredKey: isExpiredKey
+    isExpiredKey: isExpiredKey,
+    compressKey: compressKey
 };
 
 },{"../utils":13}],9:[function(require,module,exports){
@@ -1011,6 +1031,8 @@ module.exports = {
 },{"../constants.js":2,"../utils":13}],13:[function(require,module,exports){
 'use strict';
 
+var _constants = require('./constants');
+
 // Load window.performance in the browser, perf_hooks in node, and fall back on Date
 var requirePerfHooks = function requirePerfHooks() {
     try {
@@ -1083,7 +1105,18 @@ var clientTime = null;
 
 function serverTime() {
     if (lastServerTime !== null) {
-        return new Date(+lastServerTime + (performance.now() - clientTime));
+        var timeDiff = performance.now() - clientTime;
+        /*
+         * From the performance.now docs:
+         * The timestamp is not actually high-resolution.
+         * To mitigate security threats such as Spectre, browsers currently round the result to varying degrees.
+         * (Firefox started rounding to 2 milliseconds in Firefox 59.)
+         * Some browsers may also slightly randomize the timestamp.
+         * The precision may improve again in future releases;
+         * browser developers are still investigating these timing attacks and how best to mitigate them.
+         */
+        var safeTimeDiff = timeDiff < _constants.TIME_OFFSET ? 0 : timeDiff - _constants.TIME_OFFSET;
+        return new Date(+lastServerTime + safeTimeDiff);
     }
     return new Date();
 }
@@ -1108,7 +1141,7 @@ module.exports = {
     serverTime: serverTime
 };
 
-},{"perf_hooks":14}],14:[function(require,module,exports){
+},{"./constants":2,"perf_hooks":14}],14:[function(require,module,exports){
 
 },{}],15:[function(require,module,exports){
 // shim for using process in browser
@@ -1281,10 +1314,6 @@ process.off = noop;
 process.removeListener = noop;
 process.removeAllListeners = noop;
 process.emit = noop;
-process.prependListener = noop;
-process.prependOnceListener = noop;
-
-process.listeners = function (name) { return [] }
 
 process.binding = function (name) {
     throw new Error('process.binding is not supported');
