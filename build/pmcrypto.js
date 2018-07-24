@@ -299,7 +299,9 @@ var keyInfo = function () {
                         _context3.t8 = openpgp.enums.publicKey[algoInfo.algorithm];
                         _context3.t9 = algoInfo.algorithm;
                         _context3.next = 18;
-                        return keys[0].getExpirationTime();
+                        return keys[0].getExpirationTime().catch(function () {
+                            return null;
+                        });
 
                     case 18:
                         _context3.t10 = _context3.sent;
