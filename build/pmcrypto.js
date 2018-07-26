@@ -93,7 +93,9 @@ function pmcrypto() {
         stripArmor: utils.stripArmor,
 
         keyInfo: require('./key/info'),
-        keyCheck: require('./key/check')
+        keyCheck: require('./key/check'),
+        getFingerprint: keyUtils.getFingerprint,
+        getMatchingKey: keyUtils.getMatchingKey
     };
 }
 
@@ -253,7 +255,7 @@ function encryptPrivateKey(privKey, privKeyPassCode) {
             return Promise.reject(new Error('Not a private key'));
         }
 
-        if (privKey.primaryKey === null || privKey.subKeys === null || privKey.subKeys.length === 0) {
+        if (privKey.keyPacket === null || privKey.subKeys === null || privKey.subKeys.length === 0) {
             return Promise.reject(new Error('Missing primary key or subkey'));
         }
 
@@ -289,10 +291,10 @@ var keyInfo = function () {
 
                     case 2:
                         keys = _context3.sent;
-                        algoInfo = keys[0].primaryKey.getAlgorithmInfo();
+                        algoInfo = keys[0].getAlgorithmInfo();
                         _context3.t0 = keys[0].primaryKey.version;
                         _context3.t1 = keys[0].toPublic().armor();
-                        _context3.t2 = keys[0].primaryKey.getFingerprint();
+                        _context3.t2 = keys[0].getFingerprint();
                         _context3.t3 = keys[0].getUserIds();
                         _context3.next = 10;
                         return primaryUser(keys[0], date);
@@ -301,11 +303,11 @@ var keyInfo = function () {
                         _context3.t4 = _context3.sent;
                         _context3.t5 = algoInfo.bits || null;
                         _context3.t6 = algoInfo.curve || null;
-                        _context3.t7 = keys[0].primaryKey.created;
+                        _context3.t7 = keys[0].getCreationTime();
                         _context3.t8 = openpgp.enums.publicKey[algoInfo.algorithm];
                         _context3.t9 = algoInfo.algorithm;
                         _context3.next = 18;
-                        return keys[0].getExpirationTime().catch(function () {
+                        return keys[0].getExpirationTime('encrypt_sign').catch(function () {
                             return null;
                         });
 
@@ -313,7 +315,7 @@ var keyInfo = function () {
                         _context3.t10 = _context3.sent;
                         _context3.t11 = packetInfo;
                         _context3.next = 22;
-                        return keys[0].getEncryptionKeyPacket(undefined, date);
+                        return keys[0].getEncryptionKey(undefined, date);
 
                     case 22:
                         _context3.t12 = _context3.sent;
@@ -325,7 +327,7 @@ var keyInfo = function () {
                         _context3.t14 = _context3.sent;
                         _context3.t15 = packetInfo;
                         _context3.next = 30;
-                        return keys[0].getSigningKeyPacket(undefined, date);
+                        return keys[0].getSigningKey(undefined, date);
 
                     case 30:
                         _context3.t16 = _context3.sent;
@@ -335,7 +337,7 @@ var keyInfo = function () {
 
                     case 34:
                         _context3.t18 = _context3.sent;
-                        _context3.t19 = keys[0].primaryKey.isDecrypted;
+                        _context3.t19 = keys[0].isDecrypted();
                         _context3.t20 = keys[0].revocationSignatures;
                         obj = {
                             version: _context3.t0,
@@ -428,7 +430,7 @@ var packetInfo = function () {
 
                         _context.t0 = openpgp.enums.publicKey[packet.algorithm];
                         _context.next = 9;
-                        return key.subKeys[i].getExpirationTime();
+                        return key.subKeys[i].getExpirationTime('encrypt_sign');
 
                     case 9:
                         _context.t1 = _context.sent;
@@ -445,7 +447,7 @@ var packetInfo = function () {
                     case 14:
                         _context.t2 = openpgp.enums.publicKey[packet.algorithm];
                         _context.next = 17;
-                        return key.getExpirationTime();
+                        return key.getExpirationTime('encrypt_sign');
 
                     case 17:
                         _context.t3 = _context.sent;
@@ -533,7 +535,8 @@ module.exports = keyInfo;
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
 var _require = require('../utils'),
-    serverTime = _require.serverTime;
+    serverTime = _require.serverTime,
+    binaryStringToArray = _require.binaryStringToArray;
 // returns promise for generated RSA public and encrypted private keys
 
 
@@ -591,8 +594,8 @@ function getKeys() {
 }
 
 function isExpiredKey(key) {
-    return key.getExpirationTime().then(function (expirationTime) {
-        return !(key.primaryKey.created <= +serverTime() && +serverTime() < expirationTime) || key.revocationSignatures.length > 0;
+    return key.getExpirationTime('encrypt_sign').then(function (expirationTime) {
+        return !(key.getCreationTime() <= +serverTime() && +serverTime() < expirationTime) || key.revocationSignatures.length > 0;
     });
 }
 
@@ -610,13 +613,40 @@ function compressKey(armoredKey) {
     return k.armor();
 }
 
+function getFingerprint(key) {
+    return key.getFingerprint();
+}
+
+function getMatchingKey(signature, keys) {
+    var keyring = new openpgp.Keyring({
+        loadPublic: function loadPublic() {
+            return keys;
+        },
+        loadPrivate: function loadPrivate() {
+            return [];
+        },
+        storePublic: function storePublic() {},
+        storePrivate: function storePrivate() {}
+    });
+
+    var keyid = openpgp.util.Uint8Array_to_hex(binaryStringToArray(signature.keyid.toHex()));
+
+    var _ref2 = keyring.getKeysForId(keyid, true) || [null],
+        _ref3 = _slicedToArray(_ref2, 1),
+        key = _ref3[0];
+
+    return key;
+}
+
 module.exports = {
     generateKey: generateKey,
     generateSessionKey: generateSessionKey,
     reformatKey: reformatKey,
     getKeys: getKeys,
     isExpiredKey: isExpiredKey,
-    compressKey: compressKey
+    compressKey: compressKey,
+    getFingerprint: getFingerprint,
+    getMatchingKey: getMatchingKey
 };
 
 },{"../utils":13}],9:[function(require,module,exports){
