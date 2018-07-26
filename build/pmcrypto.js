@@ -5,9 +5,14 @@
  * @link https://github.com/vibornoff/asmcrypto.js/issues/121
  */
 asmCrypto.random.skipSystemRNGWarning = true;
+
+var _ref = window.navigator || {},
+    _ref$hardwareConcurre = _ref.hardwareConcurrency,
+    hardwareConcurrency = _ref$hardwareConcurre === undefined ? 1 : _ref$hardwareConcurre;
+
 openpgp.config.integrity_protect = true;
 openpgp.config.use_native = true;
-openpgp.initWorker({ path: 'openpgp.worker.min.js' });
+openpgp.initWorker({ path: 'openpgp.worker.min.js', n: hardwareConcurrency });
 
 window.pmcrypto = require('./index');
 
@@ -50,6 +55,7 @@ function pmcrypto() {
         generateKey: keyUtils.generateKey,
         getKeys: keyUtils.getKeys,
         updateServerTime: utils.updateServerTime,
+        getMaxConcurrency: utils.getMaxConcurrency,
 
         reformatKey: keyUtils.reformatKey,
         generateSessionKey: keyUtils.generateSessionKey,
@@ -1128,6 +1134,14 @@ function updateServerTime(serverDate) {
     clientTime = performance.now();
 }
 
+function getMaxConcurrency() {
+    var _ref2 = openpgp.getWorker() || {},
+        _ref2$workers = _ref2.workers,
+        workers = _ref2$workers === undefined ? [null] : _ref2$workers;
+
+    return workers.length;
+}
+
 module.exports = {
     encode_utf8: encode_utf8,
     decode_utf8: decode_utf8,
@@ -1140,7 +1154,8 @@ module.exports = {
     getHashedPassword: getHashedPassword,
     stripArmor: stripArmor,
     updateServerTime: updateServerTime,
-    serverTime: serverTime
+    serverTime: serverTime,
+    getMaxConcurrency: getMaxConcurrency
 };
 
 },{"./constants":2,"perf_hooks":14}],14:[function(require,module,exports){
