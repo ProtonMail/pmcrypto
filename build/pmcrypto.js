@@ -60,6 +60,7 @@ function pmcrypto() {
         reformatKey: keyUtils.reformatKey,
         generateSessionKey: keyUtils.generateSessionKey,
         isExpiredKey: keyUtils.isExpiredKey,
+        cloneKey: keyUtils.cloneKey,
 
         encryptSessionKey: encryptKey.encryptSessionKey,
         decryptSessionKey: decryptKey.decryptSessionKey,
@@ -239,9 +240,12 @@ module.exports = { decryptPrivateKey: decryptPrivateKey, decryptSessionKey: decr
 },{"./utils":8}],6:[function(require,module,exports){
 'use strict';
 
-function encryptPrivateKey(privKey, privKeyPassCode) {
+var _require = require('./utils'),
+    cloneKey = _require.cloneKey;
 
-    return Promise.resolve().then(function () {
+function encryptPrivateKey(inputKey, privKeyPassCode) {
+
+    return Promise.resolve(cloneKey(inputKey)).then(function (privKey) {
 
         if (Object.prototype.toString.call(privKeyPassCode) !== '[object String]' || privKeyPassCode === '') {
             return Promise.reject(new Error('Missing private key passcode'));
@@ -274,7 +278,7 @@ module.exports = {
     encryptSessionKey: encryptSessionKey
 };
 
-},{}],7:[function(require,module,exports){
+},{"./utils":8}],7:[function(require,module,exports){
 'use strict';
 
 var keyInfo = function () {
@@ -638,6 +642,14 @@ function getMatchingKey(signature, keys) {
     return key;
 }
 
+function cloneKey(inputKey) {
+    var _getKeys3 = getKeys(inputKey.toPacketlist().write()),
+        _getKeys4 = _slicedToArray(_getKeys3, 1),
+        key = _getKeys4[0];
+
+    return key;
+}
+
 module.exports = {
     generateKey: generateKey,
     generateSessionKey: generateSessionKey,
@@ -646,7 +658,8 @@ module.exports = {
     isExpiredKey: isExpiredKey,
     compressKey: compressKey,
     getFingerprint: getFingerprint,
-    getMatchingKey: getMatchingKey
+    getMatchingKey: getMatchingKey,
+    cloneKey: cloneKey
 };
 
 },{"../utils":13}],9:[function(require,module,exports){
@@ -1361,6 +1374,10 @@ process.off = noop;
 process.removeListener = noop;
 process.removeAllListeners = noop;
 process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
 
 process.binding = function (name) {
     throw new Error('process.binding is not supported');
