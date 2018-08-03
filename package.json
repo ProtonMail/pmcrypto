@@ -23,7 +23,7 @@
     "btoa": "*",
     "atob": "*",
     "es6-promise": "*",
-    "openpgp": "3.1.1"
+    "openpgp": "3.1.2"
   },
   "devDependencies": {
     "babel-core": "^6.26.3",
