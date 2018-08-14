@@ -20,8 +20,9 @@
   },
   "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
   "dependencies": {
-    "btoa": "*",
     "atob": "*",
+    "btoa": "*",
+    "emailjs-mime-parser": "^2.0.5",
     "es6-promise": "*",
     "openpgp": "https://github.com/sanjanarajan/openpgpjs.git#v3.1.2"
   },
