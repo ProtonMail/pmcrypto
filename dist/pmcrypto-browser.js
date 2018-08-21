@@ -3844,7 +3844,8 @@ var pmcrypto = (function (exports) {
         keyInfo: info,
         keyCheck: keyCheck,
         getFingerprint: getFingerprint,
-        getMatchingKey: getMatchingKey
+        getMatchingKey: getMatchingKey,
+        MailParser: MailParser
     });
 
     /* START.BROWSER_ONLY */
@@ -3897,6 +3898,7 @@ var pmcrypto = (function (exports) {
     exports.keyCheck = keyCheck;
     exports.getFingerprint = getFingerprint;
     exports.getMatchingKey = getMatchingKey;
+    exports.MailParser = MailParser;
 
     return exports;
 

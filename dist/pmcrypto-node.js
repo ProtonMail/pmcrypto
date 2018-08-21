@@ -3854,7 +3854,8 @@ var pmcrypto = /*#__PURE__*/Object.freeze({
     keyInfo: info,
     keyCheck: keyCheck,
     getFingerprint: getFingerprint,
-    getMatchingKey: getMatchingKey
+    getMatchingKey: getMatchingKey,
+    MailParser: MailParser
 });
 
 exports.default = pmcrypto;
@@ -3904,3 +3905,4 @@ exports.keyInfo = info;
 exports.keyCheck = keyCheck;
 exports.getFingerprint = getFingerprint;
 exports.getMatchingKey = getMatchingKey;
+exports.MailParser = MailParser;
