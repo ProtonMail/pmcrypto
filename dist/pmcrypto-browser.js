@@ -2,14 +2,13 @@ var pmcrypto = (function (exports) {
     'use strict';
 
     var VERIFICATION_STATUS = {
-        NOT_SIGNED: 0,
-        SIGNED_AND_VALID: 1,
-        SIGNED_AND_INVALID: 2
+      NOT_SIGNED: 0,
+      SIGNED_AND_VALID: 1,
+      SIGNED_AND_INVALID: 2
     };
-
     var SIGNATURE_TYPES = {
-        BINARY: 0,
-        CANONICAL_TEXT: 1
+      BINARY: 0,
+      CANONICAL_TEXT: 1
     };
     var TIME_OFFSET = 200; // ms
 
@@ -18,571 +17,569 @@ var pmcrypto = (function (exports) {
     /* eslint-disable global-require */
     openpgp.config.integrity_protect = true;
     openpgp.config.use_native = true;
-
     /* START.BROWSER_ONLY */
+
     /**
      * @link https://github.com/vibornoff/asmcrypto.js/issues/121
      */
+
     asmCrypto.random.skipSystemRNGWarning = true;
 
     var _ref = window.navigator || {},
         _ref$hardwareConcurre = _ref.hardwareConcurrency,
-        hardwareConcurrency = _ref$hardwareConcurre === undefined ? 1 : _ref$hardwareConcurre;
+        hardwareConcurrency = _ref$hardwareConcurre === void 0 ? 1 : _ref$hardwareConcurre;
 
-    openpgp.initWorker({ path: 'openpgp.worker.min.js', n: hardwareConcurrency });
+    openpgp.initWorker({
+      path: 'openpgp.worker.min.js',
+      n: hardwareConcurrency
+    });
     /* END.BROWSER_ONLY */
+
     var openpgpjs = openpgp;
 
-    // Load window.performance in the browser, perf_hooks in node, and fall back on Date
     var getPerformance = function getPerformance() {
-        if (window && window.performance) {
-            return window.performance;
-        }
-        return Date;
+      if (window && window.performance) {
+        return window.performance;
+      }
+
+      return Date;
     };
 
     var performance = getPerformance();
 
     var noop = function noop() {};
-    var ifDefined = function ifDefined() {
-        var cb = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : noop;
-        return function (input) {
-            if (input !== undefined) {
-                return cb(input);
-            }
-        };
-    };
 
+    var ifDefined = function ifDefined() {
+      var cb = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : noop;
+      return function (input) {
+        if (input !== undefined) {
+          return cb(input);
+        }
+      };
+    };
     var encodeUtf8 = ifDefined(openpgpjs.util.encode_utf8);
     var decodeUtf8 = ifDefined(openpgpjs.util.decode_utf8);
     var encodeBase64 = ifDefined(function (input) {
-        return btoa(input).trim();
+      return btoa(input).trim();
     });
     var decodeBase64 = ifDefined(function (input) {
-        return atob(input.trim());
+      return atob(input.trim());
     });
     var encodeUtf8Base64 = ifDefined(function (input) {
-        return encodeBase64(encodeUtf8(input));
+      return encodeBase64(encodeUtf8(input));
     });
     var decodeUtf8Base64 = ifDefined(function (input) {
-        return decodeUtf8(decodeBase64(input));
+      return decodeUtf8(decodeBase64(input));
     });
-
     var binaryStringToArray = openpgpjs.util.str_to_Uint8Array;
     var arrayToBinaryString = openpgpjs.util.Uint8Array_to_str;
-
     function getHashedPassword(password) {
-        return btoa(arrayToBinaryString(openpgpjs.crypto.hash.sha512(binaryStringToArray(password))));
+      return btoa(arrayToBinaryString(openpgpjs.crypto.hash.sha512(binaryStringToArray(password))));
     }
-
     function stripArmor(input) {
-        return openpgpjs.armor.decode(input).data;
+      return openpgpjs.armor.decode(input).data;
     }
-
     var lastServerTime = null;
     var clientTime = null;
-
     function serverTime() {
-        if (lastServerTime !== null) {
-            var timeDiff = performance.now() - clientTime;
-            /*
-             * From the performance.now docs:
-             * The timestamp is not actually high-resolution.
-             * To mitigate security threats such as Spectre, browsers currently round the result to varying degrees.
-             * (Firefox started rounding to 2 milliseconds in Firefox 59.)
-             * Some browsers may also slightly randomize the timestamp.
-             * The precision may improve again in future releases;
-             * browser developers are still investigating these timing attacks and how best to mitigate them.
-             */
-            var safeTimeDiff = timeDiff < TIME_OFFSET ? 0 : timeDiff - TIME_OFFSET;
-            return new Date(+lastServerTime + safeTimeDiff);
-        }
-        return new Date();
-    }
+      if (lastServerTime !== null) {
+        var timeDiff = performance.now() - clientTime;
+        /*
+         * From the performance.now docs:
+         * The timestamp is not actually high-resolution.
+         * To mitigate security threats such as Spectre, browsers currently round the result to varying degrees.
+         * (Firefox started rounding to 2 milliseconds in Firefox 59.)
+         * Some browsers may also slightly randomize the timestamp.
+         * The precision may improve again in future releases;
+         * browser developers are still investigating these timing attacks and how best to mitigate them.
+         */
 
-    function updateServerTime(serverDate) {
-        lastServerTime = serverDate;
-        clientTime = performance.now();
-    }
-
-    function getMaxConcurrency() {
-        var _ref = openpgpjs.getWorker() || {},
-            _ref$workers = _ref.workers,
-            workers = _ref$workers === undefined ? [null] : _ref$workers;
-
-        return workers.length;
-    }
-
-    var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
-      return typeof obj;
-    } : function (obj) {
-      return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
-    };
-
-    var asyncToGenerator = function (fn) {
-      return function () {
-        var gen = fn.apply(this, arguments);
-        return new Promise(function (resolve, reject) {
-          function step(key, arg) {
-            try {
-              var info = gen[key](arg);
-              var value = info.value;
-            } catch (error) {
-              reject(error);
-              return;
-            }
-
-            if (info.done) {
-              resolve(value);
-            } else {
-              return Promise.resolve(value).then(function (value) {
-                step("next", value);
-              }, function (err) {
-                step("throw", err);
-              });
-            }
-          }
-
-          return step("next");
-        });
-      };
-    };
-
-    var slicedToArray = function () {
-      function sliceIterator(arr, i) {
-        var _arr = [];
-        var _n = true;
-        var _d = false;
-        var _e = undefined;
-
-        try {
-          for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
-            _arr.push(_s.value);
-
-            if (i && _arr.length === i) break;
-          }
-        } catch (err) {
-          _d = true;
-          _e = err;
-        } finally {
-          try {
-            if (!_n && _i["return"]) _i["return"]();
-          } finally {
-            if (_d) throw _e;
-          }
-        }
-
-        return _arr;
+        var safeTimeDiff = timeDiff < TIME_OFFSET ? 0 : timeDiff - TIME_OFFSET;
+        return new Date(+lastServerTime + safeTimeDiff);
       }
 
-      return function (arr, i) {
-        if (Array.isArray(arr)) {
-          return arr;
-        } else if (Symbol.iterator in Object(arr)) {
-          return sliceIterator(arr, i);
-        } else {
-          throw new TypeError("Invalid attempt to destructure non-iterable instance");
-        }
-      };
-    }();
+      return new Date();
+    }
+    function updateServerTime(serverDate) {
+      lastServerTime = serverDate;
+      clientTime = performance.now();
+    }
+    function getMaxConcurrency() {
+      var _ref = openpgpjs.getWorker() || {},
+          _ref$workers = _ref.workers,
+          workers = _ref$workers === void 0 ? [null] : _ref$workers;
 
-    // returns promise for generated RSA public and encrypted private keys
+      return workers.length;
+    }
+
+    function _typeof(obj) {
+      if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
+        _typeof = function (obj) {
+          return typeof obj;
+        };
+      } else {
+        _typeof = function (obj) {
+          return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+        };
+      }
+
+      return _typeof(obj);
+    }
+
+    function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+      try {
+        var info = gen[key](arg);
+        var value = info.value;
+      } catch (error) {
+        reject(error);
+        return;
+      }
+
+      if (info.done) {
+        resolve(value);
+      } else {
+        Promise.resolve(value).then(_next, _throw);
+      }
+    }
+
+    function _asyncToGenerator(fn) {
+      return function () {
+        var self = this,
+            args = arguments;
+        return new Promise(function (resolve, reject) {
+          var gen = fn.apply(self, args);
+
+          function _next(value) {
+            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+          }
+
+          function _throw(err) {
+            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+          }
+
+          _next(undefined);
+        });
+      };
+    }
+
+    function _slicedToArray(arr, i) {
+      return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest();
+    }
+
+    function _arrayWithHoles(arr) {
+      if (Array.isArray(arr)) return arr;
+    }
+
+    function _iterableToArrayLimit(arr, i) {
+      var _arr = [];
+      var _n = true;
+      var _d = false;
+      var _e = undefined;
+
+      try {
+        for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+          _arr.push(_s.value);
+
+          if (i && _arr.length === i) break;
+        }
+      } catch (err) {
+        _d = true;
+        _e = err;
+      } finally {
+        try {
+          if (!_n && _i["return"] != null) _i["return"]();
+        } finally {
+          if (_d) throw _e;
+        }
+      }
+
+      return _arr;
+    }
+
+    function _nonIterableRest() {
+      throw new TypeError("Invalid attempt to destructure non-iterable instance");
+    }
+
     var generateKey = function generateKey(options) {
-        options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
-        return openpgpjs.generateKey(options);
+      options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
+      return openpgpjs.generateKey(options);
     };
     var generateSessionKey = function generateSessionKey(algorithm) {
-        return openpgpjs.crypto.generateSessionKey(algorithm);
+      return openpgpjs.crypto.generateSessionKey(algorithm);
     };
-
     function reformatKey(privKey) {
-        var email = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
-        var passphrase = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '';
+      var email = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
+      var passphrase = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '';
 
+      if (passphrase.length === 0) {
+        return Promise.reject(new Error('Missing private key passcode'));
+      }
 
-        if (passphrase.length === 0) {
-            return Promise.reject(new Error('Missing private key passcode'));
-        }
-
-        var user = {
-            name: email,
-            email: email
-        };
-
-        var options = {
-            privateKey: privKey,
-            userIds: [user],
-            passphrase: passphrase
-        };
-
-        return openpgpjs.reformatKey(options).then(function (reformattedKey) {
-            return reformattedKey.privateKeyArmored;
-        });
+      var user = {
+        name: email,
+        email: email
+      };
+      var options = {
+        privateKey: privKey,
+        userIds: [user],
+        passphrase: passphrase
+      };
+      return openpgpjs.reformatKey(options).then(function (reformattedKey) {
+        return reformattedKey.privateKeyArmored;
+      });
     }
-
     function getKeys() {
-        var rawKeys = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+      var rawKeys = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
+      var keys = rawKeys instanceof Uint8Array ? openpgpjs.key.read(rawKeys) : openpgpjs.key.readArmored(rawKeys);
 
+      if (keys === undefined) {
+        throw new Error('Cannot parse key(s)');
+      }
 
-        var keys = rawKeys instanceof Uint8Array ? openpgpjs.key.read(rawKeys) : openpgpjs.key.readArmored(rawKeys);
+      if (keys.err) {
+        // openpgpjs.key.readArmored returns error arrays.
+        throw new Error(keys.err[0].message);
+      }
 
-        if (keys === undefined) {
-            throw new Error('Cannot parse key(s)');
-        }
-        if (keys.err) {
-            // openpgpjs.key.readArmored returns error arrays.
-            throw new Error(keys.err[0].message);
-        }
-        if (keys.keys.length < 1 || keys.keys[0] === undefined) {
-            throw new Error('Invalid key(s)');
-        }
+      if (keys.keys.length < 1 || keys.keys[0] === undefined) {
+        throw new Error('Invalid key(s)');
+      }
 
-        return keys.keys;
+      return keys.keys;
     }
-
     function isExpiredKey(key) {
-        return key.getExpirationTime('encrypt_sign').then(function (expirationTime) {
-            return !(key.getCreationTime() <= +serverTime() && +serverTime() < expirationTime) || key.revocationSignatures.length > 0;
-        });
+      return key.getExpirationTime('encrypt_sign').then(function (expirationTime) {
+        return !(key.getCreationTime() <= +serverTime() && +serverTime() < expirationTime) || key.revocationSignatures.length > 0;
+      });
     }
-
     function compressKey(armoredKey) {
-        var _getKeys = getKeys(armoredKey),
-            _getKeys2 = slicedToArray(_getKeys, 1),
-            k = _getKeys2[0];
+      var _getKeys = getKeys(armoredKey),
+          _getKeys2 = _slicedToArray(_getKeys, 1),
+          k = _getKeys2[0];
 
-        var users = k.users;
-
-        users.forEach(function (_ref) {
-            var otherCertifications = _ref.otherCertifications;
-            return otherCertifications.length = 0;
-        });
-        return k.armor();
+      var users = k.users;
+      users.forEach(function (_ref) {
+        var otherCertifications = _ref.otherCertifications;
+        return otherCertifications.length = 0;
+      });
+      return k.armor();
     }
-
     function getFingerprint(key) {
-        return key.getFingerprint();
+      return key.getFingerprint();
     }
-
     function getMatchingKey(signature, keys) {
-        var keyring = new openpgpjs.Keyring({
-            loadPublic: function loadPublic() {
-                return keys;
-            },
-            loadPrivate: function loadPrivate() {
-                return [];
-            },
-            storePublic: function storePublic() {},
-            storePrivate: function storePrivate() {}
-        });
+      var keyring = new openpgpjs.Keyring({
+        loadPublic: function loadPublic() {
+          return keys;
+        },
+        loadPrivate: function loadPrivate() {
+          return [];
+        },
+        storePublic: function storePublic() {},
+        storePrivate: function storePrivate() {}
+      }); // eslint-disable-next-line new-cap
 
-        // eslint-disable-next-line new-cap
-        var keyid = openpgpjs.util.Uint8Array_to_hex(binaryStringToArray(signature.keyid.toHex()));
+      var keyid = openpgpjs.util.Uint8Array_to_hex(binaryStringToArray(signature.keyid.toHex()));
 
-        var _ref2 = keyring.getKeysForId(keyid, true) || [null],
-            _ref3 = slicedToArray(_ref2, 1),
-            key = _ref3[0];
+      var _ref2 = keyring.getKeysForId(keyid, true) || [null],
+          _ref3 = _slicedToArray(_ref2, 1),
+          key = _ref3[0];
 
-        return key;
+      return key;
     }
-
     function cloneKey(inputKey) {
-        var _getKeys3 = getKeys(inputKey.toPacketlist().write()),
-            _getKeys4 = slicedToArray(_getKeys3, 1),
-            key = _getKeys4[0];
+      var _getKeys3 = getKeys(inputKey.toPacketlist().write()),
+          _getKeys4 = _slicedToArray(_getKeys3, 1),
+          key = _getKeys4[0];
 
-        return key;
+      return key;
     }
 
     function decryptPrivateKey(privKey, privKeyPassCode) {
+      return Promise.resolve().then(function () {
+        if (privKey === undefined || privKey === '') {
+          return Promise.reject(new Error('Missing private key'));
+        }
 
-        return Promise.resolve().then(function () {
+        if (privKeyPassCode === undefined || privKeyPassCode === '') {
+          return Promise.reject(new Error('Missing private key passcode'));
+        }
 
-            if (privKey === undefined || privKey === '') {
-                return Promise.reject(new Error('Missing private key'));
-            }
-            if (privKeyPassCode === undefined || privKeyPassCode === '') {
-                return Promise.reject(new Error('Missing private key passcode'));
-            }
+        var keys = getKeys(privKey);
+        return keys[0].decrypt(privKeyPassCode).then(function (success) {
+          if (!success) {
+            throw new Error('Private key decryption failed');
+          }
 
-            var keys = getKeys(privKey);
-            return keys[0].decrypt(privKeyPassCode).then(function (success) {
-                if (!success) {
-                    throw new Error('Private key decryption failed');
-                }
-                return keys[0];
-            });
+          return keys[0];
         });
+      });
     }
-
     function decryptSessionKey(options) {
-
-        return Promise.resolve().then(function () {
-
-            try {
-                return openpgpjs.decryptSessionKeys(options).then(function (result) {
-
-                    if (result.length > 1) {
-                        return Promise.reject(new Error('Multiple decrypted session keys found'));
-                    }
-
-                    return result[0];
-                }).catch(function (err) {
-                    console.error(err);
-                    return Promise.reject(err);
-                });
-            } catch (err) {
-                if (err.message === 'CFB decrypt: invalid key' && options.passwords && options.passwords.length) {
-                    return Promise.reject(new Error('Incorrect message password'));
-                }
-                return Promise.reject(err);
+      return Promise.resolve().then(function () {
+        try {
+          return openpgpjs.decryptSessionKeys(options).then(function (result) {
+            if (result.length > 1) {
+              return Promise.reject(new Error('Multiple decrypted session keys found'));
             }
-        });
+
+            return result[0];
+          }).catch(function (err) {
+            console.error(err);
+            return Promise.reject(err);
+          });
+        } catch (err) {
+          if (err.message === 'CFB decrypt: invalid key' && options.passwords && options.passwords.length) {
+            return Promise.reject(new Error('Incorrect message password'));
+          }
+
+          return Promise.reject(err);
+        }
+      });
     }
 
     function encryptPrivateKey(inputKey, privKeyPassCode) {
+      return Promise.resolve(cloneKey(inputKey)).then(function (privKey) {
+        if (Object.prototype.toString.call(privKeyPassCode) !== '[object String]' || privKeyPassCode === '') {
+          return Promise.reject(new Error('Missing private key passcode'));
+        }
 
-        return Promise.resolve(cloneKey(inputKey)).then(function (privKey) {
+        if (!{}.isPrototypeOf.call(openpgpjs.key.Key.prototype, privKey)) {
+          return Promise.reject(new Error('Not a Key object'));
+        }
 
-            if (Object.prototype.toString.call(privKeyPassCode) !== '[object String]' || privKeyPassCode === '') {
-                return Promise.reject(new Error('Missing private key passcode'));
-            }
+        if (!privKey.isPrivate()) {
+          return Promise.reject(new Error('Not a private key'));
+        }
 
-            if (!{}.isPrototypeOf.call(openpgpjs.key.Key.prototype, privKey)) {
-                return Promise.reject(new Error('Not a Key object'));
-            }
+        if (privKey.keyPacket === null || privKey.subKeys === null || privKey.subKeys.length === 0) {
+          return Promise.reject(new Error('Missing primary key or subkey'));
+        }
 
-            if (!privKey.isPrivate()) {
-                return Promise.reject(new Error('Not a private key'));
-            }
-
-            if (privKey.keyPacket === null || privKey.subKeys === null || privKey.subKeys.length === 0) {
-                return Promise.reject(new Error('Missing primary key or subkey'));
-            }
-
-            return privKey.encrypt(privKeyPassCode).then(function () {
-                return privKey.armor();
-            });
+        return privKey.encrypt(privKeyPassCode).then(function () {
+          return privKey.armor();
         });
+      });
     }
-
     var encryptSessionKey = function encryptSessionKey(opt) {
-        return openpgpjs.encryptSessionKey(opt);
+      return openpgpjs.encryptSessionKey(opt);
     };
-
-    /* eslint-disable no-prototype-builtins */
 
     var NOT_SIGNED = VERIFICATION_STATUS.NOT_SIGNED,
         SIGNED_AND_VALID = VERIFICATION_STATUS.SIGNED_AND_VALID,
         SIGNED_AND_INVALID = VERIFICATION_STATUS.SIGNED_AND_INVALID;
     var CANONICAL_TEXT = SIGNATURE_TYPES.CANONICAL_TEXT;
-
-
     function getMessage(message) {
-
-        if (openpgpjs.message.Message.prototype.isPrototypeOf(message)) {
-            return message;
-        } else if (Uint8Array.prototype.isPrototypeOf(message)) {
-            return openpgpjs.message.read(message);
-        } else {
-            return openpgpjs.message.readArmored(message.trim());
-        }
+      if (openpgpjs.message.Message.prototype.isPrototypeOf(message)) {
+        return message;
+      } else if (Uint8Array.prototype.isPrototypeOf(message)) {
+        return openpgpjs.message.read(message);
+      } else {
+        return openpgpjs.message.readArmored(message.trim());
+      }
     }
-
     function getSignature(signature) {
+      if (openpgpjs.signature.Signature.prototype.isPrototypeOf(signature)) {
+        return signature;
+      } else if (Uint8Array.prototype.isPrototypeOf(signature)) {
+        return openpgpjs.signature.read(signature);
+      }
 
-        if (openpgpjs.signature.Signature.prototype.isPrototypeOf(signature)) {
-            return signature;
-        } else if (Uint8Array.prototype.isPrototypeOf(signature)) {
-            return openpgpjs.signature.read(signature);
-        }
-        return openpgpjs.signature.readArmored(signature.trim());
+      return openpgpjs.signature.readArmored(signature.trim());
     }
-
     function getCleartextMessage(message) {
-
-        if (openpgpjs.cleartext.CleartextMessage.prototype.isPrototypeOf(message)) {
-            return message;
-        } else {
-            return new openpgpjs.cleartext.CleartextMessage(message);
-        }
+      if (openpgpjs.cleartext.CleartextMessage.prototype.isPrototypeOf(message)) {
+        return message;
+      } else {
+        return new openpgpjs.cleartext.CleartextMessage(message);
+      }
     }
-
     function createMessage(source) {
-
-        if (Uint8Array.prototype.isPrototypeOf(source)) {
-            return openpgpjs.message.fromBinary(source);
-        } else {
-            return openpgpjs.message.fromText(source);
-        }
+      if (Uint8Array.prototype.isPrototypeOf(source)) {
+        return openpgpjs.message.fromBinary(source);
+      } else {
+        return openpgpjs.message.fromText(source);
+      }
     }
-
     function signMessage(options) {
-        options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
-
-        return openpgpjs.sign(options).catch(function (err) {
-            console.error(err);
-            return Promise.reject(err);
-        });
+      options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
+      return openpgpjs.sign(options).catch(function (err) {
+        console.error(err);
+        return Promise.reject(err);
+      });
     }
 
     function isCanonicalTextSignature(_ref) {
-        var packets = _ref.packets;
-
-        return Object.values(packets).some(function (_ref2) {
-            var _ref2$signatureType = _ref2.signatureType,
-                signatureType = _ref2$signatureType === undefined ? false : _ref2$signatureType;
-            return signatureType === CANONICAL_TEXT;
-        });
+      var packets = _ref.packets;
+      return Object.values(packets).some(function (_ref2) {
+        var _ref2$signatureType = _ref2.signatureType,
+            signatureType = _ref2$signatureType === void 0 ? false : _ref2$signatureType;
+        return signatureType === CANONICAL_TEXT;
+      });
     }
 
-    var handleVerificationResult = function () {
-        var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(_ref4, publicKeys, date) {
-            var data = _ref4.data,
-                _ref4$filename = _ref4.filename,
-                filename = _ref4$filename === undefined ? 'msg.txt' : _ref4$filename,
-                sigs = _ref4.signatures;
-            var verified, signatures, i, verifiableSigs, text, textMessage, verificationPromises, verificationResults;
-            return regeneratorRuntime.wrap(function _callee$(_context) {
-                while (1) {
-                    switch (_context.prev = _context.next) {
-                        case 0:
-                            verified = NOT_SIGNED;
-                            signatures = [];
+    function handleVerificationResult(_x, _x2, _x3) {
+      return _handleVerificationResult.apply(this, arguments);
+    }
 
-                            if (sigs && sigs.length) {
-                                verified = SIGNED_AND_INVALID;
-                                for (i = 0; i < sigs.length; i++) {
-                                    if (sigs[i].valid) {
-                                        verified = SIGNED_AND_VALID;
-                                    }
-                                    if (sigs[i].valid || !publicKeys.length) {
-                                        signatures.push(sigs[i].signature);
-                                    }
-                                }
-                            }
+    function _handleVerificationResult() {
+      _handleVerificationResult = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee(_ref3, publicKeys, date) {
+        var data, _ref3$filename, filename, sigs, verified, signatures, i, verifiableSigs, text, textMessage, verificationPromises, verificationResults;
 
-                            if (!(verified === SIGNED_AND_INVALID)) {
-                                _context.next = 12;
-                                break;
-                            }
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                data = _ref3.data, _ref3$filename = _ref3.filename, filename = _ref3$filename === void 0 ? 'msg.txt' : _ref3$filename, sigs = _ref3.signatures;
+                verified = NOT_SIGNED;
+                signatures = [];
 
-                            // enter extended text mode: some mail clients change spaces into nonbreaking spaces, we'll try to verify by normalizing this too.
-                            verifiableSigs = sigs.filter(function (_ref5) {
-                                var valid = _ref5.valid;
-                                return valid !== null;
-                            }).map(function (_ref6) {
-                                var signature = _ref6.signature;
-                                return signature;
-                            }).filter(isCanonicalTextSignature);
-                            text = typeof data === 'string' ? data : arrayToBinaryString(data);
-                            textMessage = createMessage(text.replace(/[\xa0]/g, ' '));
-                            verificationPromises = verifiableSigs.map(function (signature) {
-                                return openpgpjs.verify({
-                                    message: textMessage,
-                                    publicKeys: publicKeys,
-                                    signature: signature,
-                                    date: date
-                                }).then(function (_ref7) {
-                                    var data = _ref7.data,
-                                        signatures = _ref7.signatures;
-                                    return {
-                                        data: data,
-                                        signatures: signatures.map(function (_ref8) {
-                                            var signature = _ref8.signature;
-                                            return signature;
-                                        }),
-                                        verified: signatures[0].valid ? SIGNED_AND_VALID : SIGNED_AND_INVALID
-                                    };
-                                });
-                            });
-                            _context.next = 10;
-                            return Promise.all(verificationPromises);
+                if (sigs && sigs.length) {
+                  verified = SIGNED_AND_INVALID;
 
-                        case 10:
-                            verificationResults = _context.sent;
-                            return _context.abrupt('return', verificationResults.filter(function (_ref9) {
-                                var verified = _ref9.verified;
-                                return verified === SIGNED_AND_VALID;
-                            }).reduceRight(function (acc, result) {
-                                if (acc.verified !== SIGNED_AND_VALID) {
-                                    acc.verified = result.verified;
-                                    acc.data = arrayToBinaryString(result.data);
-                                }
-                                acc.signatures = acc.signatures.concat(result.signature);
-                                return acc;
-                            }, { data: data, verified: verified, filename: filename, signatures: signatures }));
-
-                        case 12:
-                            return _context.abrupt('return', { data: data, verified: verified, filename: filename, signatures: signatures });
-
-                        case 13:
-                        case 'end':
-                            return _context.stop();
+                  for (i = 0; i < sigs.length; i++) {
+                    if (sigs[i].valid) {
+                      verified = SIGNED_AND_VALID;
                     }
-                }
-            }, _callee, this);
-        }));
 
-        return function handleVerificationResult(_x, _x2, _x3) {
-            return _ref3.apply(this, arguments);
-        };
-    }();
+                    if (sigs[i].valid || !publicKeys.length) {
+                      signatures.push(sigs[i].signature);
+                    }
+                  }
+                }
+
+                if (!(verified === SIGNED_AND_INVALID)) {
+                  _context.next = 13;
+                  break;
+                }
+
+                // enter extended text mode: some mail clients change spaces into nonbreaking spaces, we'll try to verify by normalizing this too.
+                verifiableSigs = sigs.filter(function (_ref5) {
+                  var valid = _ref5.valid;
+                  return valid !== null;
+                }).map(function (_ref6) {
+                  var signature = _ref6.signature;
+                  return signature;
+                }).filter(isCanonicalTextSignature);
+                text = typeof data === 'string' ? data : arrayToBinaryString(data);
+                textMessage = createMessage(text.replace(/[\xa0]/g, ' '));
+                verificationPromises = verifiableSigs.map(function (signature) {
+                  return openpgpjs.verify({
+                    message: textMessage,
+                    publicKeys: publicKeys,
+                    signature: signature,
+                    date: date
+                  }).then(function (_ref7) {
+                    var data = _ref7.data,
+                        signatures = _ref7.signatures;
+                    return {
+                      data: data,
+                      signatures: signatures.map(function (_ref8) {
+                        var signature = _ref8.signature;
+                        return signature;
+                      }),
+                      verified: signatures[0].valid ? SIGNED_AND_VALID : SIGNED_AND_INVALID
+                    };
+                  });
+                });
+                _context.next = 11;
+                return Promise.all(verificationPromises);
+
+              case 11:
+                verificationResults = _context.sent;
+                return _context.abrupt("return", verificationResults.filter(function (_ref9) {
+                  var verified = _ref9.verified;
+                  return verified === SIGNED_AND_VALID;
+                }).reduceRight(function (acc, result) {
+                  if (acc.verified !== SIGNED_AND_VALID) {
+                    acc.verified = result.verified;
+                    acc.data = arrayToBinaryString(result.data);
+                  }
+
+                  acc.signatures = acc.signatures.concat(result.signature);
+                  return acc;
+                }, {
+                  data: data,
+                  verified: verified,
+                  filename: filename,
+                  signatures: signatures
+                }));
+
+              case 13:
+                return _context.abrupt("return", {
+                  data: data,
+                  verified: verified,
+                  filename: filename,
+                  signatures: signatures
+                });
+
+              case 14:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee, this);
+      }));
+      return _handleVerificationResult.apply(this, arguments);
+    }
 
     function verifyMessage(options) {
-        var _options$publicKeys = options.publicKeys,
-            publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
-
-        options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
-
-        return openpgpjs.verify(options).then(function (result) {
-            return handleVerificationResult(result, publicKeys, options.date);
-        }).then(function (_ref10) {
-            var data = _ref10.data,
-                verified = _ref10.verified,
-                signatures = _ref10.signatures;
-            return { data: data, verified: verified, signatures: signatures };
-        }).catch(function (err) {
-            console.error(err);
-            return Promise.reject(err);
-        });
-    }
-
-    function splitMessage(message) {
-
-        var msg = getMessage(message);
-
-        var keyFilter = function keyFilter(packet) {
-            return packet.tag !== openpgpjs.enums.packet.publicKeyEncryptedSessionKey && packet.tag !== openpgpjs.enums.packet.signature && packet.tag !== openpgpjs.enums.packet.symEncryptedSessionKey && packet.tag !== openpgpjs.enums.packet.compressed && packet.tag !== openpgpjs.enums.packet.literal && packet.tag !== openpgpjs.enums.packet.symmetricallyEncrypted && packet.tag !== openpgpjs.enums.packet.symEncryptedIntegrityProtected && packet.tag !== openpgpjs.enums.packet.symEncryptedAEADProtected;
-        };
-
-        var splitPackets = function splitPackets(packetList) {
-            var packets = [];
-            for (var i = 0; i < packetList.length; i++) {
-                var newList = new openpgpjs.packet.List();
-                newList.push(packetList[i]);
-                packets.push(newList.write());
-            }
-            return packets;
-        };
-
-        var asymmetric = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.publicKeyEncryptedSessionKey));
-        var signature = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.signature));
-        var symmetric = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.symEncryptedSessionKey));
-        var compressed = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.compressed));
-        var literal = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.literal));
-        var encrypted = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.symmetricallyEncrypted, openpgpjs.enums.packet.symEncryptedIntegrityProtected, openpgpjs.enums.packet.symEncryptedAEADProtected));
-        var other = splitPackets(msg.packets.filter(keyFilter));
-
+      var _options$publicKeys = options.publicKeys,
+          publicKeys = _options$publicKeys === void 0 ? [] : _options$publicKeys;
+      options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
+      return openpgpjs.verify(options).then(function (result) {
+        return handleVerificationResult(result, publicKeys, options.date);
+      }).then(function (_ref4) {
+        var data = _ref4.data,
+            verified = _ref4.verified,
+            signatures = _ref4.signatures;
         return {
-            asymmetric: asymmetric,
-            signature: signature,
-            symmetric: symmetric,
-            compressed: compressed,
-            literal: literal,
-            encrypted: encrypted,
-            other: other
+          data: data,
+          verified: verified,
+          signatures: signatures
         };
+      }).catch(function (err) {
+        console.error(err);
+        return Promise.reject(err);
+      });
+    }
+    function splitMessage(message) {
+      var msg = getMessage(message);
+
+      var keyFilter = function keyFilter(packet) {
+        return packet.tag !== openpgpjs.enums.packet.publicKeyEncryptedSessionKey && packet.tag !== openpgpjs.enums.packet.signature && packet.tag !== openpgpjs.enums.packet.symEncryptedSessionKey && packet.tag !== openpgpjs.enums.packet.compressed && packet.tag !== openpgpjs.enums.packet.literal && packet.tag !== openpgpjs.enums.packet.symmetricallyEncrypted && packet.tag !== openpgpjs.enums.packet.symEncryptedIntegrityProtected && packet.tag !== openpgpjs.enums.packet.symEncryptedAEADProtected;
+      };
+
+      var splitPackets = function splitPackets(packetList) {
+        var packets = [];
+
+        for (var i = 0; i < packetList.length; i++) {
+          var newList = new openpgpjs.packet.List();
+          newList.push(packetList[i]);
+          packets.push(newList.write());
+        }
+
+        return packets;
+      };
+
+      var asymmetric = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.publicKeyEncryptedSessionKey));
+      var signature = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.signature));
+      var symmetric = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.symEncryptedSessionKey));
+      var compressed = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.compressed));
+      var literal = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.literal));
+      var encrypted = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.symmetricallyEncrypted, openpgpjs.enums.packet.symEncryptedIntegrityProtected, openpgpjs.enums.packet.symEncryptedAEADProtected));
+      var other = splitPackets(msg.packets.filter(keyFilter));
+      return {
+        asymmetric: asymmetric,
+        signature: signature,
+        symmetric: symmetric,
+        compressed: compressed,
+        literal: literal,
+        encrypted: encrypted,
+        other: other
+      };
     }
 
     /* eslint-disable */var parserTemp=null;(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f;}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e);},l,l.exports,e,t,n,r);}return n[o].exports;}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++){s(r[o]);}return s;})({1:[function(require,module,exports){parserTemp=require("mailparser").MailParser;},{"mailparser":3}],2:[function(require,module,exports){/*
@@ -1113,7 +1110,7 @@ var pmcrypto = (function (exports) {
     var len=0xFFF-code+2;var seq=[];for(var m=0;m<len;m++){seq.push(part.charCodeAt(l++));}// Simple variation: don't support surrogates or subsequences in seq.
     writeTable[curAddr++]=SEQ_START-this.decodeTableSeq.length;this.decodeTableSeq.push(seq);}else writeTable[curAddr++]=code;// Basic char
     }}else if(typeof part==="number"){// Integer, meaning increasing sequence starting with prev character.
-    var charCode=writeTable[curAddr-1]+1;for(var l=0;l<part;l++){writeTable[curAddr++]=charCode++;}}else throw new Error("Incorrect type '"+(typeof part==="undefined"?"undefined":_typeof(part))+"' given in "+this.encodingName+" at chunk "+chunk[0]);}if(curAddr>0xFF)throw new Error("Incorrect chunk in "+this.encodingName+" at addr "+chunk[0]+": too long"+curAddr);};// Encoder helpers
+    var charCode=writeTable[curAddr-1]+1;for(var l=0;l<part;l++){writeTable[curAddr++]=charCode++;}}else throw new Error("Incorrect type '"+_typeof(part)+"' given in "+this.encodingName+" at chunk "+chunk[0]);}if(curAddr>0xFF)throw new Error("Incorrect chunk in "+this.encodingName+" at addr "+chunk[0]+": too long"+curAddr);};// Encoder helpers
     DBCSCodec.prototype._getEncodeBucket=function(uCode){var high=uCode>>8;// This could be > 0xFF because of astral characters.
     if(this.encodeTable[high]===undefined)this.encodeTable[high]=UNASSIGNED_NODE.slice(0);// Create bucket on demand.
     return this.encodeTable[high];};DBCSCodec.prototype._setEncodeChar=function(uCode,dbcsCode){var bucket=this._getEncodeBucket(uCode);var low=uCode&0xFF;if(bucket[low]<=SEQ_START)this.encodeTableSeq[SEQ_START-bucket[low]][DEF_CHAR]=dbcsCode;// There's already a sequence, set a single-char subsequence of it.
@@ -1122,7 +1119,7 @@ var pmcrypto = (function (exports) {
     node=this.encodeTableSeq[SEQ_START-bucket[low]];}else{// There was no sequence object - allocate a new one.
     node={};if(bucket[low]!==UNASSIGNED)node[DEF_CHAR]=bucket[low];// If a char was set before - make it a single-char subsequence.
     bucket[low]=SEQ_START-this.encodeTableSeq.length;this.encodeTableSeq.push(node);}// Traverse the character tree, allocating new nodes as needed.
-    for(var j=1;j<seq.length-1;j++){var oldVal=node[uCode];if((typeof oldVal==="undefined"?"undefined":_typeof(oldVal))==='object')node=oldVal;else{node=node[uCode]={};if(oldVal!==undefined)node[DEF_CHAR]=oldVal;}}// Set the leaf to given dbcsCode.
+    for(var j=1;j<seq.length-1;j++){var oldVal=node[uCode];if(_typeof(oldVal)==='object')node=oldVal;else{node=node[uCode]={};if(oldVal!==undefined)node[DEF_CHAR]=oldVal;}}// Set the leaf to given dbcsCode.
     uCode=seq[seq.length-1];node[uCode]=dbcsCode;};DBCSCodec.prototype._fillEncodeTable=function(nodeIdx,prefix,skipEncodeChars){var node=this.decodeTables[nodeIdx];for(var i=0;i<0x100;i++){var uCode=node[i];var mbCode=prefix+i;if(skipEncodeChars[mbCode])continue;if(uCode>=0)this._setEncodeChar(uCode,mbCode);else if(uCode<=NODE_START)this._fillEncodeTable(NODE_START-uCode,mbCode<<8,skipEncodeChars);else if(uCode<=SEQ_START)this._setEncodeSequence(this.decodeTableSeq[SEQ_START-uCode],mbCode);}};// == Encoder ==================================================================
     function DBCSEncoder(options,codec){// Encoder state
     this.leadSurrogate=-1;this.seqObj=undefined;// Static data
@@ -1137,7 +1134,7 @@ var pmcrypto = (function (exports) {
     nextChar=uCode;uCode=UNASSIGNED;// Write an error, then current char.
     leadSurrogate=-1;}// 2. Convert uCode character.
     var dbcsCode=UNASSIGNED;if(seqObj!==undefined&&uCode!=UNASSIGNED){// We are in the middle of the sequence
-    var resCode=seqObj[uCode];if((typeof resCode==="undefined"?"undefined":_typeof(resCode))==='object'){// Sequence continues.
+    var resCode=seqObj[uCode];if(_typeof(resCode)==='object'){// Sequence continues.
     seqObj=resCode;continue;}else if(typeof resCode=='number'){// Sequence finished. Write it.
     dbcsCode=resCode;}else if(resCode==undefined){// Current character is not part of the sequence.
     // Try default character for this sequence
@@ -1351,7 +1348,7 @@ var pmcrypto = (function (exports) {
     iconv._codecDataCache={};iconv.getCodec=function getCodec(encoding){if(!iconv.encodings)iconv.encodings=require("../encodings");// Lazy load all encoding definitions.
     // Canonicalize encoding name: strip all non-alphanumeric chars and appended year.
     var enc=(''+encoding).toLowerCase().replace(/[^0-9a-z]|:\d{4}$/g,"");// Traverse iconv.encodings to find actual codec.
-    var codecOptions={};while(true){var codec=iconv._codecDataCache[enc];if(codec)return codec;var codecDef=iconv.encodings[enc];switch(typeof codecDef==="undefined"?"undefined":_typeof(codecDef)){case"string":// Direct alias to other encoding.
+    var codecOptions={};while(true){var codec=iconv._codecDataCache[enc];if(codec)return codec;var codecDef=iconv.encodings[enc];switch(_typeof(codecDef)){case"string":// Direct alias to other encoding.
     enc=codecDef;break;case"object":// Alias with options. Can be layered.
     for(var key in codecDef){codecOptions[key]=codecDef[key];}if(!codecOptions.encodingName)codecOptions.encodingName=enc;enc=codecDef.type;break;case"function":// Codec itself.
     if(!codecOptions.encodingName)codecOptions.encodingName=enc;// The codec function must load all tables and return object with .encoder and .decoder methods.
@@ -1541,7 +1538,7 @@ var pmcrypto = (function (exports) {
     // if last one is own, then all properties are own.
     var key;for(key in obj){/**/}return typeof key==='undefined'||hasOwn.call(obj,key);};module.exports=function extend(){var options,name,src,copy,copyIsArray,clone,target=arguments[0],i=1,length=arguments.length,deep=false;// Handle a deep copy situation
     if(typeof target==='boolean'){deep=target;target=arguments[1]||{};// skip the boolean and the target
-    i=2;}else if((typeof target==="undefined"?"undefined":_typeof(target))!=='object'&&typeof target!=='function'||target==null){target={};}for(;i<length;++i){options=arguments[i];// Only deal with non-null/undefined values
+    i=2;}else if(_typeof(target)!=='object'&&typeof target!=='function'||target==null){target={};}for(;i<length;++i){options=arguments[i];// Only deal with non-null/undefined values
     if(options!=null){// Extend the base object
     for(name in options){src=target[name];copy=options[name];// Prevent never-ending loop
     if(target!==copy){// Recurse if we're merging plain objects or arrays
@@ -1654,8 +1651,8 @@ var pmcrypto = (function (exports) {
     Buffer.prototype.length=undefined;Buffer.prototype.parent=undefined;function slowToString(encoding,start,end){var loweredCase=false;start=start|0;end=end===undefined||end===Infinity?this.length:end|0;if(!encoding)encoding='utf8';if(start<0)start=0;if(end>this.length)end=this.length;if(end<=start)return '';while(true){switch(encoding){case'hex':return hexSlice(this,start,end);case'utf8':case'utf-8':return utf8Slice(this,start,end);case'ascii':return asciiSlice(this,start,end);case'binary':return binarySlice(this,start,end);case'base64':return base64Slice(this,start,end);case'ucs2':case'ucs-2':case'utf16le':case'utf-16le':return utf16leSlice(this,start,end);default:if(loweredCase)throw new TypeError('Unknown encoding: '+encoding);encoding=(encoding+'').toLowerCase();loweredCase=true;}}}Buffer.prototype.toString=function toString(){var length=this.length|0;if(length===0)return '';if(arguments.length===0)return utf8Slice(this,0,length);return slowToString.apply(this,arguments);};Buffer.prototype.equals=function equals(b){if(!Buffer.isBuffer(b))throw new TypeError('Argument must be a Buffer');if(this===b)return true;return Buffer.compare(this,b)===0;};Buffer.prototype.inspect=function inspect(){var str='';var max=exports.INSPECT_MAX_BYTES;if(this.length>0){str=this.toString('hex',0,max).match(/.{2}/g).join(' ');if(this.length>max)str+=' ... ';}return '<Buffer '+str+'>';};Buffer.prototype.compare=function compare(b){if(!Buffer.isBuffer(b))throw new TypeError('Argument must be a Buffer');if(this===b)return 0;return Buffer.compare(this,b);};Buffer.prototype.indexOf=function indexOf(val,byteOffset){if(byteOffset>0x7fffffff)byteOffset=0x7fffffff;else if(byteOffset<-0x80000000)byteOffset=-0x80000000;byteOffset>>=0;if(this.length===0)return -1;if(byteOffset>=this.length)return -1;// Negative offsets start from the end of the buffer
     if(byteOffset<0)byteOffset=Math.max(this.length+byteOffset,0);if(typeof val==='string'){if(val.length===0)return -1;// special case: looking for empty string always fails
     return String.prototype.indexOf.call(this,val,byteOffset);}if(Buffer.isBuffer(val)){return arrayIndexOf(this,val,byteOffset);}if(typeof val==='number'){if(Buffer.TYPED_ARRAY_SUPPORT&&Uint8Array.prototype.indexOf==='function'){return Uint8Array.prototype.indexOf.call(this,val,byteOffset);}return arrayIndexOf(this,[val],byteOffset);}function arrayIndexOf(arr,val,byteOffset){var foundIndex=-1;for(var i=0;byteOffset+i<arr.length;i++){if(arr[byteOffset+i]===val[foundIndex===-1?0:i-foundIndex]){if(foundIndex===-1)foundIndex=i;if(i-foundIndex+1===val.length)return byteOffset+foundIndex;}else{foundIndex=-1;}}return -1;}throw new TypeError('val must be string, number or Buffer');};// `get` is deprecated
-    Buffer.prototype.get=function get$$1(offset){console.log('.get() is deprecated. Access using array indexes instead.');return this.readUInt8(offset);};// `set` is deprecated
-    Buffer.prototype.set=function set$$1(v,offset){console.log('.set() is deprecated. Access using array indexes instead.');return this.writeUInt8(v,offset);};function hexWrite(buf,string,offset,length){offset=Number(offset)||0;var remaining=buf.length-offset;if(!length){length=remaining;}else{length=Number(length);if(length>remaining){length=remaining;}}// must be an even number of digits
+    Buffer.prototype.get=function get(offset){console.log('.get() is deprecated. Access using array indexes instead.');return this.readUInt8(offset);};// `set` is deprecated
+    Buffer.prototype.set=function set(v,offset){console.log('.set() is deprecated. Access using array indexes instead.');return this.writeUInt8(v,offset);};function hexWrite(buf,string,offset,length){offset=Number(offset)||0;var remaining=buf.length-offset;if(!length){length=remaining;}else{length=Number(length);if(length>remaining){length=remaining;}}// must be an even number of digits
     var strLen=string.length;if(strLen%2!==0)throw new Error('Invalid hex string');if(length>strLen/2){length=strLen/2;}for(var i=0;i<length;i++){var parsed=parseInt(string.substr(i*2,2),16);if(isNaN(parsed))throw new Error('Invalid hex string');buf[offset+i]=parsed;}return i;}function utf8Write(buf,string,offset,length){return blitBuffer(utf8ToBytes(string,buf.length-offset),buf,offset,length);}function asciiWrite(buf,string,offset,length){return blitBuffer(asciiToBytes(string),buf,offset,length);}function binaryWrite(buf,string,offset,length){return asciiWrite(buf,string,offset,length);}function base64Write(buf,string,offset,length){return blitBuffer(base64ToBytes(string),buf,offset,length);}function ucs2Write(buf,string,offset,length){return blitBuffer(utf16leToBytes(string,buf.length-offset),buf,offset,length);}Buffer.prototype.write=function write(string,offset,length,encoding){// Buffer#write(string)
     if(offset===undefined){encoding='utf8';length=this.length;offset=0;// Buffer#write(string, encoding)
     }else if(length===undefined&&typeof offset==='string'){encoding=offset;length=this.length;offset=0;// Buffer#write(string, offset[, length][, encoding])
@@ -1739,18 +1736,18 @@ var pmcrypto = (function (exports) {
     // https://github.com/keybase/triplesec
     // which is in turn based on the one from crypto-js
     // https://code.google.com/p/crypto-js/
-    var uint_max=Math.pow(2,32);function fixup_uint32(x){var ret,x_pos;ret=x>uint_max||x<0?(x_pos=Math.abs(x)%uint_max,x<0?uint_max-x_pos:x_pos):x;return ret;}function scrub_vec(v){for(var i=0;i<v.length;v++){v[i]=0;}return false;}function Global(){this.SBOX=[];this.INV_SBOX=[];this.SUB_MIX=[[],[],[],[]];this.INV_SUB_MIX=[[],[],[],[]];this.init();this.RCON=[0x00,0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0x1b,0x36];}Global.prototype.init=function(){var d,i,sx,t,x,x2,x4,x8,xi,_i;d=function(){var _i,_results;_results=[];for(i=_i=0;_i<256;i=++_i){if(i<128){_results.push(i<<1);}else{_results.push(i<<1^0x11b);}}return _results;}();x=0;xi=0;for(i=_i=0;_i<256;i=++_i){sx=xi^xi<<1^xi<<2^xi<<3^xi<<4;sx=sx>>>8^sx&0xff^0x63;this.SBOX[x]=sx;this.INV_SBOX[sx]=x;x2=d[x];x4=d[x2];x8=d[x4];t=d[sx]*0x101^sx*0x1010100;this.SUB_MIX[0][x]=t<<24|t>>>8;this.SUB_MIX[1][x]=t<<16|t>>>16;this.SUB_MIX[2][x]=t<<8|t>>>24;this.SUB_MIX[3][x]=t;t=x8*0x1010101^x4*0x10001^x2*0x101^x*0x1010100;this.INV_SUB_MIX[0][sx]=t<<24|t>>>8;this.INV_SUB_MIX[1][sx]=t<<16|t>>>16;this.INV_SUB_MIX[2][sx]=t<<8|t>>>24;this.INV_SUB_MIX[3][sx]=t;if(x===0){x=xi=1;}else{x=x2^d[d[d[x8^x2]]];xi^=d[d[xi]];}}return true;};var G=new Global();AES.blockSize=4*4;AES.prototype.blockSize=AES.blockSize;AES.keySize=256/8;AES.prototype.keySize=AES.keySize;function bufferToArray(buf){var len=buf.length/4;var out=new Array(len);var i=-1;while(++i<len){out[i]=buf.readUInt32BE(i*4);}return out;}function AES(key){this._key=bufferToArray(key);this._doReset();}AES.prototype._doReset=function(){var invKsRow,keySize,keyWords,ksRow,ksRows,t;keyWords=this._key;keySize=keyWords.length;this._nRounds=keySize+6;ksRows=(this._nRounds+1)*4;this._keySchedule=[];for(ksRow=0;ksRow<ksRows;ksRow++){this._keySchedule[ksRow]=ksRow<keySize?keyWords[ksRow]:(t=this._keySchedule[ksRow-1],ksRow%keySize===0?(t=t<<8|t>>>24,t=G.SBOX[t>>>24]<<24|G.SBOX[t>>>16&0xff]<<16|G.SBOX[t>>>8&0xff]<<8|G.SBOX[t&0xff],t^=G.RCON[ksRow/keySize|0]<<24):keySize>6&&ksRow%keySize===4?t=G.SBOX[t>>>24]<<24|G.SBOX[t>>>16&0xff]<<16|G.SBOX[t>>>8&0xff]<<8|G.SBOX[t&0xff]:void 0,this._keySchedule[ksRow-keySize]^t);}this._invKeySchedule=[];for(invKsRow=0;invKsRow<ksRows;invKsRow++){ksRow=ksRows-invKsRow;t=this._keySchedule[ksRow-(invKsRow%4?0:4)];this._invKeySchedule[invKsRow]=invKsRow<4||ksRow<=4?t:G.INV_SUB_MIX[0][G.SBOX[t>>>24]]^G.INV_SUB_MIX[1][G.SBOX[t>>>16&0xff]]^G.INV_SUB_MIX[2][G.SBOX[t>>>8&0xff]]^G.INV_SUB_MIX[3][G.SBOX[t&0xff]];}return true;};AES.prototype.encryptBlock=function(M){M=bufferToArray(new Buffer(M));var out=this._doCryptBlock(M,this._keySchedule,G.SUB_MIX,G.SBOX);var buf=new Buffer(16);buf.writeUInt32BE(out[0],0);buf.writeUInt32BE(out[1],4);buf.writeUInt32BE(out[2],8);buf.writeUInt32BE(out[3],12);return buf;};AES.prototype.decryptBlock=function(M){M=bufferToArray(new Buffer(M));var temp=[M[3],M[1]];M[1]=temp[0];M[3]=temp[1];var out=this._doCryptBlock(M,this._invKeySchedule,G.INV_SUB_MIX,G.INV_SBOX);var buf=new Buffer(16);buf.writeUInt32BE(out[0],0);buf.writeUInt32BE(out[3],4);buf.writeUInt32BE(out[2],8);buf.writeUInt32BE(out[1],12);return buf;};AES.prototype.scrub=function(){scrub_vec(this._keySchedule);scrub_vec(this._invKeySchedule);scrub_vec(this._key);};AES.prototype._doCryptBlock=function(M,keySchedule,SUB_MIX,SBOX){var ksRow,s0,s1,s2,s3,t0,t1,t2,t3;s0=M[0]^keySchedule[0];s1=M[1]^keySchedule[1];s2=M[2]^keySchedule[2];s3=M[3]^keySchedule[3];ksRow=4;for(var round=1;round<this._nRounds;round++){t0=SUB_MIX[0][s0>>>24]^SUB_MIX[1][s1>>>16&0xff]^SUB_MIX[2][s2>>>8&0xff]^SUB_MIX[3][s3&0xff]^keySchedule[ksRow++];t1=SUB_MIX[0][s1>>>24]^SUB_MIX[1][s2>>>16&0xff]^SUB_MIX[2][s3>>>8&0xff]^SUB_MIX[3][s0&0xff]^keySchedule[ksRow++];t2=SUB_MIX[0][s2>>>24]^SUB_MIX[1][s3>>>16&0xff]^SUB_MIX[2][s0>>>8&0xff]^SUB_MIX[3][s1&0xff]^keySchedule[ksRow++];t3=SUB_MIX[0][s3>>>24]^SUB_MIX[1][s0>>>16&0xff]^SUB_MIX[2][s1>>>8&0xff]^SUB_MIX[3][s2&0xff]^keySchedule[ksRow++];s0=t0;s1=t1;s2=t2;s3=t3;}t0=(SBOX[s0>>>24]<<24|SBOX[s1>>>16&0xff]<<16|SBOX[s2>>>8&0xff]<<8|SBOX[s3&0xff])^keySchedule[ksRow++];t1=(SBOX[s1>>>24]<<24|SBOX[s2>>>16&0xff]<<16|SBOX[s3>>>8&0xff]<<8|SBOX[s0&0xff])^keySchedule[ksRow++];t2=(SBOX[s2>>>24]<<24|SBOX[s3>>>16&0xff]<<16|SBOX[s0>>>8&0xff]<<8|SBOX[s1&0xff])^keySchedule[ksRow++];t3=(SBOX[s3>>>24]<<24|SBOX[s0>>>16&0xff]<<16|SBOX[s1>>>8&0xff]<<8|SBOX[s2&0xff])^keySchedule[ksRow++];return [fixup_uint32(t0),fixup_uint32(t1),fixup_uint32(t2),fixup_uint32(t3)];};exports.AES=AES;}).call(this,require("buffer").Buffer);},{"buffer":37}],44:[function(require,module,exports){(function(Buffer){var aes=require('./aes');var Transform=require('./cipherBase');var inherits$$1=require('inherits');var GHASH=require('./ghash');var xor=require('buffer-xor');inherits$$1(StreamCipher,Transform);module.exports=StreamCipher;function StreamCipher(mode,key,iv,decrypt){if(!(this instanceof StreamCipher)){return new StreamCipher(mode,key,iv);}Transform.call(this);this._finID=Buffer.concat([iv,new Buffer([0,0,0,1])]);iv=Buffer.concat([iv,new Buffer([0,0,0,2])]);this._cipher=new aes.AES(key);this._prev=new Buffer(iv.length);this._cache=new Buffer('');this._secCache=new Buffer('');this._decrypt=decrypt;this._alen=0;this._len=0;iv.copy(this._prev);this._mode=mode;var h=new Buffer(4);h.fill(0);this._ghash=new GHASH(this._cipher.encryptBlock(h));this._authTag=null;this._called=false;}StreamCipher.prototype._update=function(chunk){if(!this._called&&this._alen){var rump=16-this._alen%16;if(rump<16){rump=new Buffer(rump);rump.fill(0);this._ghash.update(rump);}}this._called=true;var out=this._mode.encrypt(this,chunk);if(this._decrypt){this._ghash.update(chunk);}else{this._ghash.update(out);}this._len+=chunk.length;return out;};StreamCipher.prototype._final=function(){if(this._decrypt&&!this._authTag){throw new Error('Unsupported state or unable to authenticate data');}var tag=xor(this._ghash.final(this._alen*8,this._len*8),this._cipher.encryptBlock(this._finID));if(this._decrypt){if(xorTest(tag,this._authTag)){throw new Error('Unsupported state or unable to authenticate data');}}else{this._authTag=tag;}this._cipher.scrub();};StreamCipher.prototype.getAuthTag=function getAuthTag(){if(!this._decrypt&&Buffer.isBuffer(this._authTag)){return this._authTag;}else{throw new Error('Attempting to get auth tag in unsupported state');}};StreamCipher.prototype.setAuthTag=function setAuthTag(tag){if(this._decrypt){this._authTag=tag;}else{throw new Error('Attempting to set auth tag in unsupported state');}};StreamCipher.prototype.setAAD=function setAAD(buf){if(!this._called){this._ghash.update(buf);this._alen+=buf.length;}else{throw new Error('Attempting to set AAD in unsupported state');}};function xorTest(a,b){var out=0;if(a.length!==b.length){out++;}var len=Math.min(a.length,b.length);var i=-1;while(++i<len){out+=a[i]^b[i];}return out;}}).call(this,require("buffer").Buffer);},{"./aes":43,"./cipherBase":46,"./ghash":49,"buffer":37,"buffer-xor":58,"inherits":183}],45:[function(require,module,exports){var ciphers=require('./encrypter');exports.createCipher=exports.Cipher=ciphers.createCipher;exports.createCipheriv=exports.Cipheriv=ciphers.createCipheriv;var deciphers=require('./decrypter');exports.createDecipher=exports.Decipher=deciphers.createDecipher;exports.createDecipheriv=exports.Decipheriv=deciphers.createDecipheriv;var modes=require('./modes');function getCiphers(){return Object.keys(modes);}exports.listCiphers=exports.getCiphers=getCiphers;},{"./decrypter":47,"./encrypter":48,"./modes":50}],46:[function(require,module,exports){(function(Buffer){var Transform=require('stream').Transform;var inherits$$1=require('inherits');module.exports=CipherBase;inherits$$1(CipherBase,Transform);function CipherBase(){Transform.call(this);this._base64Cache=new Buffer('');}CipherBase.prototype.update=function(data,inputEnc,outputEnc){if(typeof data==='string'){data=new Buffer(data,inputEnc);}var outData=this._update(data);if(outputEnc){outData=this._toString(outData,outputEnc);}return outData;};CipherBase.prototype._transform=function(data,_,next){this.push(this._update(data));next();};CipherBase.prototype._flush=function(next){try{this.push(this._final());}catch(e){return next(e);}next();};CipherBase.prototype.final=function(outputEnc){var outData=this._final()||new Buffer('');if(outputEnc){outData=this._toString(outData,outputEnc,true);}return outData;};CipherBase.prototype._toString=function(value,enc,final){if(enc!=='base64'){return value.toString(enc);}this._base64Cache=Buffer.concat([this._base64Cache,value]);var out;if(final){out=this._base64Cache;this._base64Cache=null;return out.toString('base64');}var len=this._base64Cache.length;var overhang=len%3;if(!overhang){out=this._base64Cache;this._base64Cache=new Buffer('');return out.toString('base64');}var newLen=len-overhang;if(!newLen){return '';}out=this._base64Cache.slice(0,newLen);this._base64Cache=this._base64Cache.slice(-overhang);return out.toString('base64');};}).call(this,require("buffer").Buffer);},{"buffer":37,"inherits":183,"stream":200}],47:[function(require,module,exports){(function(Buffer){var aes=require('./aes');var Transform=require('./cipherBase');var inherits$$1=require('inherits');var modes=require('./modes');var StreamCipher=require('./streamCipher');var AuthCipher=require('./authCipher');var ebtk=require('./EVP_BytesToKey');inherits$$1(Decipher,Transform);function Decipher(mode,key,iv){if(!(this instanceof Decipher)){return new Decipher(mode,key,iv);}Transform.call(this);this._cache=new Splitter();this._last=void 0;this._cipher=new aes.AES(key);this._prev=new Buffer(iv.length);iv.copy(this._prev);this._mode=mode;this._autopadding=true;}Decipher.prototype._update=function(data){this._cache.add(data);var chunk;var thing;var out=[];while(chunk=this._cache.get(this._autopadding)){thing=this._mode.decrypt(this,chunk);out.push(thing);}return Buffer.concat(out);};Decipher.prototype._final=function(){var chunk=this._cache.flush();if(this._autopadding){return unpad(this._mode.decrypt(this,chunk));}else if(chunk){throw new Error('data not multiple of block length');}};Decipher.prototype.setAutoPadding=function(setTo){this._autopadding=!!setTo;};function Splitter(){if(!(this instanceof Splitter)){return new Splitter();}this.cache=new Buffer('');}Splitter.prototype.add=function(data){this.cache=Buffer.concat([this.cache,data]);};Splitter.prototype.get=function(autoPadding){var out;if(autoPadding){if(this.cache.length>16){out=this.cache.slice(0,16);this.cache=this.cache.slice(16);return out;}}else{if(this.cache.length>=16){out=this.cache.slice(0,16);this.cache=this.cache.slice(16);return out;}}return null;};Splitter.prototype.flush=function(){if(this.cache.length){return this.cache;}};function unpad(last){var padded=last[15];var i=-1;while(++i<padded){if(last[i+(16-padded)]!==padded){throw new Error('unable to decrypt data');}}if(padded===16){return;}return last.slice(0,16-padded);}var modelist={ECB:require('./modes/ecb'),CBC:require('./modes/cbc'),CFB:require('./modes/cfb'),CFB8:require('./modes/cfb8'),CFB1:require('./modes/cfb1'),OFB:require('./modes/ofb'),CTR:require('./modes/ctr'),GCM:require('./modes/ctr')};function createDecipheriv(suite,password,iv){var config=modes[suite.toLowerCase()];if(!config){throw new TypeError('invalid suite type');}if(typeof iv==='string'){iv=new Buffer(iv);}if(typeof password==='string'){password=new Buffer(password);}if(password.length!==config.key/8){throw new TypeError('invalid key length '+password.length);}if(iv.length!==config.iv){throw new TypeError('invalid iv length '+iv.length);}if(config.type==='stream'){return new StreamCipher(modelist[config.mode],password,iv,true);}else if(config.type==='auth'){return new AuthCipher(modelist[config.mode],password,iv,true);}return new Decipher(modelist[config.mode],password,iv);}function createDecipher(suite,password){var config=modes[suite.toLowerCase()];if(!config){throw new TypeError('invalid suite type');}var keys=ebtk(password,config.key,config.iv);return createDecipheriv(suite,keys.key,keys.iv);}exports.createDecipher=createDecipher;exports.createDecipheriv=createDecipheriv;}).call(this,require("buffer").Buffer);},{"./EVP_BytesToKey":42,"./aes":43,"./authCipher":44,"./cipherBase":46,"./modes":50,"./modes/cbc":51,"./modes/cfb":52,"./modes/cfb1":53,"./modes/cfb8":54,"./modes/ctr":55,"./modes/ecb":56,"./modes/ofb":57,"./streamCipher":59,"buffer":37,"inherits":183}],48:[function(require,module,exports){(function(Buffer){var aes=require('./aes');var Transform=require('./cipherBase');var inherits$$1=require('inherits');var modes=require('./modes');var ebtk=require('./EVP_BytesToKey');var StreamCipher=require('./streamCipher');var AuthCipher=require('./authCipher');inherits$$1(Cipher,Transform);function Cipher(mode,key,iv){if(!(this instanceof Cipher)){return new Cipher(mode,key,iv);}Transform.call(this);this._cache=new Splitter();this._cipher=new aes.AES(key);this._prev=new Buffer(iv.length);iv.copy(this._prev);this._mode=mode;this._autopadding=true;}Cipher.prototype._update=function(data){this._cache.add(data);var chunk;var thing;var out=[];while(chunk=this._cache.get()){thing=this._mode.encrypt(this,chunk);out.push(thing);}return Buffer.concat(out);};Cipher.prototype._final=function(){var chunk=this._cache.flush();if(this._autopadding){chunk=this._mode.encrypt(this,chunk);this._cipher.scrub();return chunk;}else if(chunk.toString('hex')!=='10101010101010101010101010101010'){this._cipher.scrub();throw new Error('data not multiple of block length');}};Cipher.prototype.setAutoPadding=function(setTo){this._autopadding=!!setTo;};function Splitter(){if(!(this instanceof Splitter)){return new Splitter();}this.cache=new Buffer('');}Splitter.prototype.add=function(data){this.cache=Buffer.concat([this.cache,data]);};Splitter.prototype.get=function(){if(this.cache.length>15){var out=this.cache.slice(0,16);this.cache=this.cache.slice(16);return out;}return null;};Splitter.prototype.flush=function(){var len=16-this.cache.length;var padBuff=new Buffer(len);var i=-1;while(++i<len){padBuff.writeUInt8(len,i);}var out=Buffer.concat([this.cache,padBuff]);return out;};var modelist={ECB:require('./modes/ecb'),CBC:require('./modes/cbc'),CFB:require('./modes/cfb'),CFB8:require('./modes/cfb8'),CFB1:require('./modes/cfb1'),OFB:require('./modes/ofb'),CTR:require('./modes/ctr'),GCM:require('./modes/ctr')};function createCipheriv(suite,password,iv){var config=modes[suite.toLowerCase()];if(!config){throw new TypeError('invalid suite type');}if(typeof iv==='string'){iv=new Buffer(iv);}if(typeof password==='string'){password=new Buffer(password);}if(password.length!==config.key/8){throw new TypeError('invalid key length '+password.length);}if(iv.length!==config.iv){throw new TypeError('invalid iv length '+iv.length);}if(config.type==='stream'){return new StreamCipher(modelist[config.mode],password,iv);}else if(config.type==='auth'){return new AuthCipher(modelist[config.mode],password,iv);}return new Cipher(modelist[config.mode],password,iv);}function createCipher(suite,password){var config=modes[suite.toLowerCase()];if(!config){throw new TypeError('invalid suite type');}var keys=ebtk(password,config.key,config.iv);return createCipheriv(suite,keys.key,keys.iv);}exports.createCipheriv=createCipheriv;exports.createCipher=createCipher;}).call(this,require("buffer").Buffer);},{"./EVP_BytesToKey":42,"./aes":43,"./authCipher":44,"./cipherBase":46,"./modes":50,"./modes/cbc":51,"./modes/cfb":52,"./modes/cfb1":53,"./modes/cfb8":54,"./modes/ctr":55,"./modes/ecb":56,"./modes/ofb":57,"./streamCipher":59,"buffer":37,"inherits":183}],49:[function(require,module,exports){(function(Buffer){var zeros=new Buffer(16);zeros.fill(0);module.exports=GHASH;function GHASH(key){this.h=key;this.state=new Buffer(16);this.state.fill(0);this.cache=new Buffer('');}// from http://bitwiseshiftleft.github.io/sjcl/doc/symbols/src/core_gcm.js.html
+    var uint_max=Math.pow(2,32);function fixup_uint32(x){var ret,x_pos;ret=x>uint_max||x<0?(x_pos=Math.abs(x)%uint_max,x<0?uint_max-x_pos:x_pos):x;return ret;}function scrub_vec(v){for(var i=0;i<v.length;v++){v[i]=0;}return false;}function Global(){this.SBOX=[];this.INV_SBOX=[];this.SUB_MIX=[[],[],[],[]];this.INV_SUB_MIX=[[],[],[],[]];this.init();this.RCON=[0x00,0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0x1b,0x36];}Global.prototype.init=function(){var d,i,sx,t,x,x2,x4,x8,xi,_i;d=function(){var _i,_results;_results=[];for(i=_i=0;_i<256;i=++_i){if(i<128){_results.push(i<<1);}else{_results.push(i<<1^0x11b);}}return _results;}();x=0;xi=0;for(i=_i=0;_i<256;i=++_i){sx=xi^xi<<1^xi<<2^xi<<3^xi<<4;sx=sx>>>8^sx&0xff^0x63;this.SBOX[x]=sx;this.INV_SBOX[sx]=x;x2=d[x];x4=d[x2];x8=d[x4];t=d[sx]*0x101^sx*0x1010100;this.SUB_MIX[0][x]=t<<24|t>>>8;this.SUB_MIX[1][x]=t<<16|t>>>16;this.SUB_MIX[2][x]=t<<8|t>>>24;this.SUB_MIX[3][x]=t;t=x8*0x1010101^x4*0x10001^x2*0x101^x*0x1010100;this.INV_SUB_MIX[0][sx]=t<<24|t>>>8;this.INV_SUB_MIX[1][sx]=t<<16|t>>>16;this.INV_SUB_MIX[2][sx]=t<<8|t>>>24;this.INV_SUB_MIX[3][sx]=t;if(x===0){x=xi=1;}else{x=x2^d[d[d[x8^x2]]];xi^=d[d[xi]];}}return true;};var G=new Global();AES.blockSize=4*4;AES.prototype.blockSize=AES.blockSize;AES.keySize=256/8;AES.prototype.keySize=AES.keySize;function bufferToArray(buf){var len=buf.length/4;var out=new Array(len);var i=-1;while(++i<len){out[i]=buf.readUInt32BE(i*4);}return out;}function AES(key){this._key=bufferToArray(key);this._doReset();}AES.prototype._doReset=function(){var invKsRow,keySize,keyWords,ksRow,ksRows,t;keyWords=this._key;keySize=keyWords.length;this._nRounds=keySize+6;ksRows=(this._nRounds+1)*4;this._keySchedule=[];for(ksRow=0;ksRow<ksRows;ksRow++){this._keySchedule[ksRow]=ksRow<keySize?keyWords[ksRow]:(t=this._keySchedule[ksRow-1],ksRow%keySize===0?(t=t<<8|t>>>24,t=G.SBOX[t>>>24]<<24|G.SBOX[t>>>16&0xff]<<16|G.SBOX[t>>>8&0xff]<<8|G.SBOX[t&0xff],t^=G.RCON[ksRow/keySize|0]<<24):keySize>6&&ksRow%keySize===4?t=G.SBOX[t>>>24]<<24|G.SBOX[t>>>16&0xff]<<16|G.SBOX[t>>>8&0xff]<<8|G.SBOX[t&0xff]:void 0,this._keySchedule[ksRow-keySize]^t);}this._invKeySchedule=[];for(invKsRow=0;invKsRow<ksRows;invKsRow++){ksRow=ksRows-invKsRow;t=this._keySchedule[ksRow-(invKsRow%4?0:4)];this._invKeySchedule[invKsRow]=invKsRow<4||ksRow<=4?t:G.INV_SUB_MIX[0][G.SBOX[t>>>24]]^G.INV_SUB_MIX[1][G.SBOX[t>>>16&0xff]]^G.INV_SUB_MIX[2][G.SBOX[t>>>8&0xff]]^G.INV_SUB_MIX[3][G.SBOX[t&0xff]];}return true;};AES.prototype.encryptBlock=function(M){M=bufferToArray(new Buffer(M));var out=this._doCryptBlock(M,this._keySchedule,G.SUB_MIX,G.SBOX);var buf=new Buffer(16);buf.writeUInt32BE(out[0],0);buf.writeUInt32BE(out[1],4);buf.writeUInt32BE(out[2],8);buf.writeUInt32BE(out[3],12);return buf;};AES.prototype.decryptBlock=function(M){M=bufferToArray(new Buffer(M));var temp=[M[3],M[1]];M[1]=temp[0];M[3]=temp[1];var out=this._doCryptBlock(M,this._invKeySchedule,G.INV_SUB_MIX,G.INV_SBOX);var buf=new Buffer(16);buf.writeUInt32BE(out[0],0);buf.writeUInt32BE(out[3],4);buf.writeUInt32BE(out[2],8);buf.writeUInt32BE(out[1],12);return buf;};AES.prototype.scrub=function(){scrub_vec(this._keySchedule);scrub_vec(this._invKeySchedule);scrub_vec(this._key);};AES.prototype._doCryptBlock=function(M,keySchedule,SUB_MIX,SBOX){var ksRow,s0,s1,s2,s3,t0,t1,t2,t3;s0=M[0]^keySchedule[0];s1=M[1]^keySchedule[1];s2=M[2]^keySchedule[2];s3=M[3]^keySchedule[3];ksRow=4;for(var round=1;round<this._nRounds;round++){t0=SUB_MIX[0][s0>>>24]^SUB_MIX[1][s1>>>16&0xff]^SUB_MIX[2][s2>>>8&0xff]^SUB_MIX[3][s3&0xff]^keySchedule[ksRow++];t1=SUB_MIX[0][s1>>>24]^SUB_MIX[1][s2>>>16&0xff]^SUB_MIX[2][s3>>>8&0xff]^SUB_MIX[3][s0&0xff]^keySchedule[ksRow++];t2=SUB_MIX[0][s2>>>24]^SUB_MIX[1][s3>>>16&0xff]^SUB_MIX[2][s0>>>8&0xff]^SUB_MIX[3][s1&0xff]^keySchedule[ksRow++];t3=SUB_MIX[0][s3>>>24]^SUB_MIX[1][s0>>>16&0xff]^SUB_MIX[2][s1>>>8&0xff]^SUB_MIX[3][s2&0xff]^keySchedule[ksRow++];s0=t0;s1=t1;s2=t2;s3=t3;}t0=(SBOX[s0>>>24]<<24|SBOX[s1>>>16&0xff]<<16|SBOX[s2>>>8&0xff]<<8|SBOX[s3&0xff])^keySchedule[ksRow++];t1=(SBOX[s1>>>24]<<24|SBOX[s2>>>16&0xff]<<16|SBOX[s3>>>8&0xff]<<8|SBOX[s0&0xff])^keySchedule[ksRow++];t2=(SBOX[s2>>>24]<<24|SBOX[s3>>>16&0xff]<<16|SBOX[s0>>>8&0xff]<<8|SBOX[s1&0xff])^keySchedule[ksRow++];t3=(SBOX[s3>>>24]<<24|SBOX[s0>>>16&0xff]<<16|SBOX[s1>>>8&0xff]<<8|SBOX[s2&0xff])^keySchedule[ksRow++];return [fixup_uint32(t0),fixup_uint32(t1),fixup_uint32(t2),fixup_uint32(t3)];};exports.AES=AES;}).call(this,require("buffer").Buffer);},{"buffer":37}],44:[function(require,module,exports){(function(Buffer){var aes=require('./aes');var Transform=require('./cipherBase');var inherits=require('inherits');var GHASH=require('./ghash');var xor=require('buffer-xor');inherits(StreamCipher,Transform);module.exports=StreamCipher;function StreamCipher(mode,key,iv,decrypt){if(!(this instanceof StreamCipher)){return new StreamCipher(mode,key,iv);}Transform.call(this);this._finID=Buffer.concat([iv,new Buffer([0,0,0,1])]);iv=Buffer.concat([iv,new Buffer([0,0,0,2])]);this._cipher=new aes.AES(key);this._prev=new Buffer(iv.length);this._cache=new Buffer('');this._secCache=new Buffer('');this._decrypt=decrypt;this._alen=0;this._len=0;iv.copy(this._prev);this._mode=mode;var h=new Buffer(4);h.fill(0);this._ghash=new GHASH(this._cipher.encryptBlock(h));this._authTag=null;this._called=false;}StreamCipher.prototype._update=function(chunk){if(!this._called&&this._alen){var rump=16-this._alen%16;if(rump<16){rump=new Buffer(rump);rump.fill(0);this._ghash.update(rump);}}this._called=true;var out=this._mode.encrypt(this,chunk);if(this._decrypt){this._ghash.update(chunk);}else{this._ghash.update(out);}this._len+=chunk.length;return out;};StreamCipher.prototype._final=function(){if(this._decrypt&&!this._authTag){throw new Error('Unsupported state or unable to authenticate data');}var tag=xor(this._ghash.final(this._alen*8,this._len*8),this._cipher.encryptBlock(this._finID));if(this._decrypt){if(xorTest(tag,this._authTag)){throw new Error('Unsupported state or unable to authenticate data');}}else{this._authTag=tag;}this._cipher.scrub();};StreamCipher.prototype.getAuthTag=function getAuthTag(){if(!this._decrypt&&Buffer.isBuffer(this._authTag)){return this._authTag;}else{throw new Error('Attempting to get auth tag in unsupported state');}};StreamCipher.prototype.setAuthTag=function setAuthTag(tag){if(this._decrypt){this._authTag=tag;}else{throw new Error('Attempting to set auth tag in unsupported state');}};StreamCipher.prototype.setAAD=function setAAD(buf){if(!this._called){this._ghash.update(buf);this._alen+=buf.length;}else{throw new Error('Attempting to set AAD in unsupported state');}};function xorTest(a,b){var out=0;if(a.length!==b.length){out++;}var len=Math.min(a.length,b.length);var i=-1;while(++i<len){out+=a[i]^b[i];}return out;}}).call(this,require("buffer").Buffer);},{"./aes":43,"./cipherBase":46,"./ghash":49,"buffer":37,"buffer-xor":58,"inherits":183}],45:[function(require,module,exports){var ciphers=require('./encrypter');exports.createCipher=exports.Cipher=ciphers.createCipher;exports.createCipheriv=exports.Cipheriv=ciphers.createCipheriv;var deciphers=require('./decrypter');exports.createDecipher=exports.Decipher=deciphers.createDecipher;exports.createDecipheriv=exports.Decipheriv=deciphers.createDecipheriv;var modes=require('./modes');function getCiphers(){return Object.keys(modes);}exports.listCiphers=exports.getCiphers=getCiphers;},{"./decrypter":47,"./encrypter":48,"./modes":50}],46:[function(require,module,exports){(function(Buffer){var Transform=require('stream').Transform;var inherits=require('inherits');module.exports=CipherBase;inherits(CipherBase,Transform);function CipherBase(){Transform.call(this);this._base64Cache=new Buffer('');}CipherBase.prototype.update=function(data,inputEnc,outputEnc){if(typeof data==='string'){data=new Buffer(data,inputEnc);}var outData=this._update(data);if(outputEnc){outData=this._toString(outData,outputEnc);}return outData;};CipherBase.prototype._transform=function(data,_,next){this.push(this._update(data));next();};CipherBase.prototype._flush=function(next){try{this.push(this._final());}catch(e){return next(e);}next();};CipherBase.prototype.final=function(outputEnc){var outData=this._final()||new Buffer('');if(outputEnc){outData=this._toString(outData,outputEnc,true);}return outData;};CipherBase.prototype._toString=function(value,enc,final){if(enc!=='base64'){return value.toString(enc);}this._base64Cache=Buffer.concat([this._base64Cache,value]);var out;if(final){out=this._base64Cache;this._base64Cache=null;return out.toString('base64');}var len=this._base64Cache.length;var overhang=len%3;if(!overhang){out=this._base64Cache;this._base64Cache=new Buffer('');return out.toString('base64');}var newLen=len-overhang;if(!newLen){return '';}out=this._base64Cache.slice(0,newLen);this._base64Cache=this._base64Cache.slice(-overhang);return out.toString('base64');};}).call(this,require("buffer").Buffer);},{"buffer":37,"inherits":183,"stream":200}],47:[function(require,module,exports){(function(Buffer){var aes=require('./aes');var Transform=require('./cipherBase');var inherits=require('inherits');var modes=require('./modes');var StreamCipher=require('./streamCipher');var AuthCipher=require('./authCipher');var ebtk=require('./EVP_BytesToKey');inherits(Decipher,Transform);function Decipher(mode,key,iv){if(!(this instanceof Decipher)){return new Decipher(mode,key,iv);}Transform.call(this);this._cache=new Splitter();this._last=void 0;this._cipher=new aes.AES(key);this._prev=new Buffer(iv.length);iv.copy(this._prev);this._mode=mode;this._autopadding=true;}Decipher.prototype._update=function(data){this._cache.add(data);var chunk;var thing;var out=[];while(chunk=this._cache.get(this._autopadding)){thing=this._mode.decrypt(this,chunk);out.push(thing);}return Buffer.concat(out);};Decipher.prototype._final=function(){var chunk=this._cache.flush();if(this._autopadding){return unpad(this._mode.decrypt(this,chunk));}else if(chunk){throw new Error('data not multiple of block length');}};Decipher.prototype.setAutoPadding=function(setTo){this._autopadding=!!setTo;};function Splitter(){if(!(this instanceof Splitter)){return new Splitter();}this.cache=new Buffer('');}Splitter.prototype.add=function(data){this.cache=Buffer.concat([this.cache,data]);};Splitter.prototype.get=function(autoPadding){var out;if(autoPadding){if(this.cache.length>16){out=this.cache.slice(0,16);this.cache=this.cache.slice(16);return out;}}else{if(this.cache.length>=16){out=this.cache.slice(0,16);this.cache=this.cache.slice(16);return out;}}return null;};Splitter.prototype.flush=function(){if(this.cache.length){return this.cache;}};function unpad(last){var padded=last[15];var i=-1;while(++i<padded){if(last[i+(16-padded)]!==padded){throw new Error('unable to decrypt data');}}if(padded===16){return;}return last.slice(0,16-padded);}var modelist={ECB:require('./modes/ecb'),CBC:require('./modes/cbc'),CFB:require('./modes/cfb'),CFB8:require('./modes/cfb8'),CFB1:require('./modes/cfb1'),OFB:require('./modes/ofb'),CTR:require('./modes/ctr'),GCM:require('./modes/ctr')};function createDecipheriv(suite,password,iv){var config=modes[suite.toLowerCase()];if(!config){throw new TypeError('invalid suite type');}if(typeof iv==='string'){iv=new Buffer(iv);}if(typeof password==='string'){password=new Buffer(password);}if(password.length!==config.key/8){throw new TypeError('invalid key length '+password.length);}if(iv.length!==config.iv){throw new TypeError('invalid iv length '+iv.length);}if(config.type==='stream'){return new StreamCipher(modelist[config.mode],password,iv,true);}else if(config.type==='auth'){return new AuthCipher(modelist[config.mode],password,iv,true);}return new Decipher(modelist[config.mode],password,iv);}function createDecipher(suite,password){var config=modes[suite.toLowerCase()];if(!config){throw new TypeError('invalid suite type');}var keys=ebtk(password,config.key,config.iv);return createDecipheriv(suite,keys.key,keys.iv);}exports.createDecipher=createDecipher;exports.createDecipheriv=createDecipheriv;}).call(this,require("buffer").Buffer);},{"./EVP_BytesToKey":42,"./aes":43,"./authCipher":44,"./cipherBase":46,"./modes":50,"./modes/cbc":51,"./modes/cfb":52,"./modes/cfb1":53,"./modes/cfb8":54,"./modes/ctr":55,"./modes/ecb":56,"./modes/ofb":57,"./streamCipher":59,"buffer":37,"inherits":183}],48:[function(require,module,exports){(function(Buffer){var aes=require('./aes');var Transform=require('./cipherBase');var inherits=require('inherits');var modes=require('./modes');var ebtk=require('./EVP_BytesToKey');var StreamCipher=require('./streamCipher');var AuthCipher=require('./authCipher');inherits(Cipher,Transform);function Cipher(mode,key,iv){if(!(this instanceof Cipher)){return new Cipher(mode,key,iv);}Transform.call(this);this._cache=new Splitter();this._cipher=new aes.AES(key);this._prev=new Buffer(iv.length);iv.copy(this._prev);this._mode=mode;this._autopadding=true;}Cipher.prototype._update=function(data){this._cache.add(data);var chunk;var thing;var out=[];while(chunk=this._cache.get()){thing=this._mode.encrypt(this,chunk);out.push(thing);}return Buffer.concat(out);};Cipher.prototype._final=function(){var chunk=this._cache.flush();if(this._autopadding){chunk=this._mode.encrypt(this,chunk);this._cipher.scrub();return chunk;}else if(chunk.toString('hex')!=='10101010101010101010101010101010'){this._cipher.scrub();throw new Error('data not multiple of block length');}};Cipher.prototype.setAutoPadding=function(setTo){this._autopadding=!!setTo;};function Splitter(){if(!(this instanceof Splitter)){return new Splitter();}this.cache=new Buffer('');}Splitter.prototype.add=function(data){this.cache=Buffer.concat([this.cache,data]);};Splitter.prototype.get=function(){if(this.cache.length>15){var out=this.cache.slice(0,16);this.cache=this.cache.slice(16);return out;}return null;};Splitter.prototype.flush=function(){var len=16-this.cache.length;var padBuff=new Buffer(len);var i=-1;while(++i<len){padBuff.writeUInt8(len,i);}var out=Buffer.concat([this.cache,padBuff]);return out;};var modelist={ECB:require('./modes/ecb'),CBC:require('./modes/cbc'),CFB:require('./modes/cfb'),CFB8:require('./modes/cfb8'),CFB1:require('./modes/cfb1'),OFB:require('./modes/ofb'),CTR:require('./modes/ctr'),GCM:require('./modes/ctr')};function createCipheriv(suite,password,iv){var config=modes[suite.toLowerCase()];if(!config){throw new TypeError('invalid suite type');}if(typeof iv==='string'){iv=new Buffer(iv);}if(typeof password==='string'){password=new Buffer(password);}if(password.length!==config.key/8){throw new TypeError('invalid key length '+password.length);}if(iv.length!==config.iv){throw new TypeError('invalid iv length '+iv.length);}if(config.type==='stream'){return new StreamCipher(modelist[config.mode],password,iv);}else if(config.type==='auth'){return new AuthCipher(modelist[config.mode],password,iv);}return new Cipher(modelist[config.mode],password,iv);}function createCipher(suite,password){var config=modes[suite.toLowerCase()];if(!config){throw new TypeError('invalid suite type');}var keys=ebtk(password,config.key,config.iv);return createCipheriv(suite,keys.key,keys.iv);}exports.createCipheriv=createCipheriv;exports.createCipher=createCipher;}).call(this,require("buffer").Buffer);},{"./EVP_BytesToKey":42,"./aes":43,"./authCipher":44,"./cipherBase":46,"./modes":50,"./modes/cbc":51,"./modes/cfb":52,"./modes/cfb1":53,"./modes/cfb8":54,"./modes/ctr":55,"./modes/ecb":56,"./modes/ofb":57,"./streamCipher":59,"buffer":37,"inherits":183}],49:[function(require,module,exports){(function(Buffer){var zeros=new Buffer(16);zeros.fill(0);module.exports=GHASH;function GHASH(key){this.h=key;this.state=new Buffer(16);this.state.fill(0);this.cache=new Buffer('');}// from http://bitwiseshiftleft.github.io/sjcl/doc/symbols/src/core_gcm.js.html
     // by Juho Vähä-Herttua
-    GHASH.prototype.ghash=function(block){var i=-1;while(++i<block.length){this.state[i]^=block[i];}this._multiply();};GHASH.prototype._multiply=function(){var Vi=toArray$$1(this.h);var Zi=[0,0,0,0];var j,xi,lsb_Vi;var i=-1;while(++i<128){xi=(this.state[~~(i/8)]&1<<7-i%8)!==0;if(xi){// Z_i+1 = Z_i ^ V_i
+    GHASH.prototype.ghash=function(block){var i=-1;while(++i<block.length){this.state[i]^=block[i];}this._multiply();};GHASH.prototype._multiply=function(){var Vi=toArray(this.h);var Zi=[0,0,0,0];var j,xi,lsb_Vi;var i=-1;while(++i<128){xi=(this.state[~~(i/8)]&1<<7-i%8)!==0;if(xi){// Z_i+1 = Z_i ^ V_i
     Zi=xor(Zi,Vi);}// Store the value of LSB(V_i)
     lsb_Vi=(Vi[3]&1)!==0;// V_i+1 = V_i >> 1
     for(j=3;j>0;j--){Vi[j]=Vi[j]>>>1|(Vi[j-1]&1)<<31;}Vi[0]=Vi[0]>>>1;// If LSB(V_i) is 1, V_i+1 = (V_i >> 1) ^ R
-    if(lsb_Vi){Vi[0]=Vi[0]^0xe1<<24;}}this.state=fromArray(Zi);};GHASH.prototype.update=function(buf){this.cache=Buffer.concat([this.cache,buf]);var chunk;while(this.cache.length>=16){chunk=this.cache.slice(0,16);this.cache=this.cache.slice(16);this.ghash(chunk);}};GHASH.prototype.final=function(abl,bl){if(this.cache.length){this.ghash(Buffer.concat([this.cache,zeros],16));}this.ghash(fromArray([0,abl,0,bl]));return this.state;};function toArray$$1(buf){return [buf.readUInt32BE(0),buf.readUInt32BE(4),buf.readUInt32BE(8),buf.readUInt32BE(12)];}function fromArray(out){out=out.map(fixup_uint32);var buf=new Buffer(16);buf.writeUInt32BE(out[0],0);buf.writeUInt32BE(out[1],4);buf.writeUInt32BE(out[2],8);buf.writeUInt32BE(out[3],12);return buf;}var uint_max=Math.pow(2,32);function fixup_uint32(x){var ret,x_pos;ret=x>uint_max||x<0?(x_pos=Math.abs(x)%uint_max,x<0?uint_max-x_pos:x_pos):x;return ret;}function xor(a,b){return [a[0]^b[0],a[1]^b[1],a[2]^b[2],a[3]^b[3]];}}).call(this,require("buffer").Buffer);},{"buffer":37}],50:[function(require,module,exports){exports['aes-128-ecb']={cipher:'AES',key:128,iv:0,mode:'ECB',type:'block'};exports['aes-192-ecb']={cipher:'AES',key:192,iv:0,mode:'ECB',type:'block'};exports['aes-256-ecb']={cipher:'AES',key:256,iv:0,mode:'ECB',type:'block'};exports['aes-128-cbc']={cipher:'AES',key:128,iv:16,mode:'CBC',type:'block'};exports['aes-192-cbc']={cipher:'AES',key:192,iv:16,mode:'CBC',type:'block'};exports['aes-256-cbc']={cipher:'AES',key:256,iv:16,mode:'CBC',type:'block'};exports['aes128']=exports['aes-128-cbc'];exports['aes192']=exports['aes-192-cbc'];exports['aes256']=exports['aes-256-cbc'];exports['aes-128-cfb']={cipher:'AES',key:128,iv:16,mode:'CFB',type:'stream'};exports['aes-192-cfb']={cipher:'AES',key:192,iv:16,mode:'CFB',type:'stream'};exports['aes-256-cfb']={cipher:'AES',key:256,iv:16,mode:'CFB',type:'stream'};exports['aes-128-cfb8']={cipher:'AES',key:128,iv:16,mode:'CFB8',type:'stream'};exports['aes-192-cfb8']={cipher:'AES',key:192,iv:16,mode:'CFB8',type:'stream'};exports['aes-256-cfb8']={cipher:'AES',key:256,iv:16,mode:'CFB8',type:'stream'};exports['aes-128-cfb1']={cipher:'AES',key:128,iv:16,mode:'CFB1',type:'stream'};exports['aes-192-cfb1']={cipher:'AES',key:192,iv:16,mode:'CFB1',type:'stream'};exports['aes-256-cfb1']={cipher:'AES',key:256,iv:16,mode:'CFB1',type:'stream'};exports['aes-128-ofb']={cipher:'AES',key:128,iv:16,mode:'OFB',type:'stream'};exports['aes-192-ofb']={cipher:'AES',key:192,iv:16,mode:'OFB',type:'stream'};exports['aes-256-ofb']={cipher:'AES',key:256,iv:16,mode:'OFB',type:'stream'};exports['aes-128-ctr']={cipher:'AES',key:128,iv:16,mode:'CTR',type:'stream'};exports['aes-192-ctr']={cipher:'AES',key:192,iv:16,mode:'CTR',type:'stream'};exports['aes-256-ctr']={cipher:'AES',key:256,iv:16,mode:'CTR',type:'stream'};exports['aes-128-gcm']={cipher:'AES',key:128,iv:12,mode:'GCM',type:'auth'};exports['aes-192-gcm']={cipher:'AES',key:192,iv:12,mode:'GCM',type:'auth'};exports['aes-256-gcm']={cipher:'AES',key:256,iv:12,mode:'GCM',type:'auth'};},{}],51:[function(require,module,exports){var xor=require('buffer-xor');exports.encrypt=function(self,block){var data=xor(block,self._prev);self._prev=self._cipher.encryptBlock(data);return self._prev;};exports.decrypt=function(self,block){var pad=self._prev;self._prev=block;var out=self._cipher.decryptBlock(block);return xor(out,pad);};},{"buffer-xor":58}],52:[function(require,module,exports){(function(Buffer){var xor=require('buffer-xor');exports.encrypt=function(self,data,decrypt){var out=new Buffer('');var len;while(data.length){if(self._cache.length===0){self._cache=self._cipher.encryptBlock(self._prev);self._prev=new Buffer('');}if(self._cache.length<=data.length){len=self._cache.length;out=Buffer.concat([out,encryptStart(self,data.slice(0,len),decrypt)]);data=data.slice(len);}else{out=Buffer.concat([out,encryptStart(self,data,decrypt)]);break;}}return out;};function encryptStart(self,data,decrypt){var len=data.length;var out=xor(data,self._cache);self._cache=self._cache.slice(len);self._prev=Buffer.concat([self._prev,decrypt?data:out]);return out;}}).call(this,require("buffer").Buffer);},{"buffer":37,"buffer-xor":58}],53:[function(require,module,exports){(function(Buffer){function encryptByte(self,byteParam,decrypt){var pad;var i=-1;var len=8;var out=0;var bit,value;while(++i<len){pad=self._cipher.encryptBlock(self._prev);bit=byteParam&1<<7-i?0x80:0;value=pad[0]^bit;out+=(value&0x80)>>i%8;self._prev=shiftIn(self._prev,decrypt?bit:value);}return out;}exports.encrypt=function(self,chunk,decrypt){var len=chunk.length;var out=new Buffer(len);var i=-1;while(++i<len){out[i]=encryptByte(self,chunk[i],decrypt);}return out;};function shiftIn(buffer,value){var len=buffer.length;var i=-1;var out=new Buffer(buffer.length);buffer=Buffer.concat([buffer,new Buffer([value])]);while(++i<len){out[i]=buffer[i]<<1|buffer[i+1]>>7;}return out;}}).call(this,require("buffer").Buffer);},{"buffer":37}],54:[function(require,module,exports){(function(Buffer){function encryptByte(self,byteParam,decrypt){var pad=self._cipher.encryptBlock(self._prev);var out=pad[0]^byteParam;self._prev=Buffer.concat([self._prev.slice(1),new Buffer([decrypt?byteParam:out])]);return out;}exports.encrypt=function(self,chunk,decrypt){var len=chunk.length;var out=new Buffer(len);var i=-1;while(++i<len){out[i]=encryptByte(self,chunk[i],decrypt);}return out;};}).call(this,require("buffer").Buffer);},{"buffer":37}],55:[function(require,module,exports){(function(Buffer){var xor=require('buffer-xor');function incr32(iv){var len=iv.length;var item;while(len--){item=iv.readUInt8(len);if(item===255){iv.writeUInt8(0,len);}else{item++;iv.writeUInt8(item,len);break;}}}function getBlock(self){var out=self._cipher.encryptBlock(self._prev);incr32(self._prev);return out;}exports.encrypt=function(self,chunk){while(self._cache.length<chunk.length){self._cache=Buffer.concat([self._cache,getBlock(self)]);}var pad=self._cache.slice(0,chunk.length);self._cache=self._cache.slice(chunk.length);return xor(chunk,pad);};}).call(this,require("buffer").Buffer);},{"buffer":37,"buffer-xor":58}],56:[function(require,module,exports){exports.encrypt=function(self,block){return self._cipher.encryptBlock(block);};exports.decrypt=function(self,block){return self._cipher.decryptBlock(block);};},{}],57:[function(require,module,exports){(function(Buffer){var xor=require('buffer-xor');function getBlock(self){self._prev=self._cipher.encryptBlock(self._prev);return self._prev;}exports.encrypt=function(self,chunk){while(self._cache.length<chunk.length){self._cache=Buffer.concat([self._cache,getBlock(self)]);}var pad=self._cache.slice(0,chunk.length);self._cache=self._cache.slice(chunk.length);return xor(chunk,pad);};}).call(this,require("buffer").Buffer);},{"buffer":37,"buffer-xor":58}],58:[function(require,module,exports){(function(Buffer){module.exports=function xor(a,b){var length=Math.min(a.length,b.length);var buffer=new Buffer(length);for(var i=0;i<length;++i){buffer[i]=a[i]^b[i];}return buffer;};}).call(this,require("buffer").Buffer);},{"buffer":37}],59:[function(require,module,exports){(function(Buffer){var aes=require('./aes');var Transform=require('./cipherBase');var inherits$$1=require('inherits');inherits$$1(StreamCipher,Transform);module.exports=StreamCipher;function StreamCipher(mode,key,iv,decrypt){if(!(this instanceof StreamCipher)){return new StreamCipher(mode,key,iv);}Transform.call(this);this._cipher=new aes.AES(key);this._prev=new Buffer(iv.length);this._cache=new Buffer('');this._secCache=new Buffer('');this._decrypt=decrypt;iv.copy(this._prev);this._mode=mode;}StreamCipher.prototype._update=function(chunk){return this._mode.encrypt(this,chunk,this._decrypt);};StreamCipher.prototype._final=function(){this._cipher.scrub();};}).call(this,require("buffer").Buffer);},{"./aes":43,"./cipherBase":46,"buffer":37,"inherits":183}],60:[function(require,module,exports){(function(Buffer){exports['RSA-SHA224']=exports.sha224WithRSAEncryption={sign:'rsa',hash:'sha224',id:new Buffer('302d300d06096086480165030402040500041c','hex')};exports['RSA-SHA256']=exports.sha256WithRSAEncryption={sign:'rsa',hash:'sha256',id:new Buffer('3031300d060960864801650304020105000420','hex')};exports['RSA-SHA384']=exports.sha384WithRSAEncryption={sign:'rsa',hash:'sha384',id:new Buffer('3041300d060960864801650304020205000430','hex')};exports['RSA-SHA512']=exports.sha512WithRSAEncryption={sign:'rsa',hash:'sha512',id:new Buffer('3051300d060960864801650304020305000440','hex')};exports['RSA-SHA1']={sign:'rsa',hash:'sha1',id:new Buffer('3021300906052b0e03021a05000414','hex')};exports['ecdsa-with-SHA1']={sign:'ecdsa',hash:'sha1',id:new Buffer('','hex')};exports.DSA=exports['DSA-SHA1']=exports['DSA-SHA']={sign:'dsa',hash:'sha1',id:new Buffer('','hex')};exports['DSA-SHA224']=exports['DSA-WITH-SHA224']={sign:'dsa',hash:'sha224',id:new Buffer('','hex')};exports['DSA-SHA256']=exports['DSA-WITH-SHA256']={sign:'dsa',hash:'sha256',id:new Buffer('','hex')};exports['DSA-SHA384']=exports['DSA-WITH-SHA384']={sign:'dsa',hash:'sha384',id:new Buffer('','hex')};exports['DSA-SHA512']=exports['DSA-WITH-SHA512']={sign:'dsa',hash:'sha512',id:new Buffer('','hex')};exports['DSA-RIPEMD160']={sign:'dsa',hash:'rmd160',id:new Buffer('','hex')};exports['RSA-RIPEMD160']=exports.ripemd160WithRSA={sign:'rsa',hash:'rmd160',id:new Buffer('3021300906052b2403020105000414','hex')};exports['RSA-MD5']=exports.md5WithRSAEncryption={sign:'rsa',hash:'md5',id:new Buffer('3020300c06082a864886f70d020505000410','hex')};}).call(this,require("buffer").Buffer);},{"buffer":37}],61:[function(require,module,exports){(function(Buffer){var _algos=require('./algos');var createHash=require('create-hash');var inherits$$1=require('inherits');var sign=require('./sign');var stream=require('stream');var verify=require('./verify');var algos={};Object.keys(_algos).forEach(function(key){algos[key]=algos[key.toLowerCase()]=_algos[key];});function Sign(algorithm){stream.Writable.call(this);var data=algos[algorithm];if(!data){throw new Error('Unknown message digest');}this._hashType=data.hash;this._hash=createHash(data.hash);this._tag=data.id;this._signType=data.sign;}inherits$$1(Sign,stream.Writable);Sign.prototype._write=function _write(data,_,done){this._hash.update(data);done();};Sign.prototype.update=function update(data,enc){if(typeof data==='string'){data=new Buffer(data,enc);}this._hash.update(data);return this;};Sign.prototype.sign=function signMethod(key,enc){this.end();var hash=this._hash.digest();var sig=sign(Buffer.concat([this._tag,hash]),key,this._hashType,this._signType);return enc?sig.toString(enc):sig;};function Verify(algorithm){stream.Writable.call(this);var data=algos[algorithm];if(!data){throw new Error('Unknown message digest');}this._hash=createHash(data.hash);this._tag=data.id;this._signType=data.sign;}inherits$$1(Verify,stream.Writable);Verify.prototype._write=function _write(data,_,done){this._hash.update(data);done();};Verify.prototype.update=function update(data,enc){if(typeof data==='string'){data=new Buffer(data,enc);}this._hash.update(data);return this;};Verify.prototype.verify=function verifyMethod(key,sig,enc){if(typeof sig==='string'){sig=new Buffer(sig,enc);}this.end();var hash=this._hash.digest();return verify(sig,Buffer.concat([this._tag,hash]),key,this._signType);};function createSign(algorithm){return new Sign(algorithm);}function createVerify(algorithm){return new Verify(algorithm);}module.exports={Sign:createSign,Verify:createVerify,createSign:createSign,createVerify:createVerify};}).call(this,require("buffer").Buffer);},{"./algos":60,"./sign":106,"./verify":107,"buffer":37,"create-hash":132,"inherits":183,"stream":200}],62:[function(require,module,exports){exports['1.3.132.0.10']='secp256k1';exports['1.3.132.0.33']='p224';exports['1.2.840.10045.3.1.1']='p192';exports['1.2.840.10045.3.1.7']='p256';},{}],63:[function(require,module,exports){(function(module,exports){function assert(val,msg){if(!val)throw new Error(msg||'Assertion failed');}// Could use `inherits` module, but don't want to move from single file
+    if(lsb_Vi){Vi[0]=Vi[0]^0xe1<<24;}}this.state=fromArray(Zi);};GHASH.prototype.update=function(buf){this.cache=Buffer.concat([this.cache,buf]);var chunk;while(this.cache.length>=16){chunk=this.cache.slice(0,16);this.cache=this.cache.slice(16);this.ghash(chunk);}};GHASH.prototype.final=function(abl,bl){if(this.cache.length){this.ghash(Buffer.concat([this.cache,zeros],16));}this.ghash(fromArray([0,abl,0,bl]));return this.state;};function toArray(buf){return [buf.readUInt32BE(0),buf.readUInt32BE(4),buf.readUInt32BE(8),buf.readUInt32BE(12)];}function fromArray(out){out=out.map(fixup_uint32);var buf=new Buffer(16);buf.writeUInt32BE(out[0],0);buf.writeUInt32BE(out[1],4);buf.writeUInt32BE(out[2],8);buf.writeUInt32BE(out[3],12);return buf;}var uint_max=Math.pow(2,32);function fixup_uint32(x){var ret,x_pos;ret=x>uint_max||x<0?(x_pos=Math.abs(x)%uint_max,x<0?uint_max-x_pos:x_pos):x;return ret;}function xor(a,b){return [a[0]^b[0],a[1]^b[1],a[2]^b[2],a[3]^b[3]];}}).call(this,require("buffer").Buffer);},{"buffer":37}],50:[function(require,module,exports){exports['aes-128-ecb']={cipher:'AES',key:128,iv:0,mode:'ECB',type:'block'};exports['aes-192-ecb']={cipher:'AES',key:192,iv:0,mode:'ECB',type:'block'};exports['aes-256-ecb']={cipher:'AES',key:256,iv:0,mode:'ECB',type:'block'};exports['aes-128-cbc']={cipher:'AES',key:128,iv:16,mode:'CBC',type:'block'};exports['aes-192-cbc']={cipher:'AES',key:192,iv:16,mode:'CBC',type:'block'};exports['aes-256-cbc']={cipher:'AES',key:256,iv:16,mode:'CBC',type:'block'};exports['aes128']=exports['aes-128-cbc'];exports['aes192']=exports['aes-192-cbc'];exports['aes256']=exports['aes-256-cbc'];exports['aes-128-cfb']={cipher:'AES',key:128,iv:16,mode:'CFB',type:'stream'};exports['aes-192-cfb']={cipher:'AES',key:192,iv:16,mode:'CFB',type:'stream'};exports['aes-256-cfb']={cipher:'AES',key:256,iv:16,mode:'CFB',type:'stream'};exports['aes-128-cfb8']={cipher:'AES',key:128,iv:16,mode:'CFB8',type:'stream'};exports['aes-192-cfb8']={cipher:'AES',key:192,iv:16,mode:'CFB8',type:'stream'};exports['aes-256-cfb8']={cipher:'AES',key:256,iv:16,mode:'CFB8',type:'stream'};exports['aes-128-cfb1']={cipher:'AES',key:128,iv:16,mode:'CFB1',type:'stream'};exports['aes-192-cfb1']={cipher:'AES',key:192,iv:16,mode:'CFB1',type:'stream'};exports['aes-256-cfb1']={cipher:'AES',key:256,iv:16,mode:'CFB1',type:'stream'};exports['aes-128-ofb']={cipher:'AES',key:128,iv:16,mode:'OFB',type:'stream'};exports['aes-192-ofb']={cipher:'AES',key:192,iv:16,mode:'OFB',type:'stream'};exports['aes-256-ofb']={cipher:'AES',key:256,iv:16,mode:'OFB',type:'stream'};exports['aes-128-ctr']={cipher:'AES',key:128,iv:16,mode:'CTR',type:'stream'};exports['aes-192-ctr']={cipher:'AES',key:192,iv:16,mode:'CTR',type:'stream'};exports['aes-256-ctr']={cipher:'AES',key:256,iv:16,mode:'CTR',type:'stream'};exports['aes-128-gcm']={cipher:'AES',key:128,iv:12,mode:'GCM',type:'auth'};exports['aes-192-gcm']={cipher:'AES',key:192,iv:12,mode:'GCM',type:'auth'};exports['aes-256-gcm']={cipher:'AES',key:256,iv:12,mode:'GCM',type:'auth'};},{}],51:[function(require,module,exports){var xor=require('buffer-xor');exports.encrypt=function(self,block){var data=xor(block,self._prev);self._prev=self._cipher.encryptBlock(data);return self._prev;};exports.decrypt=function(self,block){var pad=self._prev;self._prev=block;var out=self._cipher.decryptBlock(block);return xor(out,pad);};},{"buffer-xor":58}],52:[function(require,module,exports){(function(Buffer){var xor=require('buffer-xor');exports.encrypt=function(self,data,decrypt){var out=new Buffer('');var len;while(data.length){if(self._cache.length===0){self._cache=self._cipher.encryptBlock(self._prev);self._prev=new Buffer('');}if(self._cache.length<=data.length){len=self._cache.length;out=Buffer.concat([out,encryptStart(self,data.slice(0,len),decrypt)]);data=data.slice(len);}else{out=Buffer.concat([out,encryptStart(self,data,decrypt)]);break;}}return out;};function encryptStart(self,data,decrypt){var len=data.length;var out=xor(data,self._cache);self._cache=self._cache.slice(len);self._prev=Buffer.concat([self._prev,decrypt?data:out]);return out;}}).call(this,require("buffer").Buffer);},{"buffer":37,"buffer-xor":58}],53:[function(require,module,exports){(function(Buffer){function encryptByte(self,byteParam,decrypt){var pad;var i=-1;var len=8;var out=0;var bit,value;while(++i<len){pad=self._cipher.encryptBlock(self._prev);bit=byteParam&1<<7-i?0x80:0;value=pad[0]^bit;out+=(value&0x80)>>i%8;self._prev=shiftIn(self._prev,decrypt?bit:value);}return out;}exports.encrypt=function(self,chunk,decrypt){var len=chunk.length;var out=new Buffer(len);var i=-1;while(++i<len){out[i]=encryptByte(self,chunk[i],decrypt);}return out;};function shiftIn(buffer,value){var len=buffer.length;var i=-1;var out=new Buffer(buffer.length);buffer=Buffer.concat([buffer,new Buffer([value])]);while(++i<len){out[i]=buffer[i]<<1|buffer[i+1]>>7;}return out;}}).call(this,require("buffer").Buffer);},{"buffer":37}],54:[function(require,module,exports){(function(Buffer){function encryptByte(self,byteParam,decrypt){var pad=self._cipher.encryptBlock(self._prev);var out=pad[0]^byteParam;self._prev=Buffer.concat([self._prev.slice(1),new Buffer([decrypt?byteParam:out])]);return out;}exports.encrypt=function(self,chunk,decrypt){var len=chunk.length;var out=new Buffer(len);var i=-1;while(++i<len){out[i]=encryptByte(self,chunk[i],decrypt);}return out;};}).call(this,require("buffer").Buffer);},{"buffer":37}],55:[function(require,module,exports){(function(Buffer){var xor=require('buffer-xor');function incr32(iv){var len=iv.length;var item;while(len--){item=iv.readUInt8(len);if(item===255){iv.writeUInt8(0,len);}else{item++;iv.writeUInt8(item,len);break;}}}function getBlock(self){var out=self._cipher.encryptBlock(self._prev);incr32(self._prev);return out;}exports.encrypt=function(self,chunk){while(self._cache.length<chunk.length){self._cache=Buffer.concat([self._cache,getBlock(self)]);}var pad=self._cache.slice(0,chunk.length);self._cache=self._cache.slice(chunk.length);return xor(chunk,pad);};}).call(this,require("buffer").Buffer);},{"buffer":37,"buffer-xor":58}],56:[function(require,module,exports){exports.encrypt=function(self,block){return self._cipher.encryptBlock(block);};exports.decrypt=function(self,block){return self._cipher.decryptBlock(block);};},{}],57:[function(require,module,exports){(function(Buffer){var xor=require('buffer-xor');function getBlock(self){self._prev=self._cipher.encryptBlock(self._prev);return self._prev;}exports.encrypt=function(self,chunk){while(self._cache.length<chunk.length){self._cache=Buffer.concat([self._cache,getBlock(self)]);}var pad=self._cache.slice(0,chunk.length);self._cache=self._cache.slice(chunk.length);return xor(chunk,pad);};}).call(this,require("buffer").Buffer);},{"buffer":37,"buffer-xor":58}],58:[function(require,module,exports){(function(Buffer){module.exports=function xor(a,b){var length=Math.min(a.length,b.length);var buffer=new Buffer(length);for(var i=0;i<length;++i){buffer[i]=a[i]^b[i];}return buffer;};}).call(this,require("buffer").Buffer);},{"buffer":37}],59:[function(require,module,exports){(function(Buffer){var aes=require('./aes');var Transform=require('./cipherBase');var inherits=require('inherits');inherits(StreamCipher,Transform);module.exports=StreamCipher;function StreamCipher(mode,key,iv,decrypt){if(!(this instanceof StreamCipher)){return new StreamCipher(mode,key,iv);}Transform.call(this);this._cipher=new aes.AES(key);this._prev=new Buffer(iv.length);this._cache=new Buffer('');this._secCache=new Buffer('');this._decrypt=decrypt;iv.copy(this._prev);this._mode=mode;}StreamCipher.prototype._update=function(chunk){return this._mode.encrypt(this,chunk,this._decrypt);};StreamCipher.prototype._final=function(){this._cipher.scrub();};}).call(this,require("buffer").Buffer);},{"./aes":43,"./cipherBase":46,"buffer":37,"inherits":183}],60:[function(require,module,exports){(function(Buffer){exports['RSA-SHA224']=exports.sha224WithRSAEncryption={sign:'rsa',hash:'sha224',id:new Buffer('302d300d06096086480165030402040500041c','hex')};exports['RSA-SHA256']=exports.sha256WithRSAEncryption={sign:'rsa',hash:'sha256',id:new Buffer('3031300d060960864801650304020105000420','hex')};exports['RSA-SHA384']=exports.sha384WithRSAEncryption={sign:'rsa',hash:'sha384',id:new Buffer('3041300d060960864801650304020205000430','hex')};exports['RSA-SHA512']=exports.sha512WithRSAEncryption={sign:'rsa',hash:'sha512',id:new Buffer('3051300d060960864801650304020305000440','hex')};exports['RSA-SHA1']={sign:'rsa',hash:'sha1',id:new Buffer('3021300906052b0e03021a05000414','hex')};exports['ecdsa-with-SHA1']={sign:'ecdsa',hash:'sha1',id:new Buffer('','hex')};exports.DSA=exports['DSA-SHA1']=exports['DSA-SHA']={sign:'dsa',hash:'sha1',id:new Buffer('','hex')};exports['DSA-SHA224']=exports['DSA-WITH-SHA224']={sign:'dsa',hash:'sha224',id:new Buffer('','hex')};exports['DSA-SHA256']=exports['DSA-WITH-SHA256']={sign:'dsa',hash:'sha256',id:new Buffer('','hex')};exports['DSA-SHA384']=exports['DSA-WITH-SHA384']={sign:'dsa',hash:'sha384',id:new Buffer('','hex')};exports['DSA-SHA512']=exports['DSA-WITH-SHA512']={sign:'dsa',hash:'sha512',id:new Buffer('','hex')};exports['DSA-RIPEMD160']={sign:'dsa',hash:'rmd160',id:new Buffer('','hex')};exports['RSA-RIPEMD160']=exports.ripemd160WithRSA={sign:'rsa',hash:'rmd160',id:new Buffer('3021300906052b2403020105000414','hex')};exports['RSA-MD5']=exports.md5WithRSAEncryption={sign:'rsa',hash:'md5',id:new Buffer('3020300c06082a864886f70d020505000410','hex')};}).call(this,require("buffer").Buffer);},{"buffer":37}],61:[function(require,module,exports){(function(Buffer){var _algos=require('./algos');var createHash=require('create-hash');var inherits=require('inherits');var sign=require('./sign');var stream=require('stream');var verify=require('./verify');var algos={};Object.keys(_algos).forEach(function(key){algos[key]=algos[key.toLowerCase()]=_algos[key];});function Sign(algorithm){stream.Writable.call(this);var data=algos[algorithm];if(!data){throw new Error('Unknown message digest');}this._hashType=data.hash;this._hash=createHash(data.hash);this._tag=data.id;this._signType=data.sign;}inherits(Sign,stream.Writable);Sign.prototype._write=function _write(data,_,done){this._hash.update(data);done();};Sign.prototype.update=function update(data,enc){if(typeof data==='string'){data=new Buffer(data,enc);}this._hash.update(data);return this;};Sign.prototype.sign=function signMethod(key,enc){this.end();var hash=this._hash.digest();var sig=sign(Buffer.concat([this._tag,hash]),key,this._hashType,this._signType);return enc?sig.toString(enc):sig;};function Verify(algorithm){stream.Writable.call(this);var data=algos[algorithm];if(!data){throw new Error('Unknown message digest');}this._hash=createHash(data.hash);this._tag=data.id;this._signType=data.sign;}inherits(Verify,stream.Writable);Verify.prototype._write=function _write(data,_,done){this._hash.update(data);done();};Verify.prototype.update=function update(data,enc){if(typeof data==='string'){data=new Buffer(data,enc);}this._hash.update(data);return this;};Verify.prototype.verify=function verifyMethod(key,sig,enc){if(typeof sig==='string'){sig=new Buffer(sig,enc);}this.end();var hash=this._hash.digest();return verify(sig,Buffer.concat([this._tag,hash]),key,this._signType);};function createSign(algorithm){return new Sign(algorithm);}function createVerify(algorithm){return new Verify(algorithm);}module.exports={Sign:createSign,Verify:createVerify,createSign:createSign,createVerify:createVerify};}).call(this,require("buffer").Buffer);},{"./algos":60,"./sign":106,"./verify":107,"buffer":37,"create-hash":132,"inherits":183,"stream":200}],62:[function(require,module,exports){exports['1.3.132.0.10']='secp256k1';exports['1.3.132.0.33']='p224';exports['1.2.840.10045.3.1.1']='p192';exports['1.2.840.10045.3.1.7']='p256';},{}],63:[function(require,module,exports){(function(module,exports){function assert(val,msg){if(!val)throw new Error(msg||'Assertion failed');}// Could use `inherits` module, but don't want to move from single file
     // architecture yet.
-    function inherits$$1(ctor,superCtor){ctor.super_=superCtor;var TempCtor=function TempCtor(){};TempCtor.prototype=superCtor.prototype;ctor.prototype=new TempCtor();ctor.prototype.constructor=ctor;}// BN
+    function inherits(ctor,superCtor){ctor.super_=superCtor;var TempCtor=function TempCtor(){};TempCtor.prototype=superCtor.prototype;ctor.prototype=new TempCtor();ctor.prototype.constructor=ctor;}// BN
     function BN(number,base,endian){// May be `new BN(bn)` ?
-    if(number!==null&&(typeof number==="undefined"?"undefined":_typeof(number))==='object'&&Array.isArray(number.words)){return number;}this.sign=false;this.words=null;this.length=0;// Reduction context
-    this.red=null;if(base==='le'||base==='be'){endian=base;base=10;}if(number!==null)this._init(number||0,base||10,endian||'be');}if((typeof module==="undefined"?"undefined":_typeof(module))==='object')module.exports=BN;else exports.BN=BN;BN.BN=BN;BN.wordSize=26;BN.prototype._init=function init(number,base,endian){if(typeof number==='number'){return this._initNumber(number,base,endian);}else if((typeof number==="undefined"?"undefined":_typeof(number))==='object'){return this._initArray(number,base,endian);}if(base==='hex')base=16;assert(base===(base|0)&&base>=2&&base<=36);number=number.toString().replace(/\s+/g,'');var start=0;if(number[0]==='-')start++;if(base===16)this._parseHex(number,start);else this._parseBase(number,base,start);if(number[0]==='-')this.sign=true;this.strip();if(endian!=='le')return;this._initArray(this.toArray(),base,endian);};BN.prototype._initNumber=function _initNumber(number,base,endian){if(number<0){this.sign=true;number=-number;}if(number<0x4000000){this.words=[number&0x3ffffff];this.length=1;}else if(number<0x10000000000000){this.words=[number&0x3ffffff,number/0x4000000&0x3ffffff];this.length=2;}else{assert(number<0x20000000000000);// 2 ^ 53 (unsafe)
+    if(number!==null&&_typeof(number)==='object'&&Array.isArray(number.words)){return number;}this.sign=false;this.words=null;this.length=0;// Reduction context
+    this.red=null;if(base==='le'||base==='be'){endian=base;base=10;}if(number!==null)this._init(number||0,base||10,endian||'be');}if(_typeof(module)==='object')module.exports=BN;else exports.BN=BN;BN.BN=BN;BN.wordSize=26;BN.prototype._init=function init(number,base,endian){if(typeof number==='number'){return this._initNumber(number,base,endian);}else if(_typeof(number)==='object'){return this._initArray(number,base,endian);}if(base==='hex')base=16;assert(base===(base|0)&&base>=2&&base<=36);number=number.toString().replace(/\s+/g,'');var start=0;if(number[0]==='-')start++;if(base===16)this._parseHex(number,start);else this._parseBase(number,base,start);if(number[0]==='-')this.sign=true;this.strip();if(endian!=='le')return;this._initArray(this.toArray(),base,endian);};BN.prototype._initNumber=function _initNumber(number,base,endian){if(number<0){this.sign=true;number=-number;}if(number<0x4000000){this.words=[number&0x3ffffff];this.length=1;}else if(number<0x10000000000000){this.words=[number&0x3ffffff,number/0x4000000&0x3ffffff];this.length=2;}else{assert(number<0x20000000000000);// 2 ^ 53 (unsafe)
     this.words=[number&0x3ffffff,number/0x4000000&0x3ffffff,1];this.length=3;}if(endian!=='le')return;// Reverse the bytes
     this._initArray(this.toArray(),base,endian);};BN.prototype._initArray=function _initArray(number,base,endian){// Perhaps a Uint8Array
     assert(typeof number.length==='number');if(number.length<=0){this.words=[0];this.length=1;return this;}this.length=Math.ceil(number.length/3);this.words=new Array(this.length);for(var i=0;i<this.length;i++){this.words[i]=0;}var off=0;if(endian==='be'){for(var i=number.length-1,j=0;i>=0;i-=3){var w=number[i]|number[i-1]<<8|number[i-2]<<16;this.words[j]|=w<<off&0x3ffffff;this.words[j+1]=w>>>26-off&0x3ffffff;off+=24;if(off>=26){off-=26;j++;}}}else if(endian==='le'){for(var i=0,j=0;i<number.length;i+=3){var w=number[i]|number[i+1]<<8|number[i+2]<<16;this.words[j]|=w<<off&0x3ffffff;this.words[j+1]=w>>>26-off&0x3ffffff;off+=24;if(off>=26){off-=26;j++;}}}return this.strip();};function parseHex(str,start,end){var r=0;var len=Math.min(str.length,end);for(var i=start;i<len;i++){var c=str.charCodeAt(i)-48;r<<=4;// 'a' - 'f'
@@ -1795,7 +1792,7 @@ var pmcrypto = (function (exports) {
 
     */var zeros=['','0','00','000','0000','00000','000000','0000000','00000000','000000000','0000000000','00000000000','000000000000','0000000000000','00000000000000','000000000000000','0000000000000000','00000000000000000','000000000000000000','0000000000000000000','00000000000000000000','000000000000000000000','0000000000000000000000','00000000000000000000000','000000000000000000000000','0000000000000000000000000'];var groupSizes=[0,0,25,16,12,11,10,9,8,8,7,7,7,7,6,6,6,6,6,6,6,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5];var groupBases=[0,0,33554432,43046721,16777216,48828125,60466176,40353607,16777216,43046721,10000000,19487171,35831808,62748517,7529536,11390625,16777216,24137569,34012224,47045881,64000000,4084101,5153632,6436343,7962624,9765625,11881376,14348907,17210368,20511149,24300000,28629151,33554432,39135393,45435424,52521875,60466176];BN.prototype.toString=function toString(base,padding){base=base||10;if(base===16||base==='hex'){var out='';var off=0;var padding=padding|0||1;var carry=0;for(var i=0;i<this.length;i++){var w=this.words[i];var word=((w<<off|carry)&0xffffff).toString(16);carry=w>>>24-off&0xffffff;if(carry!==0||i!==this.length-1)out=zeros[6-word.length]+word+out;else out=word+out;off+=2;if(off>=26){off-=26;i--;}}if(carry!==0)out=carry.toString(16)+out;while(out.length%padding!==0){out='0'+out;}if(this.sign)out='-'+out;return out;}else if(base===(base|0)&&base>=2&&base<=36){// var groupSize = Math.floor(BN.wordSize * Math.LN2 / Math.log(base));
     var groupSize=groupSizes[base];// var groupBase = Math.pow(base, groupSize);
-    var groupBase=groupBases[base];var out='';var c=this.clone();c.sign=false;while(c.cmpn(0)!==0){var r=c.modn(groupBase).toString(base);c=c.idivn(groupBase);if(c.cmpn(0)!==0)out=zeros[groupSize-r.length]+r+out;else out=r+out;}if(this.cmpn(0)===0)out='0'+out;if(this.sign)out='-'+out;return out;}else{assert(false,'Base should be between 2 and 36');}};BN.prototype.toJSON=function toJSON(){return this.toString(16);};BN.prototype.toArray=function toArray$$1(endian){this.strip();var res=new Array(this.byteLength());res[0]=0;var q=this.clone();if(endian!=='le'){// Assume big-endian
+    var groupBase=groupBases[base];var out='';var c=this.clone();c.sign=false;while(c.cmpn(0)!==0){var r=c.modn(groupBase).toString(base);c=c.idivn(groupBase);if(c.cmpn(0)!==0)out=zeros[groupSize-r.length]+r+out;else out=r+out;}if(this.cmpn(0)===0)out='0'+out;if(this.sign)out='-'+out;return out;}else{assert(false,'Base should be between 2 and 36');}};BN.prototype.toJSON=function toJSON(){return this.toString(16);};BN.prototype.toArray=function toArray(endian){this.strip();var res=new Array(this.byteLength());res[0]=0;var q=this.clone();if(endian!=='le'){// Assume big-endian
     for(var i=0;q.cmpn(0)!==0;i++){var b=q.andln(0xff);q.ishrn(8);res[res.length-i-1]=b;}}else{// Assume little-endian
     for(var i=0;q.cmpn(0)!==0;i++){var b=q.andln(0xff);q.ishrn(8);res[i]=b;}}return res;};if(Math.clz32){BN.prototype._countBits=function _countBits(w){return 32-Math.clz32(w);};}else{BN.prototype._countBits=function _countBits(w){var t=w;var r=0;if(t>=0x1000){r+=13;t>>>=13;}if(t>=0x40){r+=7;t>>>=7;}if(t>=0x8){r+=4;t>>>=4;}if(t>=0x02){r+=2;t>>>=2;}return r+t;};}BN.prototype._zeroBits=function _zeroBits(w){// Short-cut
     if(w===0)return 26;var t=w;var r=0;if((t&0x1fff)===0){r+=13;t>>>=13;}if((t&0x7f)===0){r+=7;t>>>=7;}if((t&0xf)===0){r+=4;t>>>=4;}if((t&0x3)===0){r+=2;t>>>=2;}if((t&0x1)===0)r++;return r;};// Return number of used bits in a BN
@@ -1939,13 +1936,13 @@ var pmcrypto = (function (exports) {
     function MPrime(name,p){// P = 2 ^ N - K
     this.name=name;this.p=new BN(p,16);this.n=this.p.bitLength();this.k=new BN(1).ishln(this.n).isub(this.p);this.tmp=this._tmp();}MPrime.prototype._tmp=function _tmp(){var tmp=new BN(null);tmp.words=new Array(Math.ceil(this.n/13));return tmp;};MPrime.prototype.ireduce=function ireduce(num){// Assumes that `num` is less than `P^2`
     // num = HI * (2 ^ N - K) + HI * K + LO = HI * K + LO (mod P)
-    var r=num;var rlen;do{this.split(r,this.tmp);r=this.imulK(r);r=r.iadd(this.tmp);rlen=r.bitLength();}while(rlen>this.n);var cmp=rlen<this.n?-1:r.ucmp(this.p);if(cmp===0){r.words[0]=0;r.length=1;}else if(cmp>0){r.isub(this.p);}else{r.strip();}return r;};MPrime.prototype.split=function split(input,out){input.ishrn(this.n,0,out);};MPrime.prototype.imulK=function imulK(num){return num.imul(this.k);};function K256(){MPrime.call(this,'k256','ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f');}inherits$$1(K256,MPrime);K256.prototype.split=function split(input,output){// 256 = 9 * 26 + 22
+    var r=num;var rlen;do{this.split(r,this.tmp);r=this.imulK(r);r=r.iadd(this.tmp);rlen=r.bitLength();}while(rlen>this.n);var cmp=rlen<this.n?-1:r.ucmp(this.p);if(cmp===0){r.words[0]=0;r.length=1;}else if(cmp>0){r.isub(this.p);}else{r.strip();}return r;};MPrime.prototype.split=function split(input,out){input.ishrn(this.n,0,out);};MPrime.prototype.imulK=function imulK(num){return num.imul(this.k);};function K256(){MPrime.call(this,'k256','ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f');}inherits(K256,MPrime);K256.prototype.split=function split(input,output){// 256 = 9 * 26 + 22
     var mask=0x3fffff;var outLen=Math.min(input.length,9);for(var i=0;i<outLen;i++){output.words[i]=input.words[i];}output.length=outLen;if(input.length<=9){input.words[0]=0;input.length=1;return;}// Shift by 9 limbs
     var prev=input.words[9];output.words[output.length++]=prev&mask;for(var i=10;i<input.length;i++){var next=input.words[i];input.words[i-10]=(next&mask)<<4|prev>>>22;prev=next;}input.words[i-10]=prev>>>22;input.length-=9;};K256.prototype.imulK=function imulK(num){// K = 0x1000003d1 = [ 0x40, 0x3d1 ]
     num.words[num.length]=0;num.words[num.length+1]=0;num.length+=2;// bounded at: 0x40 * 0x3ffffff + 0x3d0 = 0x100000390
     var hi;var lo=0;for(var i=0;i<num.length;i++){var w=num.words[i];hi=w*0x40;lo+=w*0x3d1;hi+=lo/0x4000000|0;lo&=0x3ffffff;num.words[i]=lo;lo=hi;}// Fast length reduction
-    if(num.words[num.length-1]===0){num.length--;if(num.words[num.length-1]===0)num.length--;}return num;};function P224(){MPrime.call(this,'p224','ffffffff ffffffff ffffffff ffffffff 00000000 00000000 00000001');}inherits$$1(P224,MPrime);function P192(){MPrime.call(this,'p192','ffffffff ffffffff ffffffff fffffffe ffffffff ffffffff');}inherits$$1(P192,MPrime);function P25519(){// 2 ^ 255 - 19
-    MPrime.call(this,'25519','7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed');}inherits$$1(P25519,MPrime);P25519.prototype.imulK=function imulK(num){// K = 0x13
+    if(num.words[num.length-1]===0){num.length--;if(num.words[num.length-1]===0)num.length--;}return num;};function P224(){MPrime.call(this,'p224','ffffffff ffffffff ffffffff ffffffff 00000000 00000000 00000001');}inherits(P224,MPrime);function P192(){MPrime.call(this,'p192','ffffffff ffffffff ffffffff fffffffe ffffffff ffffffff');}inherits(P192,MPrime);function P25519(){// 2 ^ 255 - 19
+    MPrime.call(this,'25519','7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed');}inherits(P25519,MPrime);P25519.prototype.imulK=function imulK(num){// K = 0x13
     var carry=0;for(var i=0;i<num.length;i++){var hi=num.words[i]*0x13+carry;var lo=hi&0x3ffffff;hi>>>=26;num.words[i]=lo;carry=hi;}if(carry!==0)num.words[num.length++]=carry;return num;};// Exported mostly for testing purposes, use plain name instead
     BN._prime=function prime(name){// Cached version of prime
     if(primes[name])return primes[name];var prime;if(name==='k256')prime=new K256();else if(name==='p224')prime=new P224();else if(name==='p192')prime=new P192();else if(name==='p25519')prime=new P25519();else throw new Error('Unknown prime '+name);primes[name]=prime;return prime;};//
@@ -1961,7 +1958,7 @@ var pmcrypto = (function (exports) {
     var res=a;for(var i=0;i<w.length;i++,res=this.sqr(res)){if(w[i]!==0)break;}if(++i<w.length){for(var q=this.sqr(res);i<w.length;i++,q=this.sqr(q)){if(w[i]===0)continue;res=this.mul(res,q);}}return res;};Red.prototype.convertTo=function convertTo(num){var r=num.mod(this.m);if(r===num)return r.clone();else return r;};Red.prototype.convertFrom=function convertFrom(num){var res=num.clone();res.red=null;return res;};//
     // Montgomery method engine
     //
-    BN.mont=function mont(num){return new Mont(num);};function Mont(m){Red.call(this,m);this.shift=this.m.bitLength();if(this.shift%26!==0)this.shift+=26-this.shift%26;this.r=new BN(1).ishln(this.shift);this.r2=this.imod(this.r.sqr());this.rinv=this.r._invmp(this.m);this.minv=this.rinv.mul(this.r).isubn(1).div(this.m);this.minv.sign=true;this.minv=this.minv.mod(this.r);}inherits$$1(Mont,Red);Mont.prototype.convertTo=function convertTo(num){return this.imod(num.shln(this.shift));};Mont.prototype.convertFrom=function convertFrom(num){var r=this.imod(num.mul(this.rinv));r.red=null;return r;};Mont.prototype.imul=function imul(a,b){if(a.cmpn(0)===0||b.cmpn(0)===0){a.words[0]=0;a.length=1;return a;}var t=a.imul(b);var c=t.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m);var u=t.isub(c).ishrn(this.shift);var res=u;if(u.cmp(this.m)>=0)res=u.isub(this.m);else if(u.cmpn(0)<0)res=u.iadd(this.m);return res._forceRed(this);};Mont.prototype.mul=function mul(a,b){if(a.cmpn(0)===0||b.cmpn(0)===0)return new BN(0)._forceRed(this);var t=a.mul(b);var c=t.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m);var u=t.isub(c).ishrn(this.shift);var res=u;if(u.cmp(this.m)>=0)res=u.isub(this.m);else if(u.cmpn(0)<0)res=u.iadd(this.m);return res._forceRed(this);};Mont.prototype.invm=function invm(a){// (AR)^-1 * R^2 = (A^-1 * R^-1) * R^2 = A^-1 * R
+    BN.mont=function mont(num){return new Mont(num);};function Mont(m){Red.call(this,m);this.shift=this.m.bitLength();if(this.shift%26!==0)this.shift+=26-this.shift%26;this.r=new BN(1).ishln(this.shift);this.r2=this.imod(this.r.sqr());this.rinv=this.r._invmp(this.m);this.minv=this.rinv.mul(this.r).isubn(1).div(this.m);this.minv.sign=true;this.minv=this.minv.mod(this.r);}inherits(Mont,Red);Mont.prototype.convertTo=function convertTo(num){return this.imod(num.shln(this.shift));};Mont.prototype.convertFrom=function convertFrom(num){var r=this.imod(num.mul(this.rinv));r.red=null;return r;};Mont.prototype.imul=function imul(a,b){if(a.cmpn(0)===0||b.cmpn(0)===0){a.words[0]=0;a.length=1;return a;}var t=a.imul(b);var c=t.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m);var u=t.isub(c).ishrn(this.shift);var res=u;if(u.cmp(this.m)>=0)res=u.isub(this.m);else if(u.cmpn(0)<0)res=u.iadd(this.m);return res._forceRed(this);};Mont.prototype.mul=function mul(a,b){if(a.cmpn(0)===0||b.cmpn(0)===0)return new BN(0)._forceRed(this);var t=a.mul(b);var c=t.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m);var u=t.isub(c).ishrn(this.shift);var res=u;if(u.cmp(this.m)>=0)res=u.isub(this.m);else if(u.cmpn(0)<0)res=u.iadd(this.m);return res._forceRed(this);};Mont.prototype.invm=function invm(a){// (AR)^-1 * R^2 = (A^-1 * R^-1) * R^2 = A^-1 * R
     var res=this.imod(a._invmp(this.m).mul(this.r2));return res._forceRed(this);};})(typeof module==='undefined'||module,this);},{}],64:[function(require,module,exports){(function(Buffer){var bn=require('bn.js');var randomBytes=require('randombytes');module.exports=crt;function blind(priv){var r=getr(priv);var blinder=r.toRed(bn.mont(priv.modulus)).redPow(new bn(priv.publicExponent)).fromRed();return {blinder:blinder,unblinder:r.invm(priv.modulus)};}function crt(msg,priv){var blinds=blind(priv);var len=priv.modulus.byteLength();var mod=bn.mont(priv.modulus);var blinded=new bn(msg).mul(blinds.blinder).mod(priv.modulus);var c1=blinded.toRed(bn.mont(priv.prime1));var c2=blinded.toRed(bn.mont(priv.prime2));var qinv=priv.coefficient;var p=priv.prime1;var q=priv.prime2;var m1=c1.redPow(priv.exponent1);var m2=c2.redPow(priv.exponent2);m1=m1.fromRed();m2=m2.fromRed();var h=m1.isub(m2).imul(qinv).mod(p);h.imul(q);m2.iadd(h);var out=new Buffer(m2.imul(blinds.unblinder).mod(priv.modulus).toArray());if(out.length<len){var prefix=new Buffer(len-out.length);prefix.fill(0);out=Buffer.concat([prefix,out],len);}return out;}crt.getr=getr;function getr(priv){var len=priv.modulus.byteLength();var r=new bn(randomBytes(len));while(r.cmp(priv.modulus)>=0||!r.mod(priv.prime1)||!r.mod(priv.prime2)){r=new bn(randomBytes(len));}return r;}}).call(this,require("buffer").Buffer);},{"bn.js":63,"buffer":37,"randombytes":181}],65:[function(require,module,exports){var elliptic=exports;elliptic.version=require('../package.json').version;elliptic.utils=require('./elliptic/utils');elliptic.rand=require('brorand');elliptic.hmacDRBG=require('./elliptic/hmac-drbg');elliptic.curve=require('./elliptic/curve');elliptic.curves=require('./elliptic/curves');// Protocols
     elliptic.ec=require('./elliptic/ec');},{"../package.json":85,"./elliptic/curve":68,"./elliptic/curves":71,"./elliptic/ec":72,"./elliptic/hmac-drbg":75,"./elliptic/utils":77,"brorand":78}],66:[function(require,module,exports){var bn=require('bn.js');var elliptic=require('../../elliptic');var getNAF=elliptic.utils.getNAF;var getJSF=elliptic.utils.getJSF;var assert=elliptic.utils.assert;function BaseCurve(type,conf){this.type=type;this.p=new bn(conf.p,16);// Use Montgomery, when there is no fast reduction for the prime
     this.red=conf.prime?bn.red(conf.prime):bn.mont(this.p);// Useful for many curves
@@ -1978,11 +1975,11 @@ var pmcrypto = (function (exports) {
     var max=0;for(var i=0;i<len;i++){var p=points[i];var nafPoints=p._getNAFPoints(defW);wndWidth[i]=nafPoints.wnd;wnd[i]=nafPoints.points;}// Comb small window NAFs
     for(var i=len-1;i>=1;i-=2){var a=i-1;var b=i;if(wndWidth[a]!==1||wndWidth[b]!==1){naf[a]=getNAF(coeffs[a],wndWidth[a]);naf[b]=getNAF(coeffs[b],wndWidth[b]);max=Math.max(naf[a].length,max);max=Math.max(naf[b].length,max);continue;}var comb=[points[a],/* 1 */null,/* 3 */null,/* 5 */points[b]/* 7 */];// Try to avoid Projective points, if possible
     if(points[a].y.cmp(points[b].y)===0){comb[1]=points[a].add(points[b]);comb[2]=points[a].toJ().mixedAdd(points[b].neg());}else if(points[a].y.cmp(points[b].y.redNeg())===0){comb[1]=points[a].toJ().mixedAdd(points[b]);comb[2]=points[a].add(points[b].neg());}else{comb[1]=points[a].toJ().mixedAdd(points[b]);comb[2]=points[a].toJ().mixedAdd(points[b].neg());}var index=[-3,/* -1 -1 */-1,/* -1 0 */-5,/* -1 1 */-7,/* 0 -1 */0,/* 0 0 */7,/* 0 1 */5,/* 1 -1 */1,/* 1 0 */3/* 1 1 */];var jsf=getJSF(coeffs[a],coeffs[b]);max=Math.max(jsf[0].length,max);naf[a]=new Array(max);naf[b]=new Array(max);for(var j=0;j<max;j++){var ja=jsf[0][j]|0;var jb=jsf[1][j]|0;naf[a][j]=index[(ja+1)*3+(jb+1)];naf[b][j]=0;wnd[a]=comb;}}var acc=this.jpoint(null,null,null);var tmp=this._wnafT4;for(var i=max;i>=0;i--){var k=0;while(i>=0){var zero=true;for(var j=0;j<len;j++){tmp[j]=naf[j][i]|0;if(tmp[j]!==0)zero=false;}if(!zero)break;k++;i--;}if(i>=0)k++;acc=acc.dblp(k);if(i<0)break;for(var j=0;j<len;j++){var z=tmp[j];var p;if(z===0)continue;else if(z>0)p=wnd[j][z-1>>1];else if(z<0)p=wnd[j][-z-1>>1].neg();if(p.type==='affine')acc=acc.mixedAdd(p);else acc=acc.add(p);}}// Zeroify references
-    for(var i=0;i<len;i++){wnd[i]=null;}return acc.toP();};function BasePoint(curve,type){this.curve=curve;this.type=type;this.precomputed=null;}BaseCurve.BasePoint=BasePoint;BasePoint.prototype.validate=function validate(){return this.curve.validate(this);};BasePoint.prototype.precompute=function precompute(power){if(this.precomputed)return this;var precomputed={doubles:null,naf:null,beta:null};precomputed.naf=this._getNAFPoints(8);precomputed.doubles=this._getDoubles(4,power);precomputed.beta=this._getBeta();this.precomputed=precomputed;return this;};BasePoint.prototype._hasDoubles=function _hasDoubles(k){if(!this.precomputed)return false;var doubles=this.precomputed.doubles;if(!doubles)return false;return doubles.points.length>=Math.ceil((k.bitLength()+1)/doubles.step);};BasePoint.prototype._getDoubles=function _getDoubles(step,power){if(this.precomputed&&this.precomputed.doubles)return this.precomputed.doubles;var doubles=[this];var acc=this;for(var i=0;i<power;i+=step){for(var j=0;j<step;j++){acc=acc.dbl();}doubles.push(acc);}return {step:step,points:doubles};};BasePoint.prototype._getNAFPoints=function _getNAFPoints(wnd){if(this.precomputed&&this.precomputed.naf)return this.precomputed.naf;var res=[this];var max=(1<<wnd)-1;var dbl=max===1?null:this.dbl();for(var i=1;i<max;i++){res[i]=res[i-1].add(dbl);}return {wnd:wnd,points:res};};BasePoint.prototype._getBeta=function _getBeta(){return null;};BasePoint.prototype.dblp=function dblp(k){var r=this;for(var i=0;i<k;i++){r=r.dbl();}return r;};},{"../../elliptic":65,"bn.js":63}],67:[function(require,module,exports){var curve=require('../curve');var elliptic=require('../../elliptic');var bn=require('bn.js');var inherits$$1=require('inherits');var Base=curve.base;var assert=elliptic.utils.assert;function EdwardsCurve(conf){// NOTE: Important as we are creating point in Base.call()
-    this.twisted=(conf.a|0)!==1;this.mOneA=this.twisted&&(conf.a|0)===-1;this.extended=this.mOneA;Base.call(this,'edwards',conf);this.a=new bn(conf.a,16).mod(this.red.m).toRed(this.red);this.c=new bn(conf.c,16).toRed(this.red);this.c2=this.c.redSqr();this.d=new bn(conf.d,16).toRed(this.red);this.dd=this.d.redAdd(this.d);assert(!this.twisted||this.c.fromRed().cmpn(1)===0);this.oneC=(conf.c|0)===1;}inherits$$1(EdwardsCurve,Base);module.exports=EdwardsCurve;EdwardsCurve.prototype._mulA=function _mulA(num){if(this.mOneA)return num.redNeg();else return this.a.redMul(num);};EdwardsCurve.prototype._mulC=function _mulC(num){if(this.oneC)return num;else return this.c.redMul(num);};// Just for compatibility with Short curve
+    for(var i=0;i<len;i++){wnd[i]=null;}return acc.toP();};function BasePoint(curve,type){this.curve=curve;this.type=type;this.precomputed=null;}BaseCurve.BasePoint=BasePoint;BasePoint.prototype.validate=function validate(){return this.curve.validate(this);};BasePoint.prototype.precompute=function precompute(power){if(this.precomputed)return this;var precomputed={doubles:null,naf:null,beta:null};precomputed.naf=this._getNAFPoints(8);precomputed.doubles=this._getDoubles(4,power);precomputed.beta=this._getBeta();this.precomputed=precomputed;return this;};BasePoint.prototype._hasDoubles=function _hasDoubles(k){if(!this.precomputed)return false;var doubles=this.precomputed.doubles;if(!doubles)return false;return doubles.points.length>=Math.ceil((k.bitLength()+1)/doubles.step);};BasePoint.prototype._getDoubles=function _getDoubles(step,power){if(this.precomputed&&this.precomputed.doubles)return this.precomputed.doubles;var doubles=[this];var acc=this;for(var i=0;i<power;i+=step){for(var j=0;j<step;j++){acc=acc.dbl();}doubles.push(acc);}return {step:step,points:doubles};};BasePoint.prototype._getNAFPoints=function _getNAFPoints(wnd){if(this.precomputed&&this.precomputed.naf)return this.precomputed.naf;var res=[this];var max=(1<<wnd)-1;var dbl=max===1?null:this.dbl();for(var i=1;i<max;i++){res[i]=res[i-1].add(dbl);}return {wnd:wnd,points:res};};BasePoint.prototype._getBeta=function _getBeta(){return null;};BasePoint.prototype.dblp=function dblp(k){var r=this;for(var i=0;i<k;i++){r=r.dbl();}return r;};},{"../../elliptic":65,"bn.js":63}],67:[function(require,module,exports){var curve=require('../curve');var elliptic=require('../../elliptic');var bn=require('bn.js');var inherits=require('inherits');var Base=curve.base;var assert=elliptic.utils.assert;function EdwardsCurve(conf){// NOTE: Important as we are creating point in Base.call()
+    this.twisted=(conf.a|0)!==1;this.mOneA=this.twisted&&(conf.a|0)===-1;this.extended=this.mOneA;Base.call(this,'edwards',conf);this.a=new bn(conf.a,16).mod(this.red.m).toRed(this.red);this.c=new bn(conf.c,16).toRed(this.red);this.c2=this.c.redSqr();this.d=new bn(conf.d,16).toRed(this.red);this.dd=this.d.redAdd(this.d);assert(!this.twisted||this.c.fromRed().cmpn(1)===0);this.oneC=(conf.c|0)===1;}inherits(EdwardsCurve,Base);module.exports=EdwardsCurve;EdwardsCurve.prototype._mulA=function _mulA(num){if(this.mOneA)return num.redNeg();else return this.a.redMul(num);};EdwardsCurve.prototype._mulC=function _mulC(num){if(this.oneC)return num;else return this.c.redMul(num);};// Just for compatibility with Short curve
     EdwardsCurve.prototype.jpoint=function jpoint(x,y,z,t){return this.point(x,y,z,t);};EdwardsCurve.prototype.pointFromX=function pointFromX(odd,x){x=new bn(x,16);if(!x.red)x=x.toRed(this.red);var x2=x.redSqr();var rhs=this.c2.redSub(this.a.redMul(x2));var lhs=this.one.redSub(this.c2.redMul(this.d).redMul(x2));var y=rhs.redMul(lhs.redInvm()).redSqrt();var isOdd=y.fromRed().isOdd();if(odd&&!isOdd||!odd&&isOdd)y=y.redNeg();return this.point(x,y,curve.one);};EdwardsCurve.prototype.validate=function validate(point){if(point.isInfinity())return true;// Curve: A * X^2 + Y^2 = C^2 * (1 + D * X^2 * Y^2)
     point.normalize();var x2=point.x.redSqr();var y2=point.y.redSqr();var lhs=x2.redMul(this.a).redAdd(y2);var rhs=this.c2.redMul(this.one.redAdd(this.d.redMul(x2).redMul(y2)));return lhs.cmp(rhs)===0;};function Point(curve,x,y,z,t){Base.BasePoint.call(this,curve,'projective');if(x===null&&y===null&&z===null){this.x=this.curve.zero;this.y=this.curve.one;this.z=this.curve.one;this.t=this.curve.zero;this.zOne=true;}else{this.x=new bn(x,16);this.y=new bn(y,16);this.z=z?new bn(z,16):this.curve.one;this.t=t&&new bn(t,16);if(!this.x.red)this.x=this.x.toRed(this.curve.red);if(!this.y.red)this.y=this.y.toRed(this.curve.red);if(!this.z.red)this.z=this.z.toRed(this.curve.red);if(this.t&&!this.t.red)this.t=this.t.toRed(this.curve.red);this.zOne=this.z===this.curve.one;// Use extended coordinates
-    if(this.curve.extended&&!this.t){this.t=this.x.redMul(this.y);if(!this.zOne)this.t=this.t.redMul(this.z.redInvm());}}}inherits$$1(Point,Base.BasePoint);EdwardsCurve.prototype.pointFromJSON=function pointFromJSON(obj){return Point.fromJSON(this,obj);};EdwardsCurve.prototype.point=function point(x,y,z,t){return new Point(this,x,y,z,t);};Point.fromJSON=function fromJSON(curve,obj){return new Point(curve,obj[0],obj[1],obj[2]);};Point.prototype.inspect=function inspect(){if(this.isInfinity())return '<EC Point Infinity>';return '<EC Point x: '+this.x.fromRed().toString(16,2)+' y: '+this.y.fromRed().toString(16,2)+' z: '+this.z.fromRed().toString(16,2)+'>';};Point.prototype.isInfinity=function isInfinity(){// XXX This code assumes that zero is always zero in red
+    if(this.curve.extended&&!this.t){this.t=this.x.redMul(this.y);if(!this.zOne)this.t=this.t.redMul(this.z.redInvm());}}}inherits(Point,Base.BasePoint);EdwardsCurve.prototype.pointFromJSON=function pointFromJSON(obj){return Point.fromJSON(this,obj);};EdwardsCurve.prototype.point=function point(x,y,z,t){return new Point(this,x,y,z,t);};Point.fromJSON=function fromJSON(curve,obj){return new Point(curve,obj[0],obj[1],obj[2]);};Point.prototype.inspect=function inspect(){if(this.isInfinity())return '<EC Point Infinity>';return '<EC Point x: '+this.x.fromRed().toString(16,2)+' y: '+this.y.fromRed().toString(16,2)+' z: '+this.z.fromRed().toString(16,2)+'>';};Point.prototype.isInfinity=function isInfinity(){// XXX This code assumes that zero is always zero in red
     return this.x.cmpn(0)===0&&this.y.cmp(this.z)===0;};Point.prototype._extDbl=function _extDbl(){// hyperelliptic.org/EFD/g1p/auto-twisted-extended-1.html
     //     #doubling-dbl-2008-hwcd
     // 4M + 4S
@@ -2056,7 +2053,7 @@ var pmcrypto = (function (exports) {
     ny=a.redMul(g).redMul(d.redSub(c));// Z3 = c * F * G
     nz=this.curve._mulC(f).redMul(g);}return this.curve.point(nx,ny,nz);};Point.prototype.add=function add(p){if(this.isInfinity())return p;if(p.isInfinity())return this;if(this.curve.extended)return this._extAdd(p);else return this._projAdd(p);};Point.prototype.mul=function mul(k){if(this._hasDoubles(k))return this.curve._fixedNafMul(this,k);else return this.curve._wnafMul(this,k);};Point.prototype.mulAdd=function mulAdd(k1,p,k2){return this.curve._wnafMulAdd(1,[this,p],[k1,k2],2);};Point.prototype.normalize=function normalize(){if(this.zOne)return this;// Normalize coordinates
     var zi=this.z.redInvm();this.x=this.x.redMul(zi);this.y=this.y.redMul(zi);if(this.t)this.t=this.t.redMul(zi);this.z=this.curve.one;this.zOne=true;return this;};Point.prototype.neg=function neg(){return this.curve.point(this.x.redNeg(),this.y,this.z,this.t&&this.t.redNeg());};Point.prototype.getX=function getX(){this.normalize();return this.x.fromRed();};Point.prototype.getY=function getY(){this.normalize();return this.y.fromRed();};// Compatibility with BaseCurve
-    Point.prototype.toP=Point.prototype.normalize;Point.prototype.mixedAdd=Point.prototype.add;},{"../../elliptic":65,"../curve":68,"bn.js":63,"inherits":183}],68:[function(require,module,exports){var curve=exports;curve.base=require('./base');curve.short=require('./short');curve.mont=require('./mont');curve.edwards=require('./edwards');},{"./base":66,"./edwards":67,"./mont":69,"./short":70}],69:[function(require,module,exports){var curve=require('../curve');var bn=require('bn.js');var inherits$$1=require('inherits');var Base=curve.base;function MontCurve(conf){Base.call(this,'mont',conf);this.a=new bn(conf.a,16).toRed(this.red);this.b=new bn(conf.b,16).toRed(this.red);this.i4=new bn(4).toRed(this.red).redInvm();this.two=new bn(2).toRed(this.red);this.a24=this.i4.redMul(this.a.redAdd(this.two));}inherits$$1(MontCurve,Base);module.exports=MontCurve;MontCurve.prototype.validate=function validate(point){var x=point.normalize().x;var x2=x.redSqr();var rhs=x2.redMul(x).redAdd(x2.redMul(this.a)).redAdd(x);var y=rhs.redSqrt();return y.redSqr().cmp(rhs)===0;};function Point(curve,x,z){Base.BasePoint.call(this,curve,'projective');if(x===null&&z===null){this.x=this.curve.one;this.z=this.curve.zero;}else{this.x=new bn(x,16);this.z=new bn(z,16);if(!this.x.red)this.x=this.x.toRed(this.curve.red);if(!this.z.red)this.z=this.z.toRed(this.curve.red);}}inherits$$1(Point,Base.BasePoint);MontCurve.prototype.point=function point(x,z){return new Point(this,x,z);};MontCurve.prototype.pointFromJSON=function pointFromJSON(obj){return Point.fromJSON(this,obj);};Point.prototype.precompute=function precompute(){// No-op
+    Point.prototype.toP=Point.prototype.normalize;Point.prototype.mixedAdd=Point.prototype.add;},{"../../elliptic":65,"../curve":68,"bn.js":63,"inherits":183}],68:[function(require,module,exports){var curve=exports;curve.base=require('./base');curve.short=require('./short');curve.mont=require('./mont');curve.edwards=require('./edwards');},{"./base":66,"./edwards":67,"./mont":69,"./short":70}],69:[function(require,module,exports){var curve=require('../curve');var bn=require('bn.js');var inherits=require('inherits');var Base=curve.base;function MontCurve(conf){Base.call(this,'mont',conf);this.a=new bn(conf.a,16).toRed(this.red);this.b=new bn(conf.b,16).toRed(this.red);this.i4=new bn(4).toRed(this.red).redInvm();this.two=new bn(2).toRed(this.red);this.a24=this.i4.redMul(this.a.redAdd(this.two));}inherits(MontCurve,Base);module.exports=MontCurve;MontCurve.prototype.validate=function validate(point){var x=point.normalize().x;var x2=x.redSqr();var rhs=x2.redMul(x).redAdd(x2.redMul(this.a)).redAdd(x);var y=rhs.redSqrt();return y.redSqr().cmp(rhs)===0;};function Point(curve,x,z){Base.BasePoint.call(this,curve,'projective');if(x===null&&z===null){this.x=this.curve.one;this.z=this.curve.zero;}else{this.x=new bn(x,16);this.z=new bn(z,16);if(!this.x.red)this.x=this.x.toRed(this.curve.red);if(!this.z.red)this.z=this.z.toRed(this.curve.red);}}inherits(Point,Base.BasePoint);MontCurve.prototype.point=function point(x,z){return new Point(this,x,z);};MontCurve.prototype.pointFromJSON=function pointFromJSON(obj){return Point.fromJSON(this,obj);};Point.prototype.precompute=function precompute(){// No-op
     };Point.fromJSON=function fromJSON(curve,obj){return new Point(curve,obj[0],obj[1]||curve.one);};Point.prototype.inspect=function inspect(){if(this.isInfinity())return '<EC Point Infinity>';return '<EC Point x: '+this.x.fromRed().toString(16,2)+' z: '+this.z.fromRed().toString(16,2)+'>';};Point.prototype.isInfinity=function isInfinity(){// XXX This code assumes that zero is always zero in red
     return this.z.cmpn(0)===0;};Point.prototype.dbl=function dbl(){// http://hyperelliptic.org/EFD/g1p/auto-montgom-xz.html#doubling-dbl-1987-m-3
     // 2M + 2S + 4A
@@ -2085,8 +2082,8 @@ var pmcrypto = (function (exports) {
     b=b.dbl();}else{// N * Q = ((N / 2) * Q + Q) + ((N / 2) * Q)
     b=a.diffAdd(b,c);// N * Q + Q = 2 * ((N / 2) * Q + Q)
     a=a.dbl();}}return b;};Point.prototype.mulAdd=function mulAdd(){throw new Error('Not supported on Montgomery curve');};Point.prototype.normalize=function normalize(){this.x=this.x.redMul(this.z.redInvm());this.z=this.curve.one;return this;};Point.prototype.getX=function getX(){// Normalize coordinates
-    this.normalize();return this.x.fromRed();};},{"../curve":68,"bn.js":63,"inherits":183}],70:[function(require,module,exports){var curve=require('../curve');var elliptic=require('../../elliptic');var bn=require('bn.js');var inherits$$1=require('inherits');var Base=curve.base;var assert=elliptic.utils.assert;function ShortCurve(conf){Base.call(this,'short',conf);this.a=new bn(conf.a,16).toRed(this.red);this.b=new bn(conf.b,16).toRed(this.red);this.tinv=this.two.redInvm();this.zeroA=this.a.fromRed().cmpn(0)===0;this.threeA=this.a.fromRed().sub(this.p).cmpn(-3)===0;// If the curve is endomorphic, precalculate beta and lambda
-    this.endo=this._getEndomorphism(conf);this._endoWnafT1=new Array(4);this._endoWnafT2=new Array(4);}inherits$$1(ShortCurve,Base);module.exports=ShortCurve;ShortCurve.prototype._getEndomorphism=function _getEndomorphism(conf){// No efficient endomorphism
+    this.normalize();return this.x.fromRed();};},{"../curve":68,"bn.js":63,"inherits":183}],70:[function(require,module,exports){var curve=require('../curve');var elliptic=require('../../elliptic');var bn=require('bn.js');var inherits=require('inherits');var Base=curve.base;var assert=elliptic.utils.assert;function ShortCurve(conf){Base.call(this,'short',conf);this.a=new bn(conf.a,16).toRed(this.red);this.b=new bn(conf.b,16).toRed(this.red);this.tinv=this.two.redInvm();this.zeroA=this.a.fromRed().cmpn(0)===0;this.threeA=this.a.fromRed().sub(this.p).cmpn(-3)===0;// If the curve is endomorphic, precalculate beta and lambda
+    this.endo=this._getEndomorphism(conf);this._endoWnafT1=new Array(4);this._endoWnafT2=new Array(4);}inherits(ShortCurve,Base);module.exports=ShortCurve;ShortCurve.prototype._getEndomorphism=function _getEndomorphism(conf){// No efficient endomorphism
     if(!this.zeroA||!this.g||!this.n||this.p.modn(3)!==1)return;// Compute beta and lambda, that lambda * P = (beta * Px; Py)
     var beta;var lambda;if(conf.beta){beta=new bn(conf.beta,16).toRed(this.red);}else{var betas=this._getEndoRoots(this.p);// Choose the smallest beta
     beta=betas[0].cmp(betas[1])<0?betas[0]:betas[1];beta=beta.toRed(this.red);}if(conf.lambda){lambda=new bn(conf.lambda,16);}else{// Choose the lambda that is matching selected beta
@@ -2106,13 +2103,13 @@ var pmcrypto = (function (exports) {
     // to non-red form?
     var isOdd=y.fromRed().isOdd();if(odd&&!isOdd||!odd&&isOdd)y=y.redNeg();return this.point(x,y);};ShortCurve.prototype.validate=function validate(point){if(point.inf)return true;var x=point.x;var y=point.y;var ax=this.a.redMul(x);var rhs=x.redSqr().redMul(x).redIAdd(ax).redIAdd(this.b);return y.redSqr().redISub(rhs).cmpn(0)===0;};ShortCurve.prototype._endoWnafMulAdd=function _endoWnafMulAdd(points,coeffs){var npoints=this._endoWnafT1;var ncoeffs=this._endoWnafT2;for(var i=0;i<points.length;i++){var split=this._endoSplit(coeffs[i]);var p=points[i];var beta=p._getBeta();if(split.k1.sign){split.k1.sign=!split.k1.sign;p=p.neg(true);}if(split.k2.sign){split.k2.sign=!split.k2.sign;beta=beta.neg(true);}npoints[i*2]=p;npoints[i*2+1]=beta;ncoeffs[i*2]=split.k1;ncoeffs[i*2+1]=split.k2;}var res=this._wnafMulAdd(1,npoints,ncoeffs,i*2);// Clean-up references to points and coefficients
     for(var j=0;j<i*2;j++){npoints[j]=null;ncoeffs[j]=null;}return res;};function Point(curve,x,y,isRed){Base.BasePoint.call(this,curve,'affine');if(x===null&&y===null){this.x=null;this.y=null;this.inf=true;}else{this.x=new bn(x,16);this.y=new bn(y,16);// Force redgomery representation when loading from JSON
-    if(isRed){this.x.forceRed(this.curve.red);this.y.forceRed(this.curve.red);}if(!this.x.red)this.x=this.x.toRed(this.curve.red);if(!this.y.red)this.y=this.y.toRed(this.curve.red);this.inf=false;}}inherits$$1(Point,Base.BasePoint);ShortCurve.prototype.point=function point(x,y,isRed){return new Point(this,x,y,isRed);};ShortCurve.prototype.pointFromJSON=function pointFromJSON(obj,red){return Point.fromJSON(this,obj,red);};Point.prototype._getBeta=function _getBeta(){if(!this.curve.endo)return;var pre=this.precomputed;if(pre&&pre.beta)return pre.beta;var beta=this.curve.point(this.x.redMul(this.curve.endo.beta),this.y);if(pre){var curve=this.curve;var endoMul=function endoMul(p){return curve.point(p.x.redMul(curve.endo.beta),p.y);};pre.beta=beta;beta.precomputed={beta:null,naf:pre.naf&&{wnd:pre.naf.wnd,points:pre.naf.points.map(endoMul)},doubles:pre.doubles&&{step:pre.doubles.step,points:pre.doubles.points.map(endoMul)}};}return beta;};Point.prototype.toJSON=function toJSON(){if(!this.precomputed)return [this.x,this.y];return [this.x,this.y,this.precomputed&&{doubles:this.precomputed.doubles&&{step:this.precomputed.doubles.step,points:this.precomputed.doubles.points.slice(1)},naf:this.precomputed.naf&&{wnd:this.precomputed.naf.wnd,points:this.precomputed.naf.points.slice(1)}}];};Point.fromJSON=function fromJSON(curve,obj,red){if(typeof obj==='string')obj=JSON.parse(obj);var res=curve.point(obj[0],obj[1],red);if(!obj[2])return res;function obj2point(obj){return curve.point(obj[0],obj[1],red);}var pre=obj[2];res.precomputed={beta:null,doubles:pre.doubles&&{step:pre.doubles.step,points:[res].concat(pre.doubles.points.map(obj2point))},naf:pre.naf&&{wnd:pre.naf.wnd,points:[res].concat(pre.naf.points.map(obj2point))}};return res;};Point.prototype.inspect=function inspect(){if(this.isInfinity())return '<EC Point Infinity>';return '<EC Point x: '+this.x.fromRed().toString(16,2)+' y: '+this.y.fromRed().toString(16,2)+'>';};Point.prototype.isInfinity=function isInfinity(){return this.inf;};Point.prototype.add=function add(p){// O + P = P
+    if(isRed){this.x.forceRed(this.curve.red);this.y.forceRed(this.curve.red);}if(!this.x.red)this.x=this.x.toRed(this.curve.red);if(!this.y.red)this.y=this.y.toRed(this.curve.red);this.inf=false;}}inherits(Point,Base.BasePoint);ShortCurve.prototype.point=function point(x,y,isRed){return new Point(this,x,y,isRed);};ShortCurve.prototype.pointFromJSON=function pointFromJSON(obj,red){return Point.fromJSON(this,obj,red);};Point.prototype._getBeta=function _getBeta(){if(!this.curve.endo)return;var pre=this.precomputed;if(pre&&pre.beta)return pre.beta;var beta=this.curve.point(this.x.redMul(this.curve.endo.beta),this.y);if(pre){var curve=this.curve;var endoMul=function endoMul(p){return curve.point(p.x.redMul(curve.endo.beta),p.y);};pre.beta=beta;beta.precomputed={beta:null,naf:pre.naf&&{wnd:pre.naf.wnd,points:pre.naf.points.map(endoMul)},doubles:pre.doubles&&{step:pre.doubles.step,points:pre.doubles.points.map(endoMul)}};}return beta;};Point.prototype.toJSON=function toJSON(){if(!this.precomputed)return [this.x,this.y];return [this.x,this.y,this.precomputed&&{doubles:this.precomputed.doubles&&{step:this.precomputed.doubles.step,points:this.precomputed.doubles.points.slice(1)},naf:this.precomputed.naf&&{wnd:this.precomputed.naf.wnd,points:this.precomputed.naf.points.slice(1)}}];};Point.fromJSON=function fromJSON(curve,obj,red){if(typeof obj==='string')obj=JSON.parse(obj);var res=curve.point(obj[0],obj[1],red);if(!obj[2])return res;function obj2point(obj){return curve.point(obj[0],obj[1],red);}var pre=obj[2];res.precomputed={beta:null,doubles:pre.doubles&&{step:pre.doubles.step,points:[res].concat(pre.doubles.points.map(obj2point))},naf:pre.naf&&{wnd:pre.naf.wnd,points:[res].concat(pre.naf.points.map(obj2point))}};return res;};Point.prototype.inspect=function inspect(){if(this.isInfinity())return '<EC Point Infinity>';return '<EC Point x: '+this.x.fromRed().toString(16,2)+' y: '+this.y.fromRed().toString(16,2)+'>';};Point.prototype.isInfinity=function isInfinity(){return this.inf;};Point.prototype.add=function add(p){// O + P = P
     if(this.inf)return p;// P + O = P
     if(p.inf)return this;// P + P = 2P
     if(this.eq(p))return this.dbl();// P + (-P) = O
     if(this.neg().eq(p))return this.curve.point(null,null);// P + Q = O
     if(this.x.cmp(p.x)===0)return this.curve.point(null,null);var c=this.y.redSub(p.y);if(c.cmpn(0)!==0)c=c.redMul(this.x.redSub(p.x).redInvm());var nx=c.redSqr().redISub(this.x).redISub(p.x);var ny=c.redMul(this.x.redSub(nx)).redISub(this.y);return this.curve.point(nx,ny);};Point.prototype.dbl=function dbl(){if(this.inf)return this;// 2P = O
-    var ys1=this.y.redAdd(this.y);if(ys1.cmpn(0)===0)return this.curve.point(null,null);var a=this.curve.a;var x2=this.x.redSqr();var dyinv=ys1.redInvm();var c=x2.redAdd(x2).redIAdd(x2).redIAdd(a).redMul(dyinv);var nx=c.redSqr().redISub(this.x.redAdd(this.x));var ny=c.redMul(this.x.redSub(nx)).redISub(this.y);return this.curve.point(nx,ny);};Point.prototype.getX=function getX(){return this.x.fromRed();};Point.prototype.getY=function getY(){return this.y.fromRed();};Point.prototype.mul=function mul(k){k=new bn(k,16);if(this._hasDoubles(k))return this.curve._fixedNafMul(this,k);else if(this.curve.endo)return this.curve._endoWnafMulAdd([this],[k]);else return this.curve._wnafMul(this,k);};Point.prototype.mulAdd=function mulAdd(k1,p2,k2){var points=[this,p2];var coeffs=[k1,k2];if(this.curve.endo)return this.curve._endoWnafMulAdd(points,coeffs);else return this.curve._wnafMulAdd(1,points,coeffs,2);};Point.prototype.eq=function eq(p){return this===p||this.inf===p.inf&&(this.inf||this.x.cmp(p.x)===0&&this.y.cmp(p.y)===0);};Point.prototype.neg=function neg(_precompute){if(this.inf)return this;var res=this.curve.point(this.x,this.y.redNeg());if(_precompute&&this.precomputed){var pre=this.precomputed;var negate=function negate(p){return p.neg();};res.precomputed={naf:pre.naf&&{wnd:pre.naf.wnd,points:pre.naf.points.map(negate)},doubles:pre.doubles&&{step:pre.doubles.step,points:pre.doubles.points.map(negate)}};}return res;};Point.prototype.toJ=function toJ(){if(this.inf)return this.curve.jpoint(null,null,null);var res=this.curve.jpoint(this.x,this.y,this.curve.one);return res;};function JPoint(curve,x,y,z){Base.BasePoint.call(this,curve,'jacobian');if(x===null&&y===null&&z===null){this.x=this.curve.one;this.y=this.curve.one;this.z=new bn(0);}else{this.x=new bn(x,16);this.y=new bn(y,16);this.z=new bn(z,16);}if(!this.x.red)this.x=this.x.toRed(this.curve.red);if(!this.y.red)this.y=this.y.toRed(this.curve.red);if(!this.z.red)this.z=this.z.toRed(this.curve.red);this.zOne=this.z===this.curve.one;}inherits$$1(JPoint,Base.BasePoint);ShortCurve.prototype.jpoint=function jpoint(x,y,z){return new JPoint(this,x,y,z);};JPoint.prototype.toP=function toP(){if(this.isInfinity())return this.curve.point(null,null);var zinv=this.z.redInvm();var zinv2=zinv.redSqr();var ax=this.x.redMul(zinv2);var ay=this.y.redMul(zinv2).redMul(zinv);return this.curve.point(ax,ay);};JPoint.prototype.neg=function neg(){return this.curve.jpoint(this.x,this.y.redNeg(),this.z);};JPoint.prototype.add=function add(p){// O + P = P
+    var ys1=this.y.redAdd(this.y);if(ys1.cmpn(0)===0)return this.curve.point(null,null);var a=this.curve.a;var x2=this.x.redSqr();var dyinv=ys1.redInvm();var c=x2.redAdd(x2).redIAdd(x2).redIAdd(a).redMul(dyinv);var nx=c.redSqr().redISub(this.x.redAdd(this.x));var ny=c.redMul(this.x.redSub(nx)).redISub(this.y);return this.curve.point(nx,ny);};Point.prototype.getX=function getX(){return this.x.fromRed();};Point.prototype.getY=function getY(){return this.y.fromRed();};Point.prototype.mul=function mul(k){k=new bn(k,16);if(this._hasDoubles(k))return this.curve._fixedNafMul(this,k);else if(this.curve.endo)return this.curve._endoWnafMulAdd([this],[k]);else return this.curve._wnafMul(this,k);};Point.prototype.mulAdd=function mulAdd(k1,p2,k2){var points=[this,p2];var coeffs=[k1,k2];if(this.curve.endo)return this.curve._endoWnafMulAdd(points,coeffs);else return this.curve._wnafMulAdd(1,points,coeffs,2);};Point.prototype.eq=function eq(p){return this===p||this.inf===p.inf&&(this.inf||this.x.cmp(p.x)===0&&this.y.cmp(p.y)===0);};Point.prototype.neg=function neg(_precompute){if(this.inf)return this;var res=this.curve.point(this.x,this.y.redNeg());if(_precompute&&this.precomputed){var pre=this.precomputed;var negate=function negate(p){return p.neg();};res.precomputed={naf:pre.naf&&{wnd:pre.naf.wnd,points:pre.naf.points.map(negate)},doubles:pre.doubles&&{step:pre.doubles.step,points:pre.doubles.points.map(negate)}};}return res;};Point.prototype.toJ=function toJ(){if(this.inf)return this.curve.jpoint(null,null,null);var res=this.curve.jpoint(this.x,this.y,this.curve.one);return res;};function JPoint(curve,x,y,z){Base.BasePoint.call(this,curve,'jacobian');if(x===null&&y===null&&z===null){this.x=this.curve.one;this.y=this.curve.one;this.z=new bn(0);}else{this.x=new bn(x,16);this.y=new bn(y,16);this.z=new bn(z,16);}if(!this.x.red)this.x=this.x.toRed(this.curve.red);if(!this.y.red)this.y=this.y.toRed(this.curve.red);if(!this.z.red)this.z=this.z.toRed(this.curve.red);this.zOne=this.z===this.curve.one;}inherits(JPoint,Base.BasePoint);ShortCurve.prototype.jpoint=function jpoint(x,y,z){return new JPoint(this,x,y,z);};JPoint.prototype.toP=function toP(){if(this.isInfinity())return this.curve.point(null,null);var zinv=this.z.redInvm();var zinv2=zinv.redSqr();var ax=this.x.redMul(zinv2);var ay=this.y.redMul(zinv2).redMul(zinv);return this.curve.point(ax,ay);};JPoint.prototype.neg=function neg(){return this.curve.jpoint(this.x,this.y.redNeg(),this.z);};JPoint.prototype.add=function add(p){// O + P = P
     if(this.isInfinity())return p;// P + O = P
     if(p.isInfinity())return this;// 12M + 4S + 7A
     var pz2=p.z.redSqr();var z2=this.z.redSqr();var u1=this.x.redMul(pz2);var u2=p.x.redMul(z2);var s1=this.y.redMul(pz2.redMul(p.z));var s2=p.y.redMul(z2.redMul(this.z));var h=u1.redSub(u2);var r=s1.redSub(s2);if(h.cmpn(0)===0){if(r.cmpn(0)!==0)return this.curve.jpoint(null,null,null);else return this.dbl();}var h2=h.redSqr();var h3=h2.redMul(h);var v=u1.redMul(h2);var nx=r.redSqr().redIAdd(h3).redISub(v).redISub(v);var ny=r.redMul(v.redISub(nx)).redISub(s1.redMul(h3));var nz=this.z.redMul(p.z).redMul(h);return this.curve.jpoint(nx,ny,nz);};JPoint.prototype.mixedAdd=function mixedAdd(p){// O + P = P
@@ -2189,7 +2186,7 @@ var pmcrypto = (function (exports) {
     var nz=this.z.redAdd(e).redSqr().redISub(zz).redISub(ee);return this.curve.jpoint(nx,ny,nz);};JPoint.prototype.mul=function mul(k,kbase){k=new bn(k,kbase);return this.curve._wnafMul(this,k);};JPoint.prototype.eq=function eq(p){if(p.type==='affine')return this.eq(p.toJ());if(this===p)return true;// x1 * z2^2 == x2 * z1^2
     var z2=this.z.redSqr();var pz2=p.z.redSqr();if(this.x.redMul(pz2).redISub(p.x.redMul(z2)).cmpn(0)!==0)return false;// y1 * z2^3 == y2 * z1^3
     var z3=z2.redMul(this.z);var pz3=pz2.redMul(p.z);return this.y.redMul(pz3).redISub(p.y.redMul(z3)).cmpn(0)===0;};JPoint.prototype.inspect=function inspect(){if(this.isInfinity())return '<EC JPoint Infinity>';return '<EC JPoint x: '+this.x.toString(16,2)+' y: '+this.y.toString(16,2)+' z: '+this.z.toString(16,2)+'>';};JPoint.prototype.isInfinity=function isInfinity(){// XXX This code assumes that zero is always zero in red
-    return this.z.cmpn(0)===0;};},{"../../elliptic":65,"../curve":68,"bn.js":63,"inherits":183}],71:[function(require,module,exports){var curves=exports;var hash=require('hash.js');var elliptic=require('../elliptic');var assert=elliptic.utils.assert;function PresetCurve(options){if(options.type==='short')this.curve=new elliptic.curve.short(options);else if(options.type==='edwards')this.curve=new elliptic.curve.edwards(options);else this.curve=new elliptic.curve.mont(options);this.g=this.curve.g;this.n=this.curve.n;this.hash=options.hash;assert(this.g.validate(),'Invalid curve');assert(this.g.mul(this.n).isInfinity(),'Invalid curve, G*N != O');}curves.PresetCurve=PresetCurve;function defineCurve(name,options){Object.defineProperty(curves,name,{configurable:true,enumerable:true,get:function get$$1(){var curve=new PresetCurve(options);Object.defineProperty(curves,name,{configurable:true,enumerable:true,value:curve});return curve;}});}defineCurve('p192',{type:'short',prime:'p192',p:'ffffffff ffffffff ffffffff fffffffe ffffffff ffffffff',a:'ffffffff ffffffff ffffffff fffffffe ffffffff fffffffc',b:'64210519 e59c80e7 0fa7e9ab 72243049 feb8deec c146b9b1',n:'ffffffff ffffffff ffffffff 99def836 146bc9b1 b4d22831',hash:hash.sha256,gRed:false,g:['188da80e b03090f6 7cbf20eb 43a18800 f4ff0afd 82ff1012','07192b95 ffc8da78 631011ed 6b24cdd5 73f977a1 1e794811']});defineCurve('p224',{type:'short',prime:'p224',p:'ffffffff ffffffff ffffffff ffffffff 00000000 00000000 00000001',a:'ffffffff ffffffff ffffffff fffffffe ffffffff ffffffff fffffffe',b:'b4050a85 0c04b3ab f5413256 5044b0b7 d7bfd8ba 270b3943 2355ffb4',n:'ffffffff ffffffff ffffffff ffff16a2 e0b8f03e 13dd2945 5c5c2a3d',hash:hash.sha256,gRed:false,g:['b70e0cbd 6bb4bf7f 321390b9 4a03c1d3 56c21122 343280d6 115c1d21','bd376388 b5f723fb 4c22dfe6 cd4375a0 5a074764 44d58199 85007e34']});defineCurve('p256',{type:'short',prime:null,p:'ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff',a:'ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff fffffffc',b:'5ac635d8 aa3a93e7 b3ebbd55 769886bc 651d06b0 cc53b0f6 3bce3c3e 27d2604b',n:'ffffffff 00000000 ffffffff ffffffff bce6faad a7179e84 f3b9cac2 fc632551',hash:hash.sha256,gRed:false,g:['6b17d1f2 e12c4247 f8bce6e5 63a440f2 77037d81 2deb33a0 f4a13945 d898c296','4fe342e2 fe1a7f9b 8ee7eb4a 7c0f9e16 2bce3357 6b315ece cbb64068 37bf51f5']});defineCurve('curve25519',{type:'mont',prime:'p25519',p:'7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed',a:'76d06',b:'0',n:'1000000000000000 0000000000000000 14def9dea2f79cd6 5812631a5cf5d3ed',hash:hash.sha256,gRed:false,g:['9']});defineCurve('ed25519',{type:'edwards',prime:'p25519',p:'7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed',a:'-1',c:'1',// -121665 * (121666^(-1)) (mod P)
+    return this.z.cmpn(0)===0;};},{"../../elliptic":65,"../curve":68,"bn.js":63,"inherits":183}],71:[function(require,module,exports){var curves=exports;var hash=require('hash.js');var elliptic=require('../elliptic');var assert=elliptic.utils.assert;function PresetCurve(options){if(options.type==='short')this.curve=new elliptic.curve.short(options);else if(options.type==='edwards')this.curve=new elliptic.curve.edwards(options);else this.curve=new elliptic.curve.mont(options);this.g=this.curve.g;this.n=this.curve.n;this.hash=options.hash;assert(this.g.validate(),'Invalid curve');assert(this.g.mul(this.n).isInfinity(),'Invalid curve, G*N != O');}curves.PresetCurve=PresetCurve;function defineCurve(name,options){Object.defineProperty(curves,name,{configurable:true,enumerable:true,get:function get(){var curve=new PresetCurve(options);Object.defineProperty(curves,name,{configurable:true,enumerable:true,value:curve});return curve;}});}defineCurve('p192',{type:'short',prime:'p192',p:'ffffffff ffffffff ffffffff fffffffe ffffffff ffffffff',a:'ffffffff ffffffff ffffffff fffffffe ffffffff fffffffc',b:'64210519 e59c80e7 0fa7e9ab 72243049 feb8deec c146b9b1',n:'ffffffff ffffffff ffffffff 99def836 146bc9b1 b4d22831',hash:hash.sha256,gRed:false,g:['188da80e b03090f6 7cbf20eb 43a18800 f4ff0afd 82ff1012','07192b95 ffc8da78 631011ed 6b24cdd5 73f977a1 1e794811']});defineCurve('p224',{type:'short',prime:'p224',p:'ffffffff ffffffff ffffffff ffffffff 00000000 00000000 00000001',a:'ffffffff ffffffff ffffffff fffffffe ffffffff ffffffff fffffffe',b:'b4050a85 0c04b3ab f5413256 5044b0b7 d7bfd8ba 270b3943 2355ffb4',n:'ffffffff ffffffff ffffffff ffff16a2 e0b8f03e 13dd2945 5c5c2a3d',hash:hash.sha256,gRed:false,g:['b70e0cbd 6bb4bf7f 321390b9 4a03c1d3 56c21122 343280d6 115c1d21','bd376388 b5f723fb 4c22dfe6 cd4375a0 5a074764 44d58199 85007e34']});defineCurve('p256',{type:'short',prime:null,p:'ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff ffffffff',a:'ffffffff 00000001 00000000 00000000 00000000 ffffffff ffffffff fffffffc',b:'5ac635d8 aa3a93e7 b3ebbd55 769886bc 651d06b0 cc53b0f6 3bce3c3e 27d2604b',n:'ffffffff 00000000 ffffffff ffffffff bce6faad a7179e84 f3b9cac2 fc632551',hash:hash.sha256,gRed:false,g:['6b17d1f2 e12c4247 f8bce6e5 63a440f2 77037d81 2deb33a0 f4a13945 d898c296','4fe342e2 fe1a7f9b 8ee7eb4a 7c0f9e16 2bce3357 6b315ece cbb64068 37bf51f5']});defineCurve('curve25519',{type:'mont',prime:'p25519',p:'7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed',a:'76d06',b:'0',n:'1000000000000000 0000000000000000 14def9dea2f79cd6 5812631a5cf5d3ed',hash:hash.sha256,gRed:false,g:['9']});defineCurve('ed25519',{type:'edwards',prime:'p25519',p:'7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed',a:'-1',c:'1',// -121665 * (121666^(-1)) (mod P)
     d:'52036cee2b6ffe73 8cc740797779e898 00700a4d4141d8ab 75eb4dca135978a3',n:'1000000000000000 0000000000000000 14def9dea2f79cd6 5812631a5cf5d3ed',hash:hash.sha256,gRed:false,g:['216936d3cd6e53fec0a4e231fdd6dc5c692cc7609525a7b2c9562d608f25d51a',// 4/5
     '6666666666666666666666666666666666666666666666666666666666666658']});var pre;try{pre=require('./precomputed/secp256k1');}catch(e){pre=undefined;}defineCurve('secp256k1',{type:'short',prime:'k256',p:'ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f',a:'0',b:'7',n:'ffffffff ffffffff ffffffff fffffffe baaedce6 af48a03b bfd25e8c d0364141',h:'1',hash:hash.sha256,// Precomputed endomorphism
     beta:'7ae96a2b657c07106e64479eac3434e99cf0497512f58995c1396c28719501ee',lambda:'5363ad4cc05c30e0a5261c028812645a122e22ea20816678df02967c1b23bd72',basis:[{a:'3086d221a7d46bcde86c90e49284eb15',b:'-e4437ed6010e88286f547fa90abfe4c3'},{a:'114ca50f7a8e2f3f657c1108d9d44cfd8',b:'3086d221a7d46bcde86c90e49284eb15'}],gRed:false,g:['79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798','483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8',pre]});},{"../elliptic":65,"./precomputed/secp256k1":76,"hash.js":79}],72:[function(require,module,exports){var bn=require('bn.js');var elliptic=require('../../elliptic');var utils=elliptic.utils;var assert=utils.assert;var KeyPair=require('./key');var Signature=require('./signature');function EC(options){if(!(this instanceof EC))return new EC(options);// Shortcut `elliptic.ec(curve-name)`
@@ -2197,7 +2194,7 @@ var pmcrypto = (function (exports) {
     if(options instanceof elliptic.curves.PresetCurve)options={curve:options};this.curve=options.curve.curve;this.n=this.curve.n;this.nh=this.n.shrn(1);this.g=this.curve.g;// Point on curve
     this.g=options.curve.g;this.g.precompute(options.curve.n.bitLength()+1);// Hash for function for DRBG
     this.hash=options.hash||options.curve.hash;}module.exports=EC;EC.prototype.keyPair=function keyPair(options){return new KeyPair(this,options);};EC.prototype.keyFromPrivate=function keyFromPrivate(priv,enc){return KeyPair.fromPrivate(this,priv,enc);};EC.prototype.keyFromPublic=function keyFromPublic(pub,enc){return KeyPair.fromPublic(this,pub,enc);};EC.prototype.genKeyPair=function genKeyPair(options){if(!options)options={};// Instantiate Hmac_DRBG
-    var drbg=new elliptic.hmacDRBG({hash:this.hash,pers:options.pers,entropy:options.entropy||elliptic.rand(this.hash.hmacStrength),nonce:this.n.toArray()});var bytes=this.n.byteLength();var ns2=this.n.sub(new bn(2));do{var priv=new bn(drbg.generate(bytes));if(priv.cmp(ns2)>0)continue;priv.iaddn(1);return this.keyFromPrivate(priv);}while(true);};EC.prototype._truncateToN=function truncateToN(msg,truncOnly){var delta=msg.byteLength()*8-this.n.bitLength();if(delta>0)msg=msg.shrn(delta);if(!truncOnly&&msg.cmp(this.n)>=0)return msg.sub(this.n);else return msg;};EC.prototype.sign=function sign(msg,key,enc,options){if((typeof enc==="undefined"?"undefined":_typeof(enc))==='object'){options=enc;enc=null;}if(!options)options={};key=this.keyFromPrivate(key,enc);msg=this._truncateToN(new bn(msg,16));// Zero-extend key to provide enough entropy
+    var drbg=new elliptic.hmacDRBG({hash:this.hash,pers:options.pers,entropy:options.entropy||elliptic.rand(this.hash.hmacStrength),nonce:this.n.toArray()});var bytes=this.n.byteLength();var ns2=this.n.sub(new bn(2));do{var priv=new bn(drbg.generate(bytes));if(priv.cmp(ns2)>0)continue;priv.iaddn(1);return this.keyFromPrivate(priv);}while(true);};EC.prototype._truncateToN=function truncateToN(msg,truncOnly){var delta=msg.byteLength()*8-this.n.bitLength();if(delta>0)msg=msg.shrn(delta);if(!truncOnly&&msg.cmp(this.n)>=0)return msg.sub(this.n);else return msg;};EC.prototype.sign=function sign(msg,key,enc,options){if(_typeof(enc)==='object'){options=enc;enc=null;}if(!options)options={};key=this.keyFromPrivate(key,enc);msg=this._truncateToN(new bn(msg,16));// Zero-extend key to provide enough entropy
     var bytes=this.n.byteLength();var bkey=key.getPrivate().toArray();for(var i=bkey.length;i<21;i++){bkey.unshift(0);}// Zero-extend nonce to have the same byte size as N
     var nonce=msg.toArray();for(var i=nonce.length;i<bytes;i++){nonce.unshift(0);}// Instantiate Hmac_DRBG
     var drbg=new elliptic.hmacDRBG({hash:this.hash,entropy:bkey,nonce:nonce});// Number of bytes to generate
@@ -2222,7 +2219,7 @@ var pmcrypto = (function (exports) {
     };HmacDRBG.prototype._hmac=function hmac(){return new hash.hmac(this.hash,this.K);};HmacDRBG.prototype._update=function update(seed){var kmac=this._hmac().update(this.V).update([0x00]);if(seed)kmac=kmac.update(seed);this.K=kmac.digest();this.V=this._hmac().update(this.V).digest();if(!seed)return;this.K=this._hmac().update(this.V).update([0x01]).update(seed).digest();this.V=this._hmac().update(this.V).digest();};HmacDRBG.prototype.reseed=function reseed(entropy,entropyEnc,add,addEnc){// Optional entropy enc
     if(typeof entropyEnc!=='string'){addEnc=add;add=entropyEnc;entropyEnc=null;}entropy=utils.toBuffer(entropy,entropyEnc);add=utils.toBuffer(add,addEnc);assert(entropy.length>=this.minEntropy/8,'Not enough entropy. Minimum is: '+this.minEntropy+' bits');this._update(entropy.concat(add||[]));this.reseed=1;};HmacDRBG.prototype.generate=function generate(len,enc,add,addEnc){if(this.reseed>this.reseedInterval)throw new Error('Reseed is required');// Optional encoding
     if(typeof enc!=='string'){addEnc=add;add=enc;enc=null;}// Optional additional data
-    if(add){add=utils.toArray(add,addEnc);this._update(add);}var temp=[];while(temp.length<len){this.V=this._hmac().update(this.V).digest();temp=temp.concat(this.V);}var res=temp.slice(0,len);this._update(add);this.reseed++;return utils.encode(res,enc);};},{"../elliptic":65,"hash.js":79}],76:[function(require,module,exports){module.exports={doubles:{step:4,points:[['e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a','f7e3507399e595929db99f34f57937101296891e44d23f0be1f32cce69616821'],['8282263212c609d9ea2a6e3e172de238d8c39cabd5ac1ca10646e23fd5f51508','11f8a8098557dfe45e8256e830b60ace62d613ac2f7b17bed31b6eaff6e26caf'],['175e159f728b865a72f99cc6c6fc846de0b93833fd2222ed73fce5b551e5b739','d3506e0d9e3c79eba4ef97a51ff71f5eacb5955add24345c6efa6ffee9fed695'],['363d90d447b00c9c99ceac05b6262ee053441c7e55552ffe526bad8f83ff4640','4e273adfc732221953b445397f3363145b9a89008199ecb62003c7f3bee9de9'],['8b4b5f165df3c2be8c6244b5b745638843e4a781a15bcd1b69f79a55dffdf80c','4aad0a6f68d308b4b3fbd7813ab0da04f9e336546162ee56b3eff0c65fd4fd36'],['723cbaa6e5db996d6bf771c00bd548c7b700dbffa6c0e77bcb6115925232fcda','96e867b5595cc498a921137488824d6e2660a0653779494801dc069d9eb39f5f'],['eebfa4d493bebf98ba5feec812c2d3b50947961237a919839a533eca0e7dd7fa','5d9a8ca3970ef0f269ee7edaf178089d9ae4cdc3a711f712ddfd4fdae1de8999'],['100f44da696e71672791d0a09b7bde459f1215a29b3c03bfefd7835b39a48db0','cdd9e13192a00b772ec8f3300c090666b7ff4a18ff5195ac0fbd5cd62bc65a09'],['e1031be262c7ed1b1dc9227a4a04c017a77f8d4464f3b3852c8acde6e534fd2d','9d7061928940405e6bb6a4176597535af292dd419e1ced79a44f18f29456a00d'],['feea6cae46d55b530ac2839f143bd7ec5cf8b266a41d6af52d5e688d9094696d','e57c6b6c97dce1bab06e4e12bf3ecd5c981c8957cc41442d3155debf18090088'],['da67a91d91049cdcb367be4be6ffca3cfeed657d808583de33fa978bc1ec6cb1','9bacaa35481642bc41f463f7ec9780e5dec7adc508f740a17e9ea8e27a68be1d'],['53904faa0b334cdda6e000935ef22151ec08d0f7bb11069f57545ccc1a37b7c0','5bc087d0bc80106d88c9eccac20d3c1c13999981e14434699dcb096b022771c8'],['8e7bcd0bd35983a7719cca7764ca906779b53a043a9b8bcaeff959f43ad86047','10b7770b2a3da4b3940310420ca9514579e88e2e47fd68b3ea10047e8460372a'],['385eed34c1cdff21e6d0818689b81bde71a7f4f18397e6690a841e1599c43862','283bebc3e8ea23f56701de19e9ebf4576b304eec2086dc8cc0458fe5542e5453'],['6f9d9b803ecf191637c73a4413dfa180fddf84a5947fbc9c606ed86c3fac3a7','7c80c68e603059ba69b8e2a30e45c4d47ea4dd2f5c281002d86890603a842160'],['3322d401243c4e2582a2147c104d6ecbf774d163db0f5e5313b7e0e742d0e6bd','56e70797e9664ef5bfb019bc4ddaf9b72805f63ea2873af624f3a2e96c28b2a0'],['85672c7d2de0b7da2bd1770d89665868741b3f9af7643397721d74d28134ab83','7c481b9b5b43b2eb6374049bfa62c2e5e77f17fcc5298f44c8e3094f790313a6'],['948bf809b1988a46b06c9f1919413b10f9226c60f668832ffd959af60c82a0a','53a562856dcb6646dc6b74c5d1c3418c6d4dff08c97cd2bed4cb7f88d8c8e589'],['6260ce7f461801c34f067ce0f02873a8f1b0e44dfc69752accecd819f38fd8e8','bc2da82b6fa5b571a7f09049776a1ef7ecd292238051c198c1a84e95b2b4ae17'],['e5037de0afc1d8d43d8348414bbf4103043ec8f575bfdc432953cc8d2037fa2d','4571534baa94d3b5f9f98d09fb990bddbd5f5b03ec481f10e0e5dc841d755bda'],['e06372b0f4a207adf5ea905e8f1771b4e7e8dbd1c6a6c5b725866a0ae4fce725','7a908974bce18cfe12a27bb2ad5a488cd7484a7787104870b27034f94eee31dd'],['213c7a715cd5d45358d0bbf9dc0ce02204b10bdde2a3f58540ad6908d0559754','4b6dad0b5ae462507013ad06245ba190bb4850f5f36a7eeddff2c27534b458f2'],['4e7c272a7af4b34e8dbb9352a5419a87e2838c70adc62cddf0cc3a3b08fbd53c','17749c766c9d0b18e16fd09f6def681b530b9614bff7dd33e0b3941817dcaae6'],['fea74e3dbe778b1b10f238ad61686aa5c76e3db2be43057632427e2840fb27b6','6e0568db9b0b13297cf674deccb6af93126b596b973f7b77701d3db7f23cb96f'],['76e64113f677cf0e10a2570d599968d31544e179b760432952c02a4417bdde39','c90ddf8dee4e95cf577066d70681f0d35e2a33d2b56d2032b4b1752d1901ac01'],['c738c56b03b2abe1e8281baa743f8f9a8f7cc643df26cbee3ab150242bcbb891','893fb578951ad2537f718f2eacbfbbbb82314eef7880cfe917e735d9699a84c3'],['d895626548b65b81e264c7637c972877d1d72e5f3a925014372e9f6588f6c14b','febfaa38f2bc7eae728ec60818c340eb03428d632bb067e179363ed75d7d991f'],['b8da94032a957518eb0f6433571e8761ceffc73693e84edd49150a564f676e03','2804dfa44805a1e4d7c99cc9762808b092cc584d95ff3b511488e4e74efdf6e7'],['e80fea14441fb33a7d8adab9475d7fab2019effb5156a792f1a11778e3c0df5d','eed1de7f638e00771e89768ca3ca94472d155e80af322ea9fcb4291b6ac9ec78'],['a301697bdfcd704313ba48e51d567543f2a182031efd6915ddc07bbcc4e16070','7370f91cfb67e4f5081809fa25d40f9b1735dbf7c0a11a130c0d1a041e177ea1'],['90ad85b389d6b936463f9d0512678de208cc330b11307fffab7ac63e3fb04ed4','e507a3620a38261affdcbd9427222b839aefabe1582894d991d4d48cb6ef150'],['8f68b9d2f63b5f339239c1ad981f162ee88c5678723ea3351b7b444c9ec4c0da','662a9f2dba063986de1d90c2b6be215dbbea2cfe95510bfdf23cbf79501fff82'],['e4f3fb0176af85d65ff99ff9198c36091f48e86503681e3e6686fd5053231e11','1e63633ad0ef4f1c1661a6d0ea02b7286cc7e74ec951d1c9822c38576feb73bc'],['8c00fa9b18ebf331eb961537a45a4266c7034f2f0d4e1d0716fb6eae20eae29e','efa47267fea521a1a9dc343a3736c974c2fadafa81e36c54e7d2a4c66702414b'],['e7a26ce69dd4829f3e10cec0a9e98ed3143d084f308b92c0997fddfc60cb3e41','2a758e300fa7984b471b006a1aafbb18d0a6b2c0420e83e20e8a9421cf2cfd51'],['b6459e0ee3662ec8d23540c223bcbdc571cbcb967d79424f3cf29eb3de6b80ef','67c876d06f3e06de1dadf16e5661db3c4b3ae6d48e35b2ff30bf0b61a71ba45'],['d68a80c8280bb840793234aa118f06231d6f1fc67e73c5a5deda0f5b496943e8','db8ba9fff4b586d00c4b1f9177b0e28b5b0e7b8f7845295a294c84266b133120'],['324aed7df65c804252dc0270907a30b09612aeb973449cea4095980fc28d3d5d','648a365774b61f2ff130c0c35aec1f4f19213b0c7e332843967224af96ab7c84'],['4df9c14919cde61f6d51dfdbe5fee5dceec4143ba8d1ca888e8bd373fd054c96','35ec51092d8728050974c23a1d85d4b5d506cdc288490192ebac06cad10d5d'],['9c3919a84a474870faed8a9c1cc66021523489054d7f0308cbfc99c8ac1f98cd','ddb84f0f4a4ddd57584f044bf260e641905326f76c64c8e6be7e5e03d4fc599d'],['6057170b1dd12fdf8de05f281d8e06bb91e1493a8b91d4cc5a21382120a959e5','9a1af0b26a6a4807add9a2daf71df262465152bc3ee24c65e899be932385a2a8'],['a576df8e23a08411421439a4518da31880cef0fba7d4df12b1a6973eecb94266','40a6bf20e76640b2c92b97afe58cd82c432e10a7f514d9f3ee8be11ae1b28ec8'],['7778a78c28dec3e30a05fe9629de8c38bb30d1f5cf9a3a208f763889be58ad71','34626d9ab5a5b22ff7098e12f2ff580087b38411ff24ac563b513fc1fd9f43ac'],['928955ee637a84463729fd30e7afd2ed5f96274e5ad7e5cb09eda9c06d903ac','c25621003d3f42a827b78a13093a95eeac3d26efa8a8d83fc5180e935bcd091f'],['85d0fef3ec6db109399064f3a0e3b2855645b4a907ad354527aae75163d82751','1f03648413a38c0be29d496e582cf5663e8751e96877331582c237a24eb1f962'],['ff2b0dce97eece97c1c9b6041798b85dfdfb6d8882da20308f5404824526087e','493d13fef524ba188af4c4dc54d07936c7b7ed6fb90e2ceb2c951e01f0c29907'],['827fbbe4b1e880ea9ed2b2e6301b212b57f1ee148cd6dd28780e5e2cf856e241','c60f9c923c727b0b71bef2c67d1d12687ff7a63186903166d605b68baec293ec'],['eaa649f21f51bdbae7be4ae34ce6e5217a58fdce7f47f9aa7f3b58fa2120e2b3','be3279ed5bbbb03ac69a80f89879aa5a01a6b965f13f7e59d47a5305ba5ad93d'],['e4a42d43c5cf169d9391df6decf42ee541b6d8f0c9a137401e23632dda34d24f','4d9f92e716d1c73526fc99ccfb8ad34ce886eedfa8d8e4f13a7f7131deba9414'],['1ec80fef360cbdd954160fadab352b6b92b53576a88fea4947173b9d4300bf19','aeefe93756b5340d2f3a4958a7abbf5e0146e77f6295a07b671cdc1cc107cefd'],['146a778c04670c2f91b00af4680dfa8bce3490717d58ba889ddb5928366642be','b318e0ec3354028add669827f9d4b2870aaa971d2f7e5ed1d0b297483d83efd0'],['fa50c0f61d22e5f07e3acebb1aa07b128d0012209a28b9776d76a8793180eef9','6b84c6922397eba9b72cd2872281a68a5e683293a57a213b38cd8d7d3f4f2811'],['da1d61d0ca721a11b1a5bf6b7d88e8421a288ab5d5bba5220e53d32b5f067ec2','8157f55a7c99306c79c0766161c91e2966a73899d279b48a655fba0f1ad836f1'],['a8e282ff0c9706907215ff98e8fd416615311de0446f1e062a73b0610d064e13','7f97355b8db81c09abfb7f3c5b2515888b679a3e50dd6bd6cef7c73111f4cc0c'],['174a53b9c9a285872d39e56e6913cab15d59b1fa512508c022f382de8319497c','ccc9dc37abfc9c1657b4155f2c47f9e6646b3a1d8cb9854383da13ac079afa73'],['959396981943785c3d3e57edf5018cdbe039e730e4918b3d884fdff09475b7ba','2e7e552888c331dd8ba0386a4b9cd6849c653f64c8709385e9b8abf87524f2fd'],['d2a63a50ae401e56d645a1153b109a8fcca0a43d561fba2dbb51340c9d82b151','e82d86fb6443fcb7565aee58b2948220a70f750af484ca52d4142174dcf89405'],['64587e2335471eb890ee7896d7cfdc866bacbdbd3839317b3436f9b45617e073','d99fcdd5bf6902e2ae96dd6447c299a185b90a39133aeab358299e5e9faf6589'],['8481bde0e4e4d885b3a546d3e549de042f0aa6cea250e7fd358d6c86dd45e458','38ee7b8cba5404dd84a25bf39cecb2ca900a79c42b262e556d64b1b59779057e'],['13464a57a78102aa62b6979ae817f4637ffcfed3c4b1ce30bcd6303f6caf666b','69be159004614580ef7e433453ccb0ca48f300a81d0942e13f495a907f6ecc27'],['bc4a9df5b713fe2e9aef430bcc1dc97a0cd9ccede2f28588cada3a0d2d83f366','d3a81ca6e785c06383937adf4b798caa6e8a9fbfa547b16d758d666581f33c1'],['8c28a97bf8298bc0d23d8c749452a32e694b65e30a9472a3954ab30fe5324caa','40a30463a3305193378fedf31f7cc0eb7ae784f0451cb9459e71dc73cbef9482'],['8ea9666139527a8c1dd94ce4f071fd23c8b350c5a4bb33748c4ba111faccae0','620efabbc8ee2782e24e7c0cfb95c5d735b783be9cf0f8e955af34a30e62b945'],['dd3625faef5ba06074669716bbd3788d89bdde815959968092f76cc4eb9a9787','7a188fa3520e30d461da2501045731ca941461982883395937f68d00c644a573'],['f710d79d9eb962297e4f6232b40e8f7feb2bc63814614d692c12de752408221e','ea98e67232d3b3295d3b535532115ccac8612c721851617526ae47a9c77bfc82']]},naf:{wnd:7,points:[['f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9','388f7b0f632de8140fe337e62a37f3566500a99934c2231b6cb9fd7584b8e672'],['2f8bde4d1a07209355b4a7250a5c5128e88b84bddc619ab7cba8d569b240efe4','d8ac222636e5e3d6d4dba9dda6c9c426f788271bab0d6840dca87d3aa6ac62d6'],['5cbdf0646e5db4eaa398f365f2ea7a0e3d419b7e0330e39ce92bddedcac4f9bc','6aebca40ba255960a3178d6d861a54dba813d0b813fde7b5a5082628087264da'],['acd484e2f0c7f65309ad178a9f559abde09796974c57e714c35f110dfc27ccbe','cc338921b0a7d9fd64380971763b61e9add888a4375f8e0f05cc262ac64f9c37'],['774ae7f858a9411e5ef4246b70c65aac5649980be5c17891bbec17895da008cb','d984a032eb6b5e190243dd56d7b7b365372db1e2dff9d6a8301d74c9c953c61b'],['f28773c2d975288bc7d1d205c3748651b075fbc6610e58cddeeddf8f19405aa8','ab0902e8d880a89758212eb65cdaf473a1a06da521fa91f29b5cb52db03ed81'],['d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e','581e2872a86c72a683842ec228cc6defea40af2bd896d3a5c504dc9ff6a26b58'],['defdea4cdb677750a420fee807eacf21eb9898ae79b9768766e4faa04a2d4a34','4211ab0694635168e997b0ead2a93daeced1f4a04a95c0f6cfb199f69e56eb77'],['2b4ea0a797a443d293ef5cff444f4979f06acfebd7e86d277475656138385b6c','85e89bc037945d93b343083b5a1c86131a01f60c50269763b570c854e5c09b7a'],['352bbf4a4cdd12564f93fa332ce333301d9ad40271f8107181340aef25be59d5','321eb4075348f534d59c18259dda3e1f4a1b3b2e71b1039c67bd3d8bcf81998c'],['2fa2104d6b38d11b0230010559879124e42ab8dfeff5ff29dc9cdadd4ecacc3f','2de1068295dd865b64569335bd5dd80181d70ecfc882648423ba76b532b7d67'],['9248279b09b4d68dab21a9b066edda83263c3d84e09572e269ca0cd7f5453714','73016f7bf234aade5d1aa71bdea2b1ff3fc0de2a887912ffe54a32ce97cb3402'],['daed4f2be3a8bf278e70132fb0beb7522f570e144bf615c07e996d443dee8729','a69dce4a7d6c98e8d4a1aca87ef8d7003f83c230f3afa726ab40e52290be1c55'],['c44d12c7065d812e8acf28d7cbb19f9011ecd9e9fdf281b0e6a3b5e87d22e7db','2119a460ce326cdc76c45926c982fdac0e106e861edf61c5a039063f0e0e6482'],['6a245bf6dc698504c89a20cfded60853152b695336c28063b61c65cbd269e6b4','e022cf42c2bd4a708b3f5126f16a24ad8b33ba48d0423b6efd5e6348100d8a82'],['1697ffa6fd9de627c077e3d2fe541084ce13300b0bec1146f95ae57f0d0bd6a5','b9c398f186806f5d27561506e4557433a2cf15009e498ae7adee9d63d01b2396'],['605bdb019981718b986d0f07e834cb0d9deb8360ffb7f61df982345ef27a7479','2972d2de4f8d20681a78d93ec96fe23c26bfae84fb14db43b01e1e9056b8c49'],['62d14dab4150bf497402fdc45a215e10dcb01c354959b10cfe31c7e9d87ff33d','80fc06bd8cc5b01098088a1950eed0db01aa132967ab472235f5642483b25eaf'],['80c60ad0040f27dade5b4b06c408e56b2c50e9f56b9b8b425e555c2f86308b6f','1c38303f1cc5c30f26e66bad7fe72f70a65eed4cbe7024eb1aa01f56430bd57a'],['7a9375ad6167ad54aa74c6348cc54d344cc5dc9487d847049d5eabb0fa03c8fb','d0e3fa9eca8726909559e0d79269046bdc59ea10c70ce2b02d499ec224dc7f7'],['d528ecd9b696b54c907a9ed045447a79bb408ec39b68df504bb51f459bc3ffc9','eecf41253136e5f99966f21881fd656ebc4345405c520dbc063465b521409933'],['49370a4b5f43412ea25f514e8ecdad05266115e4a7ecb1387231808f8b45963','758f3f41afd6ed428b3081b0512fd62a54c3f3afbb5b6764b653052a12949c9a'],['77f230936ee88cbbd73df930d64702ef881d811e0e1498e2f1c13eb1fc345d74','958ef42a7886b6400a08266e9ba1b37896c95330d97077cbbe8eb3c7671c60d6'],['f2dac991cc4ce4b9ea44887e5c7c0bce58c80074ab9d4dbaeb28531b7739f530','e0dedc9b3b2f8dad4da1f32dec2531df9eb5fbeb0598e4fd1a117dba703a3c37'],['463b3d9f662621fb1b4be8fbbe2520125a216cdfc9dae3debcba4850c690d45b','5ed430d78c296c3543114306dd8622d7c622e27c970a1de31cb377b01af7307e'],['f16f804244e46e2a09232d4aff3b59976b98fac14328a2d1a32496b49998f247','cedabd9b82203f7e13d206fcdf4e33d92a6c53c26e5cce26d6579962c4e31df6'],['caf754272dc84563b0352b7a14311af55d245315ace27c65369e15f7151d41d1','cb474660ef35f5f2a41b643fa5e460575f4fa9b7962232a5c32f908318a04476'],['2600ca4b282cb986f85d0f1709979d8b44a09c07cb86d7c124497bc86f082120','4119b88753c15bd6a693b03fcddbb45d5ac6be74ab5f0ef44b0be9475a7e4b40'],['7635ca72d7e8432c338ec53cd12220bc01c48685e24f7dc8c602a7746998e435','91b649609489d613d1d5e590f78e6d74ecfc061d57048bad9e76f302c5b9c61'],['754e3239f325570cdbbf4a87deee8a66b7f2b33479d468fbc1a50743bf56cc18','673fb86e5bda30fb3cd0ed304ea49a023ee33d0197a695d0c5d98093c536683'],['e3e6bd1071a1e96aff57859c82d570f0330800661d1c952f9fe2694691d9b9e8','59c9e0bba394e76f40c0aa58379a3cb6a5a2283993e90c4167002af4920e37f5'],['186b483d056a033826ae73d88f732985c4ccb1f32ba35f4b4cc47fdcf04aa6eb','3b952d32c67cf77e2e17446e204180ab21fb8090895138b4a4a797f86e80888b'],['df9d70a6b9876ce544c98561f4be4f725442e6d2b737d9c91a8321724ce0963f','55eb2dafd84d6ccd5f862b785dc39d4ab157222720ef9da217b8c45cf2ba2417'],['5edd5cc23c51e87a497ca815d5dce0f8ab52554f849ed8995de64c5f34ce7143','efae9c8dbc14130661e8cec030c89ad0c13c66c0d17a2905cdc706ab7399a868'],['290798c2b6476830da12fe02287e9e777aa3fba1c355b17a722d362f84614fba','e38da76dcd440621988d00bcf79af25d5b29c094db2a23146d003afd41943e7a'],['af3c423a95d9f5b3054754efa150ac39cd29552fe360257362dfdecef4053b45','f98a3fd831eb2b749a93b0e6f35cfb40c8cd5aa667a15581bc2feded498fd9c6'],['766dbb24d134e745cccaa28c99bf274906bb66b26dcf98df8d2fed50d884249a','744b1152eacbe5e38dcc887980da38b897584a65fa06cedd2c924f97cbac5996'],['59dbf46f8c94759ba21277c33784f41645f7b44f6c596a58ce92e666191abe3e','c534ad44175fbc300f4ea6ce648309a042ce739a7919798cd85e216c4a307f6e'],['f13ada95103c4537305e691e74e9a4a8dd647e711a95e73cb62dc6018cfd87b8','e13817b44ee14de663bf4bc808341f326949e21a6a75c2570778419bdaf5733d'],['7754b4fa0e8aced06d4167a2c59cca4cda1869c06ebadfb6488550015a88522c','30e93e864e669d82224b967c3020b8fa8d1e4e350b6cbcc537a48b57841163a2'],['948dcadf5990e048aa3874d46abef9d701858f95de8041d2a6828c99e2262519','e491a42537f6e597d5d28a3224b1bc25df9154efbd2ef1d2cbba2cae5347d57e'],['7962414450c76c1689c7b48f8202ec37fb224cf5ac0bfa1570328a8a3d7c77ab','100b610ec4ffb4760d5c1fc133ef6f6b12507a051f04ac5760afa5b29db83437'],['3514087834964b54b15b160644d915485a16977225b8847bb0dd085137ec47ca','ef0afbb2056205448e1652c48e8127fc6039e77c15c2378b7e7d15a0de293311'],['d3cc30ad6b483e4bc79ce2c9dd8bc54993e947eb8df787b442943d3f7b527eaf','8b378a22d827278d89c5e9be8f9508ae3c2ad46290358630afb34db04eede0a4'],['1624d84780732860ce1c78fcbfefe08b2b29823db913f6493975ba0ff4847610','68651cf9b6da903e0914448c6cd9d4ca896878f5282be4c8cc06e2a404078575'],['733ce80da955a8a26902c95633e62a985192474b5af207da6df7b4fd5fc61cd4','f5435a2bd2badf7d485a4d8b8db9fcce3e1ef8e0201e4578c54673bc1dc5ea1d'],['15d9441254945064cf1a1c33bbd3b49f8966c5092171e699ef258dfab81c045c','d56eb30b69463e7234f5137b73b84177434800bacebfc685fc37bbe9efe4070d'],['a1d0fcf2ec9de675b612136e5ce70d271c21417c9d2b8aaaac138599d0717940','edd77f50bcb5a3cab2e90737309667f2641462a54070f3d519212d39c197a629'],['e22fbe15c0af8ccc5780c0735f84dbe9a790badee8245c06c7ca37331cb36980','a855babad5cd60c88b430a69f53a1a7a38289154964799be43d06d77d31da06'],['311091dd9860e8e20ee13473c1155f5f69635e394704eaa74009452246cfa9b3','66db656f87d1f04fffd1f04788c06830871ec5a64feee685bd80f0b1286d8374'],['34c1fd04d301be89b31c0442d3e6ac24883928b45a9340781867d4232ec2dbdf','9414685e97b1b5954bd46f730174136d57f1ceeb487443dc5321857ba73abee'],['f219ea5d6b54701c1c14de5b557eb42a8d13f3abbcd08affcc2a5e6b049b8d63','4cb95957e83d40b0f73af4544cccf6b1f4b08d3c07b27fb8d8c2962a400766d1'],['d7b8740f74a8fbaab1f683db8f45de26543a5490bca627087236912469a0b448','fa77968128d9c92ee1010f337ad4717eff15db5ed3c049b3411e0315eaa4593b'],['32d31c222f8f6f0ef86f7c98d3a3335ead5bcd32abdd94289fe4d3091aa824bf','5f3032f5892156e39ccd3d7915b9e1da2e6dac9e6f26e961118d14b8462e1661'],['7461f371914ab32671045a155d9831ea8793d77cd59592c4340f86cbc18347b5','8ec0ba238b96bec0cbdddcae0aa442542eee1ff50c986ea6b39847b3cc092ff6'],['ee079adb1df1860074356a25aa38206a6d716b2c3e67453d287698bad7b2b2d6','8dc2412aafe3be5c4c5f37e0ecc5f9f6a446989af04c4e25ebaac479ec1c8c1e'],['16ec93e447ec83f0467b18302ee620f7e65de331874c9dc72bfd8616ba9da6b5','5e4631150e62fb40d0e8c2a7ca5804a39d58186a50e497139626778e25b0674d'],['eaa5f980c245f6f038978290afa70b6bd8855897f98b6aa485b96065d537bd99','f65f5d3e292c2e0819a528391c994624d784869d7e6ea67fb18041024edc07dc'],['78c9407544ac132692ee1910a02439958ae04877151342ea96c4b6b35a49f51','f3e0319169eb9b85d5404795539a5e68fa1fbd583c064d2462b675f194a3ddb4'],['494f4be219a1a77016dcd838431aea0001cdc8ae7a6fc688726578d9702857a5','42242a969283a5f339ba7f075e36ba2af925ce30d767ed6e55f4b031880d562c'],['a598a8030da6d86c6bc7f2f5144ea549d28211ea58faa70ebf4c1e665c1fe9b5','204b5d6f84822c307e4b4a7140737aec23fc63b65b35f86a10026dbd2d864e6b'],['c41916365abb2b5d09192f5f2dbeafec208f020f12570a184dbadc3e58595997','4f14351d0087efa49d245b328984989d5caf9450f34bfc0ed16e96b58fa9913'],['841d6063a586fa475a724604da03bc5b92a2e0d2e0a36acfe4c73a5514742881','73867f59c0659e81904f9a1c7543698e62562d6744c169ce7a36de01a8d6154'],['5e95bb399a6971d376026947f89bde2f282b33810928be4ded112ac4d70e20d5','39f23f366809085beebfc71181313775a99c9aed7d8ba38b161384c746012865'],['36e4641a53948fd476c39f8a99fd974e5ec07564b5315d8bf99471bca0ef2f66','d2424b1b1abe4eb8164227b085c9aa9456ea13493fd563e06fd51cf5694c78fc'],['336581ea7bfbbb290c191a2f507a41cf5643842170e914faeab27c2c579f726','ead12168595fe1be99252129b6e56b3391f7ab1410cd1e0ef3dcdcabd2fda224'],['8ab89816dadfd6b6a1f2634fcf00ec8403781025ed6890c4849742706bd43ede','6fdcef09f2f6d0a044e654aef624136f503d459c3e89845858a47a9129cdd24e'],['1e33f1a746c9c5778133344d9299fcaa20b0938e8acff2544bb40284b8c5fb94','60660257dd11b3aa9c8ed618d24edff2306d320f1d03010e33a7d2057f3b3b6'],['85b7c1dcb3cec1b7ee7f30ded79dd20a0ed1f4cc18cbcfcfa410361fd8f08f31','3d98a9cdd026dd43f39048f25a8847f4fcafad1895d7a633c6fed3c35e999511'],['29df9fbd8d9e46509275f4b125d6d45d7fbe9a3b878a7af872a2800661ac5f51','b4c4fe99c775a606e2d8862179139ffda61dc861c019e55cd2876eb2a27d84b'],['a0b1cae06b0a847a3fea6e671aaf8adfdfe58ca2f768105c8082b2e449fce252','ae434102edde0958ec4b19d917a6a28e6b72da1834aff0e650f049503a296cf2'],['4e8ceafb9b3e9a136dc7ff67e840295b499dfb3b2133e4ba113f2e4c0e121e5','cf2174118c8b6d7a4b48f6d534ce5c79422c086a63460502b827ce62a326683c'],['d24a44e047e19b6f5afb81c7ca2f69080a5076689a010919f42725c2b789a33b','6fb8d5591b466f8fc63db50f1c0f1c69013f996887b8244d2cdec417afea8fa3'],['ea01606a7a6c9cdd249fdfcfacb99584001edd28abbab77b5104e98e8e3b35d4','322af4908c7312b0cfbfe369f7a7b3cdb7d4494bc2823700cfd652188a3ea98d'],['af8addbf2b661c8a6c6328655eb96651252007d8c5ea31be4ad196de8ce2131f','6749e67c029b85f52a034eafd096836b2520818680e26ac8f3dfbcdb71749700'],['e3ae1974566ca06cc516d47e0fb165a674a3dabcfca15e722f0e3450f45889','2aeabe7e4531510116217f07bf4d07300de97e4874f81f533420a72eeb0bd6a4'],['591ee355313d99721cf6993ffed1e3e301993ff3ed258802075ea8ced397e246','b0ea558a113c30bea60fc4775460c7901ff0b053d25ca2bdeee98f1a4be5d196'],['11396d55fda54c49f19aa97318d8da61fa8584e47b084945077cf03255b52984','998c74a8cd45ac01289d5833a7beb4744ff536b01b257be4c5767bea93ea57a4'],['3c5d2a1ba39c5a1790000738c9e0c40b8dcdfd5468754b6405540157e017aa7a','b2284279995a34e2f9d4de7396fc18b80f9b8b9fdd270f6661f79ca4c81bd257'],['cc8704b8a60a0defa3a99a7299f2e9c3fbc395afb04ac078425ef8a1793cc030','bdd46039feed17881d1e0862db347f8cf395b74fc4bcdc4e940b74e3ac1f1b13'],['c533e4f7ea8555aacd9777ac5cad29b97dd4defccc53ee7ea204119b2889b197','6f0a256bc5efdf429a2fb6242f1a43a2d9b925bb4a4b3a26bb8e0f45eb596096'],['c14f8f2ccb27d6f109f6d08d03cc96a69ba8c34eec07bbcf566d48e33da6593','c359d6923bb398f7fd4473e16fe1c28475b740dd098075e6c0e8649113dc3a38'],['a6cbc3046bc6a450bac24789fa17115a4c9739ed75f8f21ce441f72e0b90e6ef','21ae7f4680e889bb130619e2c0f95a360ceb573c70603139862afd617fa9b9f'],['347d6d9a02c48927ebfb86c1359b1caf130a3c0267d11ce6344b39f99d43cc38','60ea7f61a353524d1c987f6ecec92f086d565ab687870cb12689ff1e31c74448'],['da6545d2181db8d983f7dcb375ef5866d47c67b1bf31c8cf855ef7437b72656a','49b96715ab6878a79e78f07ce5680c5d6673051b4935bd897fea824b77dc208a'],['c40747cc9d012cb1a13b8148309c6de7ec25d6945d657146b9d5994b8feb1111','5ca560753be2a12fc6de6caf2cb489565db936156b9514e1bb5e83037e0fa2d4'],['4e42c8ec82c99798ccf3a610be870e78338c7f713348bd34c8203ef4037f3502','7571d74ee5e0fb92a7a8b33a07783341a5492144cc54bcc40a94473693606437'],['3775ab7089bc6af823aba2e1af70b236d251cadb0c86743287522a1b3b0dedea','be52d107bcfa09d8bcb9736a828cfa7fac8db17bf7a76a2c42ad961409018cf7'],['cee31cbf7e34ec379d94fb814d3d775ad954595d1314ba8846959e3e82f74e26','8fd64a14c06b589c26b947ae2bcf6bfa0149ef0be14ed4d80f448a01c43b1c6d'],['b4f9eaea09b6917619f6ea6a4eb5464efddb58fd45b1ebefcdc1a01d08b47986','39e5c9925b5a54b07433a4f18c61726f8bb131c012ca542eb24a8ac07200682a'],['d4263dfc3d2df923a0179a48966d30ce84e2515afc3dccc1b77907792ebcc60e','62dfaf07a0f78feb30e30d6295853ce189e127760ad6cf7fae164e122a208d54'],['48457524820fa65a4f8d35eb6930857c0032acc0a4a2de422233eeda897612c4','25a748ab367979d98733c38a1fa1c2e7dc6cc07db2d60a9ae7a76aaa49bd0f77'],['dfeeef1881101f2cb11644f3a2afdfc2045e19919152923f367a1767c11cceda','ecfb7056cf1de042f9420bab396793c0c390bde74b4bbdff16a83ae09a9a7517'],['6d7ef6b17543f8373c573f44e1f389835d89bcbc6062ced36c82df83b8fae859','cd450ec335438986dfefa10c57fea9bcc521a0959b2d80bbf74b190dca712d10'],['e75605d59102a5a2684500d3b991f2e3f3c88b93225547035af25af66e04541f','f5c54754a8f71ee540b9b48728473e314f729ac5308b06938360990e2bfad125'],['eb98660f4c4dfaa06a2be453d5020bc99a0c2e60abe388457dd43fefb1ed620c','6cb9a8876d9cb8520609af3add26cd20a0a7cd8a9411131ce85f44100099223e'],['13e87b027d8514d35939f2e6892b19922154596941888336dc3563e3b8dba942','fef5a3c68059a6dec5d624114bf1e91aac2b9da568d6abeb2570d55646b8adf1'],['ee163026e9fd6fe017c38f06a5be6fc125424b371ce2708e7bf4491691e5764a','1acb250f255dd61c43d94ccc670d0f58f49ae3fa15b96623e5430da0ad6c62b2'],['b268f5ef9ad51e4d78de3a750c2dc89b1e626d43505867999932e5db33af3d80','5f310d4b3c99b9ebb19f77d41c1dee018cf0d34fd4191614003e945a1216e423'],['ff07f3118a9df035e9fad85eb6c7bfe42b02f01ca99ceea3bf7ffdba93c4750d','438136d603e858a3a5c440c38eccbaddc1d2942114e2eddd4740d098ced1f0d8'],['8d8b9855c7c052a34146fd20ffb658bea4b9f69e0d825ebec16e8c3ce2b526a1','cdb559eedc2d79f926baf44fb84ea4d44bcf50fee51d7ceb30e2e7f463036758'],['52db0b5384dfbf05bfa9d472d7ae26dfe4b851ceca91b1eba54263180da32b63','c3b997d050ee5d423ebaf66a6db9f57b3180c902875679de924b69d84a7b375'],['e62f9490d3d51da6395efd24e80919cc7d0f29c3f3fa48c6fff543becbd43352','6d89ad7ba4876b0b22c2ca280c682862f342c8591f1daf5170e07bfd9ccafa7d'],['7f30ea2476b399b4957509c88f77d0191afa2ff5cb7b14fd6d8e7d65aaab1193','ca5ef7d4b231c94c3b15389a5f6311e9daff7bb67b103e9880ef4bff637acaec'],['5098ff1e1d9f14fb46a210fada6c903fef0fb7b4a1dd1d9ac60a0361800b7a00','9731141d81fc8f8084d37c6e7542006b3ee1b40d60dfe5362a5b132fd17ddc0'],['32b78c7de9ee512a72895be6b9cbefa6e2f3c4ccce445c96b9f2c81e2778ad58','ee1849f513df71e32efc3896ee28260c73bb80547ae2275ba497237794c8753c'],['e2cb74fddc8e9fbcd076eef2a7c72b0ce37d50f08269dfc074b581550547a4f7','d3aa2ed71c9dd2247a62df062736eb0baddea9e36122d2be8641abcb005cc4a4'],['8438447566d4d7bedadc299496ab357426009a35f235cb141be0d99cd10ae3a8','c4e1020916980a4da5d01ac5e6ad330734ef0d7906631c4f2390426b2edd791f'],['4162d488b89402039b584c6fc6c308870587d9c46f660b878ab65c82c711d67e','67163e903236289f776f22c25fb8a3afc1732f2b84b4e95dbda47ae5a0852649'],['3fad3fa84caf0f34f0f89bfd2dcf54fc175d767aec3e50684f3ba4a4bf5f683d','cd1bc7cb6cc407bb2f0ca647c718a730cf71872e7d0d2a53fa20efcdfe61826'],['674f2600a3007a00568c1a7ce05d0816c1fb84bf1370798f1c69532faeb1a86b','299d21f9413f33b3edf43b257004580b70db57da0b182259e09eecc69e0d38a5'],['d32f4da54ade74abb81b815ad1fb3b263d82d6c692714bcff87d29bd5ee9f08f','f9429e738b8e53b968e99016c059707782e14f4535359d582fc416910b3eea87'],['30e4e670435385556e593657135845d36fbb6931f72b08cb1ed954f1e3ce3ff6','462f9bce619898638499350113bbc9b10a878d35da70740dc695a559eb88db7b'],['be2062003c51cc3004682904330e4dee7f3dcd10b01e580bf1971b04d4cad297','62188bc49d61e5428573d48a74e1c655b1c61090905682a0d5558ed72dccb9bc'],['93144423ace3451ed29e0fb9ac2af211cb6e84a601df5993c419859fff5df04a','7c10dfb164c3425f5c71a3f9d7992038f1065224f72bb9d1d902a6d13037b47c'],['b015f8044f5fcbdcf21ca26d6c34fb8197829205c7b7d2a7cb66418c157b112c','ab8c1e086d04e813744a655b2df8d5f83b3cdc6faa3088c1d3aea1454e3a1d5f'],['d5e9e1da649d97d89e4868117a465a3a4f8a18de57a140d36b3f2af341a21b52','4cb04437f391ed73111a13cc1d4dd0db1693465c2240480d8955e8592f27447a'],['d3ae41047dd7ca065dbf8ed77b992439983005cd72e16d6f996a5316d36966bb','bd1aeb21ad22ebb22a10f0303417c6d964f8cdd7df0aca614b10dc14d125ac46'],['463e2763d885f958fc66cdd22800f0a487197d0a82e377b49f80af87c897b065','bfefacdb0e5d0fd7df3a311a94de062b26b80c61fbc97508b79992671ef7ca7f'],['7985fdfd127c0567c6f53ec1bb63ec3158e597c40bfe747c83cddfc910641917','603c12daf3d9862ef2b25fe1de289aed24ed291e0ec6708703a5bd567f32ed03'],['74a1ad6b5f76e39db2dd249410eac7f99e74c59cb83d2d0ed5ff1543da7703e9','cc6157ef18c9c63cd6193d83631bbea0093e0968942e8c33d5737fd790e0db08'],['30682a50703375f602d416664ba19b7fc9bab42c72747463a71d0896b22f6da3','553e04f6b018b4fa6c8f39e7f311d3176290d0e0f19ca73f17714d9977a22ff8'],['9e2158f0d7c0d5f26c3791efefa79597654e7a2b2464f52b1ee6c1347769ef57','712fcdd1b9053f09003a3481fa7762e9ffd7c8ef35a38509e2fbf2629008373'],['176e26989a43c9cfeba4029c202538c28172e566e3c4fce7322857f3be327d66','ed8cc9d04b29eb877d270b4878dc43c19aefd31f4eee09ee7b47834c1fa4b1c3'],['75d46efea3771e6e68abb89a13ad747ecf1892393dfc4f1b7004788c50374da8','9852390a99507679fd0b86fd2b39a868d7efc22151346e1a3ca4726586a6bed8'],['809a20c67d64900ffb698c4c825f6d5f2310fb0451c869345b7319f645605721','9e994980d9917e22b76b061927fa04143d096ccc54963e6a5ebfa5f3f8e286c1'],['1b38903a43f7f114ed4500b4eac7083fdefece1cf29c63528d563446f972c180','4036edc931a60ae889353f77fd53de4a2708b26b6f5da72ad3394119daf408f9']]}};},{}],77:[function(require,module,exports){var utils=exports;utils.assert=function assert(val,msg){if(!val)throw new Error(msg||'Assertion failed');};function toArray$$1(msg,enc){if(Array.isArray(msg))return msg.slice();if(!msg)return [];var res=[];if(typeof msg!=='string'){for(var i=0;i<msg.length;i++){res[i]=msg[i]|0;}return res;}if(!enc){for(var i=0;i<msg.length;i++){var c=msg.charCodeAt(i);var hi=c>>8;var lo=c&0xff;if(hi)res.push(hi,lo);else res.push(lo);}}else if(enc==='hex'){msg=msg.replace(/[^a-z0-9]+/ig,'');if(msg.length%2!==0)msg='0'+msg;for(var i=0;i<msg.length;i+=2){res.push(parseInt(msg[i]+msg[i+1],16));}}return res;}utils.toArray=toArray$$1;function zero2(word){if(word.length===1)return '0'+word;else return word;}utils.zero2=zero2;function toHex(msg){var res='';for(var i=0;i<msg.length;i++){res+=zero2(msg[i].toString(16));}return res;}utils.toHex=toHex;utils.encode=function encode(arr,enc){if(enc==='hex')return toHex(arr);else return arr;};// Represent num in a w-NAF form
+    if(add){add=utils.toArray(add,addEnc);this._update(add);}var temp=[];while(temp.length<len){this.V=this._hmac().update(this.V).digest();temp=temp.concat(this.V);}var res=temp.slice(0,len);this._update(add);this.reseed++;return utils.encode(res,enc);};},{"../elliptic":65,"hash.js":79}],76:[function(require,module,exports){module.exports={doubles:{step:4,points:[['e60fce93b59e9ec53011aabc21c23e97b2a31369b87a5ae9c44ee89e2a6dec0a','f7e3507399e595929db99f34f57937101296891e44d23f0be1f32cce69616821'],['8282263212c609d9ea2a6e3e172de238d8c39cabd5ac1ca10646e23fd5f51508','11f8a8098557dfe45e8256e830b60ace62d613ac2f7b17bed31b6eaff6e26caf'],['175e159f728b865a72f99cc6c6fc846de0b93833fd2222ed73fce5b551e5b739','d3506e0d9e3c79eba4ef97a51ff71f5eacb5955add24345c6efa6ffee9fed695'],['363d90d447b00c9c99ceac05b6262ee053441c7e55552ffe526bad8f83ff4640','4e273adfc732221953b445397f3363145b9a89008199ecb62003c7f3bee9de9'],['8b4b5f165df3c2be8c6244b5b745638843e4a781a15bcd1b69f79a55dffdf80c','4aad0a6f68d308b4b3fbd7813ab0da04f9e336546162ee56b3eff0c65fd4fd36'],['723cbaa6e5db996d6bf771c00bd548c7b700dbffa6c0e77bcb6115925232fcda','96e867b5595cc498a921137488824d6e2660a0653779494801dc069d9eb39f5f'],['eebfa4d493bebf98ba5feec812c2d3b50947961237a919839a533eca0e7dd7fa','5d9a8ca3970ef0f269ee7edaf178089d9ae4cdc3a711f712ddfd4fdae1de8999'],['100f44da696e71672791d0a09b7bde459f1215a29b3c03bfefd7835b39a48db0','cdd9e13192a00b772ec8f3300c090666b7ff4a18ff5195ac0fbd5cd62bc65a09'],['e1031be262c7ed1b1dc9227a4a04c017a77f8d4464f3b3852c8acde6e534fd2d','9d7061928940405e6bb6a4176597535af292dd419e1ced79a44f18f29456a00d'],['feea6cae46d55b530ac2839f143bd7ec5cf8b266a41d6af52d5e688d9094696d','e57c6b6c97dce1bab06e4e12bf3ecd5c981c8957cc41442d3155debf18090088'],['da67a91d91049cdcb367be4be6ffca3cfeed657d808583de33fa978bc1ec6cb1','9bacaa35481642bc41f463f7ec9780e5dec7adc508f740a17e9ea8e27a68be1d'],['53904faa0b334cdda6e000935ef22151ec08d0f7bb11069f57545ccc1a37b7c0','5bc087d0bc80106d88c9eccac20d3c1c13999981e14434699dcb096b022771c8'],['8e7bcd0bd35983a7719cca7764ca906779b53a043a9b8bcaeff959f43ad86047','10b7770b2a3da4b3940310420ca9514579e88e2e47fd68b3ea10047e8460372a'],['385eed34c1cdff21e6d0818689b81bde71a7f4f18397e6690a841e1599c43862','283bebc3e8ea23f56701de19e9ebf4576b304eec2086dc8cc0458fe5542e5453'],['6f9d9b803ecf191637c73a4413dfa180fddf84a5947fbc9c606ed86c3fac3a7','7c80c68e603059ba69b8e2a30e45c4d47ea4dd2f5c281002d86890603a842160'],['3322d401243c4e2582a2147c104d6ecbf774d163db0f5e5313b7e0e742d0e6bd','56e70797e9664ef5bfb019bc4ddaf9b72805f63ea2873af624f3a2e96c28b2a0'],['85672c7d2de0b7da2bd1770d89665868741b3f9af7643397721d74d28134ab83','7c481b9b5b43b2eb6374049bfa62c2e5e77f17fcc5298f44c8e3094f790313a6'],['948bf809b1988a46b06c9f1919413b10f9226c60f668832ffd959af60c82a0a','53a562856dcb6646dc6b74c5d1c3418c6d4dff08c97cd2bed4cb7f88d8c8e589'],['6260ce7f461801c34f067ce0f02873a8f1b0e44dfc69752accecd819f38fd8e8','bc2da82b6fa5b571a7f09049776a1ef7ecd292238051c198c1a84e95b2b4ae17'],['e5037de0afc1d8d43d8348414bbf4103043ec8f575bfdc432953cc8d2037fa2d','4571534baa94d3b5f9f98d09fb990bddbd5f5b03ec481f10e0e5dc841d755bda'],['e06372b0f4a207adf5ea905e8f1771b4e7e8dbd1c6a6c5b725866a0ae4fce725','7a908974bce18cfe12a27bb2ad5a488cd7484a7787104870b27034f94eee31dd'],['213c7a715cd5d45358d0bbf9dc0ce02204b10bdde2a3f58540ad6908d0559754','4b6dad0b5ae462507013ad06245ba190bb4850f5f36a7eeddff2c27534b458f2'],['4e7c272a7af4b34e8dbb9352a5419a87e2838c70adc62cddf0cc3a3b08fbd53c','17749c766c9d0b18e16fd09f6def681b530b9614bff7dd33e0b3941817dcaae6'],['fea74e3dbe778b1b10f238ad61686aa5c76e3db2be43057632427e2840fb27b6','6e0568db9b0b13297cf674deccb6af93126b596b973f7b77701d3db7f23cb96f'],['76e64113f677cf0e10a2570d599968d31544e179b760432952c02a4417bdde39','c90ddf8dee4e95cf577066d70681f0d35e2a33d2b56d2032b4b1752d1901ac01'],['c738c56b03b2abe1e8281baa743f8f9a8f7cc643df26cbee3ab150242bcbb891','893fb578951ad2537f718f2eacbfbbbb82314eef7880cfe917e735d9699a84c3'],['d895626548b65b81e264c7637c972877d1d72e5f3a925014372e9f6588f6c14b','febfaa38f2bc7eae728ec60818c340eb03428d632bb067e179363ed75d7d991f'],['b8da94032a957518eb0f6433571e8761ceffc73693e84edd49150a564f676e03','2804dfa44805a1e4d7c99cc9762808b092cc584d95ff3b511488e4e74efdf6e7'],['e80fea14441fb33a7d8adab9475d7fab2019effb5156a792f1a11778e3c0df5d','eed1de7f638e00771e89768ca3ca94472d155e80af322ea9fcb4291b6ac9ec78'],['a301697bdfcd704313ba48e51d567543f2a182031efd6915ddc07bbcc4e16070','7370f91cfb67e4f5081809fa25d40f9b1735dbf7c0a11a130c0d1a041e177ea1'],['90ad85b389d6b936463f9d0512678de208cc330b11307fffab7ac63e3fb04ed4','e507a3620a38261affdcbd9427222b839aefabe1582894d991d4d48cb6ef150'],['8f68b9d2f63b5f339239c1ad981f162ee88c5678723ea3351b7b444c9ec4c0da','662a9f2dba063986de1d90c2b6be215dbbea2cfe95510bfdf23cbf79501fff82'],['e4f3fb0176af85d65ff99ff9198c36091f48e86503681e3e6686fd5053231e11','1e63633ad0ef4f1c1661a6d0ea02b7286cc7e74ec951d1c9822c38576feb73bc'],['8c00fa9b18ebf331eb961537a45a4266c7034f2f0d4e1d0716fb6eae20eae29e','efa47267fea521a1a9dc343a3736c974c2fadafa81e36c54e7d2a4c66702414b'],['e7a26ce69dd4829f3e10cec0a9e98ed3143d084f308b92c0997fddfc60cb3e41','2a758e300fa7984b471b006a1aafbb18d0a6b2c0420e83e20e8a9421cf2cfd51'],['b6459e0ee3662ec8d23540c223bcbdc571cbcb967d79424f3cf29eb3de6b80ef','67c876d06f3e06de1dadf16e5661db3c4b3ae6d48e35b2ff30bf0b61a71ba45'],['d68a80c8280bb840793234aa118f06231d6f1fc67e73c5a5deda0f5b496943e8','db8ba9fff4b586d00c4b1f9177b0e28b5b0e7b8f7845295a294c84266b133120'],['324aed7df65c804252dc0270907a30b09612aeb973449cea4095980fc28d3d5d','648a365774b61f2ff130c0c35aec1f4f19213b0c7e332843967224af96ab7c84'],['4df9c14919cde61f6d51dfdbe5fee5dceec4143ba8d1ca888e8bd373fd054c96','35ec51092d8728050974c23a1d85d4b5d506cdc288490192ebac06cad10d5d'],['9c3919a84a474870faed8a9c1cc66021523489054d7f0308cbfc99c8ac1f98cd','ddb84f0f4a4ddd57584f044bf260e641905326f76c64c8e6be7e5e03d4fc599d'],['6057170b1dd12fdf8de05f281d8e06bb91e1493a8b91d4cc5a21382120a959e5','9a1af0b26a6a4807add9a2daf71df262465152bc3ee24c65e899be932385a2a8'],['a576df8e23a08411421439a4518da31880cef0fba7d4df12b1a6973eecb94266','40a6bf20e76640b2c92b97afe58cd82c432e10a7f514d9f3ee8be11ae1b28ec8'],['7778a78c28dec3e30a05fe9629de8c38bb30d1f5cf9a3a208f763889be58ad71','34626d9ab5a5b22ff7098e12f2ff580087b38411ff24ac563b513fc1fd9f43ac'],['928955ee637a84463729fd30e7afd2ed5f96274e5ad7e5cb09eda9c06d903ac','c25621003d3f42a827b78a13093a95eeac3d26efa8a8d83fc5180e935bcd091f'],['85d0fef3ec6db109399064f3a0e3b2855645b4a907ad354527aae75163d82751','1f03648413a38c0be29d496e582cf5663e8751e96877331582c237a24eb1f962'],['ff2b0dce97eece97c1c9b6041798b85dfdfb6d8882da20308f5404824526087e','493d13fef524ba188af4c4dc54d07936c7b7ed6fb90e2ceb2c951e01f0c29907'],['827fbbe4b1e880ea9ed2b2e6301b212b57f1ee148cd6dd28780e5e2cf856e241','c60f9c923c727b0b71bef2c67d1d12687ff7a63186903166d605b68baec293ec'],['eaa649f21f51bdbae7be4ae34ce6e5217a58fdce7f47f9aa7f3b58fa2120e2b3','be3279ed5bbbb03ac69a80f89879aa5a01a6b965f13f7e59d47a5305ba5ad93d'],['e4a42d43c5cf169d9391df6decf42ee541b6d8f0c9a137401e23632dda34d24f','4d9f92e716d1c73526fc99ccfb8ad34ce886eedfa8d8e4f13a7f7131deba9414'],['1ec80fef360cbdd954160fadab352b6b92b53576a88fea4947173b9d4300bf19','aeefe93756b5340d2f3a4958a7abbf5e0146e77f6295a07b671cdc1cc107cefd'],['146a778c04670c2f91b00af4680dfa8bce3490717d58ba889ddb5928366642be','b318e0ec3354028add669827f9d4b2870aaa971d2f7e5ed1d0b297483d83efd0'],['fa50c0f61d22e5f07e3acebb1aa07b128d0012209a28b9776d76a8793180eef9','6b84c6922397eba9b72cd2872281a68a5e683293a57a213b38cd8d7d3f4f2811'],['da1d61d0ca721a11b1a5bf6b7d88e8421a288ab5d5bba5220e53d32b5f067ec2','8157f55a7c99306c79c0766161c91e2966a73899d279b48a655fba0f1ad836f1'],['a8e282ff0c9706907215ff98e8fd416615311de0446f1e062a73b0610d064e13','7f97355b8db81c09abfb7f3c5b2515888b679a3e50dd6bd6cef7c73111f4cc0c'],['174a53b9c9a285872d39e56e6913cab15d59b1fa512508c022f382de8319497c','ccc9dc37abfc9c1657b4155f2c47f9e6646b3a1d8cb9854383da13ac079afa73'],['959396981943785c3d3e57edf5018cdbe039e730e4918b3d884fdff09475b7ba','2e7e552888c331dd8ba0386a4b9cd6849c653f64c8709385e9b8abf87524f2fd'],['d2a63a50ae401e56d645a1153b109a8fcca0a43d561fba2dbb51340c9d82b151','e82d86fb6443fcb7565aee58b2948220a70f750af484ca52d4142174dcf89405'],['64587e2335471eb890ee7896d7cfdc866bacbdbd3839317b3436f9b45617e073','d99fcdd5bf6902e2ae96dd6447c299a185b90a39133aeab358299e5e9faf6589'],['8481bde0e4e4d885b3a546d3e549de042f0aa6cea250e7fd358d6c86dd45e458','38ee7b8cba5404dd84a25bf39cecb2ca900a79c42b262e556d64b1b59779057e'],['13464a57a78102aa62b6979ae817f4637ffcfed3c4b1ce30bcd6303f6caf666b','69be159004614580ef7e433453ccb0ca48f300a81d0942e13f495a907f6ecc27'],['bc4a9df5b713fe2e9aef430bcc1dc97a0cd9ccede2f28588cada3a0d2d83f366','d3a81ca6e785c06383937adf4b798caa6e8a9fbfa547b16d758d666581f33c1'],['8c28a97bf8298bc0d23d8c749452a32e694b65e30a9472a3954ab30fe5324caa','40a30463a3305193378fedf31f7cc0eb7ae784f0451cb9459e71dc73cbef9482'],['8ea9666139527a8c1dd94ce4f071fd23c8b350c5a4bb33748c4ba111faccae0','620efabbc8ee2782e24e7c0cfb95c5d735b783be9cf0f8e955af34a30e62b945'],['dd3625faef5ba06074669716bbd3788d89bdde815959968092f76cc4eb9a9787','7a188fa3520e30d461da2501045731ca941461982883395937f68d00c644a573'],['f710d79d9eb962297e4f6232b40e8f7feb2bc63814614d692c12de752408221e','ea98e67232d3b3295d3b535532115ccac8612c721851617526ae47a9c77bfc82']]},naf:{wnd:7,points:[['f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9','388f7b0f632de8140fe337e62a37f3566500a99934c2231b6cb9fd7584b8e672'],['2f8bde4d1a07209355b4a7250a5c5128e88b84bddc619ab7cba8d569b240efe4','d8ac222636e5e3d6d4dba9dda6c9c426f788271bab0d6840dca87d3aa6ac62d6'],['5cbdf0646e5db4eaa398f365f2ea7a0e3d419b7e0330e39ce92bddedcac4f9bc','6aebca40ba255960a3178d6d861a54dba813d0b813fde7b5a5082628087264da'],['acd484e2f0c7f65309ad178a9f559abde09796974c57e714c35f110dfc27ccbe','cc338921b0a7d9fd64380971763b61e9add888a4375f8e0f05cc262ac64f9c37'],['774ae7f858a9411e5ef4246b70c65aac5649980be5c17891bbec17895da008cb','d984a032eb6b5e190243dd56d7b7b365372db1e2dff9d6a8301d74c9c953c61b'],['f28773c2d975288bc7d1d205c3748651b075fbc6610e58cddeeddf8f19405aa8','ab0902e8d880a89758212eb65cdaf473a1a06da521fa91f29b5cb52db03ed81'],['d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e','581e2872a86c72a683842ec228cc6defea40af2bd896d3a5c504dc9ff6a26b58'],['defdea4cdb677750a420fee807eacf21eb9898ae79b9768766e4faa04a2d4a34','4211ab0694635168e997b0ead2a93daeced1f4a04a95c0f6cfb199f69e56eb77'],['2b4ea0a797a443d293ef5cff444f4979f06acfebd7e86d277475656138385b6c','85e89bc037945d93b343083b5a1c86131a01f60c50269763b570c854e5c09b7a'],['352bbf4a4cdd12564f93fa332ce333301d9ad40271f8107181340aef25be59d5','321eb4075348f534d59c18259dda3e1f4a1b3b2e71b1039c67bd3d8bcf81998c'],['2fa2104d6b38d11b0230010559879124e42ab8dfeff5ff29dc9cdadd4ecacc3f','2de1068295dd865b64569335bd5dd80181d70ecfc882648423ba76b532b7d67'],['9248279b09b4d68dab21a9b066edda83263c3d84e09572e269ca0cd7f5453714','73016f7bf234aade5d1aa71bdea2b1ff3fc0de2a887912ffe54a32ce97cb3402'],['daed4f2be3a8bf278e70132fb0beb7522f570e144bf615c07e996d443dee8729','a69dce4a7d6c98e8d4a1aca87ef8d7003f83c230f3afa726ab40e52290be1c55'],['c44d12c7065d812e8acf28d7cbb19f9011ecd9e9fdf281b0e6a3b5e87d22e7db','2119a460ce326cdc76c45926c982fdac0e106e861edf61c5a039063f0e0e6482'],['6a245bf6dc698504c89a20cfded60853152b695336c28063b61c65cbd269e6b4','e022cf42c2bd4a708b3f5126f16a24ad8b33ba48d0423b6efd5e6348100d8a82'],['1697ffa6fd9de627c077e3d2fe541084ce13300b0bec1146f95ae57f0d0bd6a5','b9c398f186806f5d27561506e4557433a2cf15009e498ae7adee9d63d01b2396'],['605bdb019981718b986d0f07e834cb0d9deb8360ffb7f61df982345ef27a7479','2972d2de4f8d20681a78d93ec96fe23c26bfae84fb14db43b01e1e9056b8c49'],['62d14dab4150bf497402fdc45a215e10dcb01c354959b10cfe31c7e9d87ff33d','80fc06bd8cc5b01098088a1950eed0db01aa132967ab472235f5642483b25eaf'],['80c60ad0040f27dade5b4b06c408e56b2c50e9f56b9b8b425e555c2f86308b6f','1c38303f1cc5c30f26e66bad7fe72f70a65eed4cbe7024eb1aa01f56430bd57a'],['7a9375ad6167ad54aa74c6348cc54d344cc5dc9487d847049d5eabb0fa03c8fb','d0e3fa9eca8726909559e0d79269046bdc59ea10c70ce2b02d499ec224dc7f7'],['d528ecd9b696b54c907a9ed045447a79bb408ec39b68df504bb51f459bc3ffc9','eecf41253136e5f99966f21881fd656ebc4345405c520dbc063465b521409933'],['49370a4b5f43412ea25f514e8ecdad05266115e4a7ecb1387231808f8b45963','758f3f41afd6ed428b3081b0512fd62a54c3f3afbb5b6764b653052a12949c9a'],['77f230936ee88cbbd73df930d64702ef881d811e0e1498e2f1c13eb1fc345d74','958ef42a7886b6400a08266e9ba1b37896c95330d97077cbbe8eb3c7671c60d6'],['f2dac991cc4ce4b9ea44887e5c7c0bce58c80074ab9d4dbaeb28531b7739f530','e0dedc9b3b2f8dad4da1f32dec2531df9eb5fbeb0598e4fd1a117dba703a3c37'],['463b3d9f662621fb1b4be8fbbe2520125a216cdfc9dae3debcba4850c690d45b','5ed430d78c296c3543114306dd8622d7c622e27c970a1de31cb377b01af7307e'],['f16f804244e46e2a09232d4aff3b59976b98fac14328a2d1a32496b49998f247','cedabd9b82203f7e13d206fcdf4e33d92a6c53c26e5cce26d6579962c4e31df6'],['caf754272dc84563b0352b7a14311af55d245315ace27c65369e15f7151d41d1','cb474660ef35f5f2a41b643fa5e460575f4fa9b7962232a5c32f908318a04476'],['2600ca4b282cb986f85d0f1709979d8b44a09c07cb86d7c124497bc86f082120','4119b88753c15bd6a693b03fcddbb45d5ac6be74ab5f0ef44b0be9475a7e4b40'],['7635ca72d7e8432c338ec53cd12220bc01c48685e24f7dc8c602a7746998e435','91b649609489d613d1d5e590f78e6d74ecfc061d57048bad9e76f302c5b9c61'],['754e3239f325570cdbbf4a87deee8a66b7f2b33479d468fbc1a50743bf56cc18','673fb86e5bda30fb3cd0ed304ea49a023ee33d0197a695d0c5d98093c536683'],['e3e6bd1071a1e96aff57859c82d570f0330800661d1c952f9fe2694691d9b9e8','59c9e0bba394e76f40c0aa58379a3cb6a5a2283993e90c4167002af4920e37f5'],['186b483d056a033826ae73d88f732985c4ccb1f32ba35f4b4cc47fdcf04aa6eb','3b952d32c67cf77e2e17446e204180ab21fb8090895138b4a4a797f86e80888b'],['df9d70a6b9876ce544c98561f4be4f725442e6d2b737d9c91a8321724ce0963f','55eb2dafd84d6ccd5f862b785dc39d4ab157222720ef9da217b8c45cf2ba2417'],['5edd5cc23c51e87a497ca815d5dce0f8ab52554f849ed8995de64c5f34ce7143','efae9c8dbc14130661e8cec030c89ad0c13c66c0d17a2905cdc706ab7399a868'],['290798c2b6476830da12fe02287e9e777aa3fba1c355b17a722d362f84614fba','e38da76dcd440621988d00bcf79af25d5b29c094db2a23146d003afd41943e7a'],['af3c423a95d9f5b3054754efa150ac39cd29552fe360257362dfdecef4053b45','f98a3fd831eb2b749a93b0e6f35cfb40c8cd5aa667a15581bc2feded498fd9c6'],['766dbb24d134e745cccaa28c99bf274906bb66b26dcf98df8d2fed50d884249a','744b1152eacbe5e38dcc887980da38b897584a65fa06cedd2c924f97cbac5996'],['59dbf46f8c94759ba21277c33784f41645f7b44f6c596a58ce92e666191abe3e','c534ad44175fbc300f4ea6ce648309a042ce739a7919798cd85e216c4a307f6e'],['f13ada95103c4537305e691e74e9a4a8dd647e711a95e73cb62dc6018cfd87b8','e13817b44ee14de663bf4bc808341f326949e21a6a75c2570778419bdaf5733d'],['7754b4fa0e8aced06d4167a2c59cca4cda1869c06ebadfb6488550015a88522c','30e93e864e669d82224b967c3020b8fa8d1e4e350b6cbcc537a48b57841163a2'],['948dcadf5990e048aa3874d46abef9d701858f95de8041d2a6828c99e2262519','e491a42537f6e597d5d28a3224b1bc25df9154efbd2ef1d2cbba2cae5347d57e'],['7962414450c76c1689c7b48f8202ec37fb224cf5ac0bfa1570328a8a3d7c77ab','100b610ec4ffb4760d5c1fc133ef6f6b12507a051f04ac5760afa5b29db83437'],['3514087834964b54b15b160644d915485a16977225b8847bb0dd085137ec47ca','ef0afbb2056205448e1652c48e8127fc6039e77c15c2378b7e7d15a0de293311'],['d3cc30ad6b483e4bc79ce2c9dd8bc54993e947eb8df787b442943d3f7b527eaf','8b378a22d827278d89c5e9be8f9508ae3c2ad46290358630afb34db04eede0a4'],['1624d84780732860ce1c78fcbfefe08b2b29823db913f6493975ba0ff4847610','68651cf9b6da903e0914448c6cd9d4ca896878f5282be4c8cc06e2a404078575'],['733ce80da955a8a26902c95633e62a985192474b5af207da6df7b4fd5fc61cd4','f5435a2bd2badf7d485a4d8b8db9fcce3e1ef8e0201e4578c54673bc1dc5ea1d'],['15d9441254945064cf1a1c33bbd3b49f8966c5092171e699ef258dfab81c045c','d56eb30b69463e7234f5137b73b84177434800bacebfc685fc37bbe9efe4070d'],['a1d0fcf2ec9de675b612136e5ce70d271c21417c9d2b8aaaac138599d0717940','edd77f50bcb5a3cab2e90737309667f2641462a54070f3d519212d39c197a629'],['e22fbe15c0af8ccc5780c0735f84dbe9a790badee8245c06c7ca37331cb36980','a855babad5cd60c88b430a69f53a1a7a38289154964799be43d06d77d31da06'],['311091dd9860e8e20ee13473c1155f5f69635e394704eaa74009452246cfa9b3','66db656f87d1f04fffd1f04788c06830871ec5a64feee685bd80f0b1286d8374'],['34c1fd04d301be89b31c0442d3e6ac24883928b45a9340781867d4232ec2dbdf','9414685e97b1b5954bd46f730174136d57f1ceeb487443dc5321857ba73abee'],['f219ea5d6b54701c1c14de5b557eb42a8d13f3abbcd08affcc2a5e6b049b8d63','4cb95957e83d40b0f73af4544cccf6b1f4b08d3c07b27fb8d8c2962a400766d1'],['d7b8740f74a8fbaab1f683db8f45de26543a5490bca627087236912469a0b448','fa77968128d9c92ee1010f337ad4717eff15db5ed3c049b3411e0315eaa4593b'],['32d31c222f8f6f0ef86f7c98d3a3335ead5bcd32abdd94289fe4d3091aa824bf','5f3032f5892156e39ccd3d7915b9e1da2e6dac9e6f26e961118d14b8462e1661'],['7461f371914ab32671045a155d9831ea8793d77cd59592c4340f86cbc18347b5','8ec0ba238b96bec0cbdddcae0aa442542eee1ff50c986ea6b39847b3cc092ff6'],['ee079adb1df1860074356a25aa38206a6d716b2c3e67453d287698bad7b2b2d6','8dc2412aafe3be5c4c5f37e0ecc5f9f6a446989af04c4e25ebaac479ec1c8c1e'],['16ec93e447ec83f0467b18302ee620f7e65de331874c9dc72bfd8616ba9da6b5','5e4631150e62fb40d0e8c2a7ca5804a39d58186a50e497139626778e25b0674d'],['eaa5f980c245f6f038978290afa70b6bd8855897f98b6aa485b96065d537bd99','f65f5d3e292c2e0819a528391c994624d784869d7e6ea67fb18041024edc07dc'],['78c9407544ac132692ee1910a02439958ae04877151342ea96c4b6b35a49f51','f3e0319169eb9b85d5404795539a5e68fa1fbd583c064d2462b675f194a3ddb4'],['494f4be219a1a77016dcd838431aea0001cdc8ae7a6fc688726578d9702857a5','42242a969283a5f339ba7f075e36ba2af925ce30d767ed6e55f4b031880d562c'],['a598a8030da6d86c6bc7f2f5144ea549d28211ea58faa70ebf4c1e665c1fe9b5','204b5d6f84822c307e4b4a7140737aec23fc63b65b35f86a10026dbd2d864e6b'],['c41916365abb2b5d09192f5f2dbeafec208f020f12570a184dbadc3e58595997','4f14351d0087efa49d245b328984989d5caf9450f34bfc0ed16e96b58fa9913'],['841d6063a586fa475a724604da03bc5b92a2e0d2e0a36acfe4c73a5514742881','73867f59c0659e81904f9a1c7543698e62562d6744c169ce7a36de01a8d6154'],['5e95bb399a6971d376026947f89bde2f282b33810928be4ded112ac4d70e20d5','39f23f366809085beebfc71181313775a99c9aed7d8ba38b161384c746012865'],['36e4641a53948fd476c39f8a99fd974e5ec07564b5315d8bf99471bca0ef2f66','d2424b1b1abe4eb8164227b085c9aa9456ea13493fd563e06fd51cf5694c78fc'],['336581ea7bfbbb290c191a2f507a41cf5643842170e914faeab27c2c579f726','ead12168595fe1be99252129b6e56b3391f7ab1410cd1e0ef3dcdcabd2fda224'],['8ab89816dadfd6b6a1f2634fcf00ec8403781025ed6890c4849742706bd43ede','6fdcef09f2f6d0a044e654aef624136f503d459c3e89845858a47a9129cdd24e'],['1e33f1a746c9c5778133344d9299fcaa20b0938e8acff2544bb40284b8c5fb94','60660257dd11b3aa9c8ed618d24edff2306d320f1d03010e33a7d2057f3b3b6'],['85b7c1dcb3cec1b7ee7f30ded79dd20a0ed1f4cc18cbcfcfa410361fd8f08f31','3d98a9cdd026dd43f39048f25a8847f4fcafad1895d7a633c6fed3c35e999511'],['29df9fbd8d9e46509275f4b125d6d45d7fbe9a3b878a7af872a2800661ac5f51','b4c4fe99c775a606e2d8862179139ffda61dc861c019e55cd2876eb2a27d84b'],['a0b1cae06b0a847a3fea6e671aaf8adfdfe58ca2f768105c8082b2e449fce252','ae434102edde0958ec4b19d917a6a28e6b72da1834aff0e650f049503a296cf2'],['4e8ceafb9b3e9a136dc7ff67e840295b499dfb3b2133e4ba113f2e4c0e121e5','cf2174118c8b6d7a4b48f6d534ce5c79422c086a63460502b827ce62a326683c'],['d24a44e047e19b6f5afb81c7ca2f69080a5076689a010919f42725c2b789a33b','6fb8d5591b466f8fc63db50f1c0f1c69013f996887b8244d2cdec417afea8fa3'],['ea01606a7a6c9cdd249fdfcfacb99584001edd28abbab77b5104e98e8e3b35d4','322af4908c7312b0cfbfe369f7a7b3cdb7d4494bc2823700cfd652188a3ea98d'],['af8addbf2b661c8a6c6328655eb96651252007d8c5ea31be4ad196de8ce2131f','6749e67c029b85f52a034eafd096836b2520818680e26ac8f3dfbcdb71749700'],['e3ae1974566ca06cc516d47e0fb165a674a3dabcfca15e722f0e3450f45889','2aeabe7e4531510116217f07bf4d07300de97e4874f81f533420a72eeb0bd6a4'],['591ee355313d99721cf6993ffed1e3e301993ff3ed258802075ea8ced397e246','b0ea558a113c30bea60fc4775460c7901ff0b053d25ca2bdeee98f1a4be5d196'],['11396d55fda54c49f19aa97318d8da61fa8584e47b084945077cf03255b52984','998c74a8cd45ac01289d5833a7beb4744ff536b01b257be4c5767bea93ea57a4'],['3c5d2a1ba39c5a1790000738c9e0c40b8dcdfd5468754b6405540157e017aa7a','b2284279995a34e2f9d4de7396fc18b80f9b8b9fdd270f6661f79ca4c81bd257'],['cc8704b8a60a0defa3a99a7299f2e9c3fbc395afb04ac078425ef8a1793cc030','bdd46039feed17881d1e0862db347f8cf395b74fc4bcdc4e940b74e3ac1f1b13'],['c533e4f7ea8555aacd9777ac5cad29b97dd4defccc53ee7ea204119b2889b197','6f0a256bc5efdf429a2fb6242f1a43a2d9b925bb4a4b3a26bb8e0f45eb596096'],['c14f8f2ccb27d6f109f6d08d03cc96a69ba8c34eec07bbcf566d48e33da6593','c359d6923bb398f7fd4473e16fe1c28475b740dd098075e6c0e8649113dc3a38'],['a6cbc3046bc6a450bac24789fa17115a4c9739ed75f8f21ce441f72e0b90e6ef','21ae7f4680e889bb130619e2c0f95a360ceb573c70603139862afd617fa9b9f'],['347d6d9a02c48927ebfb86c1359b1caf130a3c0267d11ce6344b39f99d43cc38','60ea7f61a353524d1c987f6ecec92f086d565ab687870cb12689ff1e31c74448'],['da6545d2181db8d983f7dcb375ef5866d47c67b1bf31c8cf855ef7437b72656a','49b96715ab6878a79e78f07ce5680c5d6673051b4935bd897fea824b77dc208a'],['c40747cc9d012cb1a13b8148309c6de7ec25d6945d657146b9d5994b8feb1111','5ca560753be2a12fc6de6caf2cb489565db936156b9514e1bb5e83037e0fa2d4'],['4e42c8ec82c99798ccf3a610be870e78338c7f713348bd34c8203ef4037f3502','7571d74ee5e0fb92a7a8b33a07783341a5492144cc54bcc40a94473693606437'],['3775ab7089bc6af823aba2e1af70b236d251cadb0c86743287522a1b3b0dedea','be52d107bcfa09d8bcb9736a828cfa7fac8db17bf7a76a2c42ad961409018cf7'],['cee31cbf7e34ec379d94fb814d3d775ad954595d1314ba8846959e3e82f74e26','8fd64a14c06b589c26b947ae2bcf6bfa0149ef0be14ed4d80f448a01c43b1c6d'],['b4f9eaea09b6917619f6ea6a4eb5464efddb58fd45b1ebefcdc1a01d08b47986','39e5c9925b5a54b07433a4f18c61726f8bb131c012ca542eb24a8ac07200682a'],['d4263dfc3d2df923a0179a48966d30ce84e2515afc3dccc1b77907792ebcc60e','62dfaf07a0f78feb30e30d6295853ce189e127760ad6cf7fae164e122a208d54'],['48457524820fa65a4f8d35eb6930857c0032acc0a4a2de422233eeda897612c4','25a748ab367979d98733c38a1fa1c2e7dc6cc07db2d60a9ae7a76aaa49bd0f77'],['dfeeef1881101f2cb11644f3a2afdfc2045e19919152923f367a1767c11cceda','ecfb7056cf1de042f9420bab396793c0c390bde74b4bbdff16a83ae09a9a7517'],['6d7ef6b17543f8373c573f44e1f389835d89bcbc6062ced36c82df83b8fae859','cd450ec335438986dfefa10c57fea9bcc521a0959b2d80bbf74b190dca712d10'],['e75605d59102a5a2684500d3b991f2e3f3c88b93225547035af25af66e04541f','f5c54754a8f71ee540b9b48728473e314f729ac5308b06938360990e2bfad125'],['eb98660f4c4dfaa06a2be453d5020bc99a0c2e60abe388457dd43fefb1ed620c','6cb9a8876d9cb8520609af3add26cd20a0a7cd8a9411131ce85f44100099223e'],['13e87b027d8514d35939f2e6892b19922154596941888336dc3563e3b8dba942','fef5a3c68059a6dec5d624114bf1e91aac2b9da568d6abeb2570d55646b8adf1'],['ee163026e9fd6fe017c38f06a5be6fc125424b371ce2708e7bf4491691e5764a','1acb250f255dd61c43d94ccc670d0f58f49ae3fa15b96623e5430da0ad6c62b2'],['b268f5ef9ad51e4d78de3a750c2dc89b1e626d43505867999932e5db33af3d80','5f310d4b3c99b9ebb19f77d41c1dee018cf0d34fd4191614003e945a1216e423'],['ff07f3118a9df035e9fad85eb6c7bfe42b02f01ca99ceea3bf7ffdba93c4750d','438136d603e858a3a5c440c38eccbaddc1d2942114e2eddd4740d098ced1f0d8'],['8d8b9855c7c052a34146fd20ffb658bea4b9f69e0d825ebec16e8c3ce2b526a1','cdb559eedc2d79f926baf44fb84ea4d44bcf50fee51d7ceb30e2e7f463036758'],['52db0b5384dfbf05bfa9d472d7ae26dfe4b851ceca91b1eba54263180da32b63','c3b997d050ee5d423ebaf66a6db9f57b3180c902875679de924b69d84a7b375'],['e62f9490d3d51da6395efd24e80919cc7d0f29c3f3fa48c6fff543becbd43352','6d89ad7ba4876b0b22c2ca280c682862f342c8591f1daf5170e07bfd9ccafa7d'],['7f30ea2476b399b4957509c88f77d0191afa2ff5cb7b14fd6d8e7d65aaab1193','ca5ef7d4b231c94c3b15389a5f6311e9daff7bb67b103e9880ef4bff637acaec'],['5098ff1e1d9f14fb46a210fada6c903fef0fb7b4a1dd1d9ac60a0361800b7a00','9731141d81fc8f8084d37c6e7542006b3ee1b40d60dfe5362a5b132fd17ddc0'],['32b78c7de9ee512a72895be6b9cbefa6e2f3c4ccce445c96b9f2c81e2778ad58','ee1849f513df71e32efc3896ee28260c73bb80547ae2275ba497237794c8753c'],['e2cb74fddc8e9fbcd076eef2a7c72b0ce37d50f08269dfc074b581550547a4f7','d3aa2ed71c9dd2247a62df062736eb0baddea9e36122d2be8641abcb005cc4a4'],['8438447566d4d7bedadc299496ab357426009a35f235cb141be0d99cd10ae3a8','c4e1020916980a4da5d01ac5e6ad330734ef0d7906631c4f2390426b2edd791f'],['4162d488b89402039b584c6fc6c308870587d9c46f660b878ab65c82c711d67e','67163e903236289f776f22c25fb8a3afc1732f2b84b4e95dbda47ae5a0852649'],['3fad3fa84caf0f34f0f89bfd2dcf54fc175d767aec3e50684f3ba4a4bf5f683d','cd1bc7cb6cc407bb2f0ca647c718a730cf71872e7d0d2a53fa20efcdfe61826'],['674f2600a3007a00568c1a7ce05d0816c1fb84bf1370798f1c69532faeb1a86b','299d21f9413f33b3edf43b257004580b70db57da0b182259e09eecc69e0d38a5'],['d32f4da54ade74abb81b815ad1fb3b263d82d6c692714bcff87d29bd5ee9f08f','f9429e738b8e53b968e99016c059707782e14f4535359d582fc416910b3eea87'],['30e4e670435385556e593657135845d36fbb6931f72b08cb1ed954f1e3ce3ff6','462f9bce619898638499350113bbc9b10a878d35da70740dc695a559eb88db7b'],['be2062003c51cc3004682904330e4dee7f3dcd10b01e580bf1971b04d4cad297','62188bc49d61e5428573d48a74e1c655b1c61090905682a0d5558ed72dccb9bc'],['93144423ace3451ed29e0fb9ac2af211cb6e84a601df5993c419859fff5df04a','7c10dfb164c3425f5c71a3f9d7992038f1065224f72bb9d1d902a6d13037b47c'],['b015f8044f5fcbdcf21ca26d6c34fb8197829205c7b7d2a7cb66418c157b112c','ab8c1e086d04e813744a655b2df8d5f83b3cdc6faa3088c1d3aea1454e3a1d5f'],['d5e9e1da649d97d89e4868117a465a3a4f8a18de57a140d36b3f2af341a21b52','4cb04437f391ed73111a13cc1d4dd0db1693465c2240480d8955e8592f27447a'],['d3ae41047dd7ca065dbf8ed77b992439983005cd72e16d6f996a5316d36966bb','bd1aeb21ad22ebb22a10f0303417c6d964f8cdd7df0aca614b10dc14d125ac46'],['463e2763d885f958fc66cdd22800f0a487197d0a82e377b49f80af87c897b065','bfefacdb0e5d0fd7df3a311a94de062b26b80c61fbc97508b79992671ef7ca7f'],['7985fdfd127c0567c6f53ec1bb63ec3158e597c40bfe747c83cddfc910641917','603c12daf3d9862ef2b25fe1de289aed24ed291e0ec6708703a5bd567f32ed03'],['74a1ad6b5f76e39db2dd249410eac7f99e74c59cb83d2d0ed5ff1543da7703e9','cc6157ef18c9c63cd6193d83631bbea0093e0968942e8c33d5737fd790e0db08'],['30682a50703375f602d416664ba19b7fc9bab42c72747463a71d0896b22f6da3','553e04f6b018b4fa6c8f39e7f311d3176290d0e0f19ca73f17714d9977a22ff8'],['9e2158f0d7c0d5f26c3791efefa79597654e7a2b2464f52b1ee6c1347769ef57','712fcdd1b9053f09003a3481fa7762e9ffd7c8ef35a38509e2fbf2629008373'],['176e26989a43c9cfeba4029c202538c28172e566e3c4fce7322857f3be327d66','ed8cc9d04b29eb877d270b4878dc43c19aefd31f4eee09ee7b47834c1fa4b1c3'],['75d46efea3771e6e68abb89a13ad747ecf1892393dfc4f1b7004788c50374da8','9852390a99507679fd0b86fd2b39a868d7efc22151346e1a3ca4726586a6bed8'],['809a20c67d64900ffb698c4c825f6d5f2310fb0451c869345b7319f645605721','9e994980d9917e22b76b061927fa04143d096ccc54963e6a5ebfa5f3f8e286c1'],['1b38903a43f7f114ed4500b4eac7083fdefece1cf29c63528d563446f972c180','4036edc931a60ae889353f77fd53de4a2708b26b6f5da72ad3394119daf408f9']]}};},{}],77:[function(require,module,exports){var utils=exports;utils.assert=function assert(val,msg){if(!val)throw new Error(msg||'Assertion failed');};function toArray(msg,enc){if(Array.isArray(msg))return msg.slice();if(!msg)return [];var res=[];if(typeof msg!=='string'){for(var i=0;i<msg.length;i++){res[i]=msg[i]|0;}return res;}if(!enc){for(var i=0;i<msg.length;i++){var c=msg.charCodeAt(i);var hi=c>>8;var lo=c&0xff;if(hi)res.push(hi,lo);else res.push(lo);}}else if(enc==='hex'){msg=msg.replace(/[^a-z0-9]+/ig,'');if(msg.length%2!==0)msg='0'+msg;for(var i=0;i<msg.length;i+=2){res.push(parseInt(msg[i]+msg[i+1],16));}}return res;}utils.toArray=toArray;function zero2(word){if(word.length===1)return '0'+word;else return word;}utils.zero2=zero2;function toHex(msg){var res='';for(var i=0;i<msg.length;i++){res+=zero2(msg[i].toString(16));}return res;}utils.toHex=toHex;utils.encode=function encode(arr,enc){if(enc==='hex')return toHex(arr);else return arr;};// Represent num in a w-NAF form
     function getNAF(num,w){var naf=[];var ws=1<<w+1;var k=num.clone();while(k.cmpn(1)>=0){var z;if(k.isOdd()){var mod=k.andln(ws-1);if(mod>(ws>>1)-1)z=(ws>>1)-mod;else z=mod;k.isubn(z);}else{z=0;}naf.push(z);// Optimization, shift by word if possible
     var shift=k.cmpn(0)!==0&&k.andln(ws-1)===0?w+1:1;for(var i=1;i<shift;i++){naf.push(0);}k.ishrn(shift);}return naf;}utils.getNAF=getNAF;// Represent k1, k2 in a Joint Sparse Form
     function getJSF(k1,k2){var jsf=[[],[]];k1=k1.clone();k2=k2.clone();var d1=0;var d2=0;while(k1.cmpn(-d1)>0||k2.cmpn(-d2)>0){// First phase
@@ -2254,16 +2251,16 @@ var pmcrypto = (function (exports) {
     var r=c0_hi^c1_hi^c2_hi;if(r<0)r+=0x100000000;return r;}function s1_512_lo(xh,xl){var c0_lo=rotr64_lo(xh,xl,14);var c1_lo=rotr64_lo(xh,xl,18);var c2_lo=rotr64_lo(xl,xh,9);// 41
     var r=c0_lo^c1_lo^c2_lo;if(r<0)r+=0x100000000;return r;}function g0_512_hi(xh,xl){var c0_hi=rotr64_hi(xh,xl,1);var c1_hi=rotr64_hi(xh,xl,8);var c2_hi=shr64_hi(xh,xl,7);var r=c0_hi^c1_hi^c2_hi;if(r<0)r+=0x100000000;return r;}function g0_512_lo(xh,xl){var c0_lo=rotr64_lo(xh,xl,1);var c1_lo=rotr64_lo(xh,xl,8);var c2_lo=shr64_lo(xh,xl,7);var r=c0_lo^c1_lo^c2_lo;if(r<0)r+=0x100000000;return r;}function g1_512_hi(xh,xl){var c0_hi=rotr64_hi(xh,xl,19);var c1_hi=rotr64_hi(xl,xh,29);// 61
     var c2_hi=shr64_hi(xh,xl,6);var r=c0_hi^c1_hi^c2_hi;if(r<0)r+=0x100000000;return r;}function g1_512_lo(xh,xl){var c0_lo=rotr64_lo(xh,xl,19);var c1_lo=rotr64_lo(xl,xh,29);// 61
-    var c2_lo=shr64_lo(xh,xl,6);var r=c0_lo^c1_lo^c2_lo;if(r<0)r+=0x100000000;return r;}},{"../hash":79}],84:[function(require,module,exports){var utils=exports;var inherits$$1=require('inherits');function toArray$$1(msg,enc){if(Array.isArray(msg))return msg.slice();if(!msg)return [];var res=[];if(typeof msg==='string'){if(!enc){for(var i=0;i<msg.length;i++){var c=msg.charCodeAt(i);var hi=c>>8;var lo=c&0xff;if(hi)res.push(hi,lo);else res.push(lo);}}else if(enc==='hex'){msg=msg.replace(/[^a-z0-9]+/ig,'');if(msg.length%2!==0)msg='0'+msg;for(var i=0;i<msg.length;i+=2){res.push(parseInt(msg[i]+msg[i+1],16));}}}else{for(var i=0;i<msg.length;i++){res[i]=msg[i]|0;}}return res;}utils.toArray=toArray$$1;function toHex(msg){var res='';for(var i=0;i<msg.length;i++){res+=zero2(msg[i].toString(16));}return res;}utils.toHex=toHex;function htonl(w){var res=w>>>24|w>>>8&0xff00|w<<8&0xff0000|(w&0xff)<<24;return res>>>0;}utils.htonl=htonl;function toHex32(msg,endian){var res='';for(var i=0;i<msg.length;i++){var w=msg[i];if(endian==='little')w=htonl(w);res+=zero8(w.toString(16));}return res;}utils.toHex32=toHex32;function zero2(word){if(word.length===1)return '0'+word;else return word;}utils.zero2=zero2;function zero8(word){if(word.length===7)return '0'+word;else if(word.length===6)return '00'+word;else if(word.length===5)return '000'+word;else if(word.length===4)return '0000'+word;else if(word.length===3)return '00000'+word;else if(word.length===2)return '000000'+word;else if(word.length===1)return '0000000'+word;else return word;}utils.zero8=zero8;function join32(msg,start,end,endian){var len=end-start;assert(len%4===0);var res=new Array(len/4);for(var i=0,k=start;i<res.length;i++,k+=4){var w;if(endian==='big')w=msg[k]<<24|msg[k+1]<<16|msg[k+2]<<8|msg[k+3];else w=msg[k+3]<<24|msg[k+2]<<16|msg[k+1]<<8|msg[k];res[i]=w>>>0;}return res;}utils.join32=join32;function split32(msg,endian){var res=new Array(msg.length*4);for(var i=0,k=0;i<msg.length;i++,k+=4){var m=msg[i];if(endian==='big'){res[k]=m>>>24;res[k+1]=m>>>16&0xff;res[k+2]=m>>>8&0xff;res[k+3]=m&0xff;}else{res[k+3]=m>>>24;res[k+2]=m>>>16&0xff;res[k+1]=m>>>8&0xff;res[k]=m&0xff;}}return res;}utils.split32=split32;function rotr32(w,b){return w>>>b|w<<32-b;}utils.rotr32=rotr32;function rotl32(w,b){return w<<b|w>>>32-b;}utils.rotl32=rotl32;function sum32(a,b){return a+b>>>0;}utils.sum32=sum32;function sum32_3(a,b,c){return a+b+c>>>0;}utils.sum32_3=sum32_3;function sum32_4(a,b,c,d){return a+b+c+d>>>0;}utils.sum32_4=sum32_4;function sum32_5(a,b,c,d,e){return a+b+c+d+e>>>0;}utils.sum32_5=sum32_5;function assert(cond,msg){if(!cond)throw new Error(msg||'Assertion failed');}utils.assert=assert;utils.inherits=inherits$$1;function sum64(buf,pos,ah,al){var bh=buf[pos];var bl=buf[pos+1];var lo=al+bl>>>0;var hi=(lo<al?1:0)+ah+bh;buf[pos]=hi>>>0;buf[pos+1]=lo;}exports.sum64=sum64;function sum64_hi(ah,al,bh,bl){var lo=al+bl>>>0;var hi=(lo<al?1:0)+ah+bh;return hi>>>0;}exports.sum64_hi=sum64_hi;function sum64_lo(ah,al,bh,bl){var lo=al+bl;return lo>>>0;}exports.sum64_lo=sum64_lo;function sum64_4_hi(ah,al,bh,bl,ch,cl,dh,dl){var carry=0;var lo=al;lo=lo+bl>>>0;carry+=lo<al?1:0;lo=lo+cl>>>0;carry+=lo<cl?1:0;lo=lo+dl>>>0;carry+=lo<dl?1:0;var hi=ah+bh+ch+dh+carry;return hi>>>0;}exports.sum64_4_hi=sum64_4_hi;function sum64_4_lo(ah,al,bh,bl,ch,cl,dh,dl){var lo=al+bl+cl+dl;return lo>>>0;}exports.sum64_4_lo=sum64_4_lo;function sum64_5_hi(ah,al,bh,bl,ch,cl,dh,dl,eh,el){var carry=0;var lo=al;lo=lo+bl>>>0;carry+=lo<al?1:0;lo=lo+cl>>>0;carry+=lo<cl?1:0;lo=lo+dl>>>0;carry+=lo<dl?1:0;lo=lo+el>>>0;carry+=lo<el?1:0;var hi=ah+bh+ch+dh+eh+carry;return hi>>>0;}exports.sum64_5_hi=sum64_5_hi;function sum64_5_lo(ah,al,bh,bl,ch,cl,dh,dl,eh,el){var lo=al+bl+cl+dl+el;return lo>>>0;}exports.sum64_5_lo=sum64_5_lo;function rotr64_hi(ah,al,num){var r=al<<32-num|ah>>>num;return r>>>0;}exports.rotr64_hi=rotr64_hi;function rotr64_lo(ah,al,num){var r=ah<<32-num|al>>>num;return r>>>0;}exports.rotr64_lo=rotr64_lo;function shr64_hi(ah,al,num){return ah>>>num;}exports.shr64_hi=shr64_hi;function shr64_lo(ah,al,num){var r=ah<<32-num|al>>>num;return r>>>0;}exports.shr64_lo=shr64_lo;},{"inherits":183}],85:[function(require,module,exports){module.exports={"name":"elliptic","version":"3.1.0","description":"EC cryptography","main":"lib/elliptic.js","scripts":{"test":"make lint && mocha --reporter=spec test/*-test.js"},"repository":{"type":"git","url":"git+ssh://git@github.com/indutny/elliptic.git"},"keywords":["EC","Elliptic","curve","Cryptography"],"author":{"name":"Fedor Indutny","email":"fedor@indutny.com"},"license":"MIT","bugs":{"url":"https://github.com/indutny/elliptic/issues"},"homepage":"https://github.com/indutny/elliptic","devDependencies":{"browserify":"^3.44.2","jscs":"^1.11.3","jshint":"^2.6.0","mocha":"^2.1.0","uglify-js":"^2.4.13"},"dependencies":{"bn.js":"^2.0.3","brorand":"^1.0.1","hash.js":"^1.0.0","inherits":"^2.0.1"},"gitHead":"d86cd2a8178f7e7cecbd6dd92eea084e2ab44c13","_id":"elliptic@3.1.0","_shasum":"c21682ef762769b56a74201609105da11d5f60cc","_from":"elliptic@>=3.0.0 <4.0.0","_npmVersion":"2.11.0","_nodeVersion":"2.2.1","_npmUser":{"name":"indutny","email":"fedor@indutny.com"},"maintainers":[{"name":"indutny","email":"fedor@indutny.com"}],"dist":{"shasum":"c21682ef762769b56a74201609105da11d5f60cc","tarball":"http://registry.npmjs.org/elliptic/-/elliptic-3.1.0.tgz"},"directories":{},"_resolved":"https://registry.npmjs.org/elliptic/-/elliptic-3.1.0.tgz"};},{}],86:[function(require,module,exports){(function(Buffer){var createHash=require('create-hash');module.exports=function evp(password,salt,keyLen){keyLen=keyLen/8;var ki=0;var key=new Buffer(keyLen);var addmd=0;var md,md_buf;var i;while(true){md=createHash('md5');if(addmd++>0){md.update(md_buf);}md.update(password);md.update(salt);md_buf=md.digest();i=0;if(keyLen>0){while(true){if(keyLen===0){break;}if(i===md_buf.length){break;}key[ki++]=md_buf[i++];keyLen--;}}if(keyLen===0){break;}}for(i=0;i<md_buf.length;i++){md_buf[i]=0;}return key;};}).call(this,require("buffer").Buffer);},{"buffer":37,"create-hash":132}],87:[function(require,module,exports){module.exports={"2.16.840.1.101.3.4.1.1":"aes-128-ecb","2.16.840.1.101.3.4.1.2":"aes-128-cbc","2.16.840.1.101.3.4.1.3":"aes-128-ofb","2.16.840.1.101.3.4.1.4":"aes-128-cfb","2.16.840.1.101.3.4.1.21":"aes-192-ecb","2.16.840.1.101.3.4.1.22":"aes-192-cbc","2.16.840.1.101.3.4.1.23":"aes-192-ofb","2.16.840.1.101.3.4.1.24":"aes-192-cfb","2.16.840.1.101.3.4.1.41":"aes-256-ecb","2.16.840.1.101.3.4.1.42":"aes-256-cbc","2.16.840.1.101.3.4.1.43":"aes-256-ofb","2.16.840.1.101.3.4.1.44":"aes-256-cfb"};},{}],88:[function(require,module,exports){// from https://github.com/indutny/self-signed/blob/gh-pages/lib/asn1.js
+    var c2_lo=shr64_lo(xh,xl,6);var r=c0_lo^c1_lo^c2_lo;if(r<0)r+=0x100000000;return r;}},{"../hash":79}],84:[function(require,module,exports){var utils=exports;var inherits=require('inherits');function toArray(msg,enc){if(Array.isArray(msg))return msg.slice();if(!msg)return [];var res=[];if(typeof msg==='string'){if(!enc){for(var i=0;i<msg.length;i++){var c=msg.charCodeAt(i);var hi=c>>8;var lo=c&0xff;if(hi)res.push(hi,lo);else res.push(lo);}}else if(enc==='hex'){msg=msg.replace(/[^a-z0-9]+/ig,'');if(msg.length%2!==0)msg='0'+msg;for(var i=0;i<msg.length;i+=2){res.push(parseInt(msg[i]+msg[i+1],16));}}}else{for(var i=0;i<msg.length;i++){res[i]=msg[i]|0;}}return res;}utils.toArray=toArray;function toHex(msg){var res='';for(var i=0;i<msg.length;i++){res+=zero2(msg[i].toString(16));}return res;}utils.toHex=toHex;function htonl(w){var res=w>>>24|w>>>8&0xff00|w<<8&0xff0000|(w&0xff)<<24;return res>>>0;}utils.htonl=htonl;function toHex32(msg,endian){var res='';for(var i=0;i<msg.length;i++){var w=msg[i];if(endian==='little')w=htonl(w);res+=zero8(w.toString(16));}return res;}utils.toHex32=toHex32;function zero2(word){if(word.length===1)return '0'+word;else return word;}utils.zero2=zero2;function zero8(word){if(word.length===7)return '0'+word;else if(word.length===6)return '00'+word;else if(word.length===5)return '000'+word;else if(word.length===4)return '0000'+word;else if(word.length===3)return '00000'+word;else if(word.length===2)return '000000'+word;else if(word.length===1)return '0000000'+word;else return word;}utils.zero8=zero8;function join32(msg,start,end,endian){var len=end-start;assert(len%4===0);var res=new Array(len/4);for(var i=0,k=start;i<res.length;i++,k+=4){var w;if(endian==='big')w=msg[k]<<24|msg[k+1]<<16|msg[k+2]<<8|msg[k+3];else w=msg[k+3]<<24|msg[k+2]<<16|msg[k+1]<<8|msg[k];res[i]=w>>>0;}return res;}utils.join32=join32;function split32(msg,endian){var res=new Array(msg.length*4);for(var i=0,k=0;i<msg.length;i++,k+=4){var m=msg[i];if(endian==='big'){res[k]=m>>>24;res[k+1]=m>>>16&0xff;res[k+2]=m>>>8&0xff;res[k+3]=m&0xff;}else{res[k+3]=m>>>24;res[k+2]=m>>>16&0xff;res[k+1]=m>>>8&0xff;res[k]=m&0xff;}}return res;}utils.split32=split32;function rotr32(w,b){return w>>>b|w<<32-b;}utils.rotr32=rotr32;function rotl32(w,b){return w<<b|w>>>32-b;}utils.rotl32=rotl32;function sum32(a,b){return a+b>>>0;}utils.sum32=sum32;function sum32_3(a,b,c){return a+b+c>>>0;}utils.sum32_3=sum32_3;function sum32_4(a,b,c,d){return a+b+c+d>>>0;}utils.sum32_4=sum32_4;function sum32_5(a,b,c,d,e){return a+b+c+d+e>>>0;}utils.sum32_5=sum32_5;function assert(cond,msg){if(!cond)throw new Error(msg||'Assertion failed');}utils.assert=assert;utils.inherits=inherits;function sum64(buf,pos,ah,al){var bh=buf[pos];var bl=buf[pos+1];var lo=al+bl>>>0;var hi=(lo<al?1:0)+ah+bh;buf[pos]=hi>>>0;buf[pos+1]=lo;}exports.sum64=sum64;function sum64_hi(ah,al,bh,bl){var lo=al+bl>>>0;var hi=(lo<al?1:0)+ah+bh;return hi>>>0;}exports.sum64_hi=sum64_hi;function sum64_lo(ah,al,bh,bl){var lo=al+bl;return lo>>>0;}exports.sum64_lo=sum64_lo;function sum64_4_hi(ah,al,bh,bl,ch,cl,dh,dl){var carry=0;var lo=al;lo=lo+bl>>>0;carry+=lo<al?1:0;lo=lo+cl>>>0;carry+=lo<cl?1:0;lo=lo+dl>>>0;carry+=lo<dl?1:0;var hi=ah+bh+ch+dh+carry;return hi>>>0;}exports.sum64_4_hi=sum64_4_hi;function sum64_4_lo(ah,al,bh,bl,ch,cl,dh,dl){var lo=al+bl+cl+dl;return lo>>>0;}exports.sum64_4_lo=sum64_4_lo;function sum64_5_hi(ah,al,bh,bl,ch,cl,dh,dl,eh,el){var carry=0;var lo=al;lo=lo+bl>>>0;carry+=lo<al?1:0;lo=lo+cl>>>0;carry+=lo<cl?1:0;lo=lo+dl>>>0;carry+=lo<dl?1:0;lo=lo+el>>>0;carry+=lo<el?1:0;var hi=ah+bh+ch+dh+eh+carry;return hi>>>0;}exports.sum64_5_hi=sum64_5_hi;function sum64_5_lo(ah,al,bh,bl,ch,cl,dh,dl,eh,el){var lo=al+bl+cl+dl+el;return lo>>>0;}exports.sum64_5_lo=sum64_5_lo;function rotr64_hi(ah,al,num){var r=al<<32-num|ah>>>num;return r>>>0;}exports.rotr64_hi=rotr64_hi;function rotr64_lo(ah,al,num){var r=ah<<32-num|al>>>num;return r>>>0;}exports.rotr64_lo=rotr64_lo;function shr64_hi(ah,al,num){return ah>>>num;}exports.shr64_hi=shr64_hi;function shr64_lo(ah,al,num){var r=ah<<32-num|al>>>num;return r>>>0;}exports.shr64_lo=shr64_lo;},{"inherits":183}],85:[function(require,module,exports){module.exports={"name":"elliptic","version":"3.1.0","description":"EC cryptography","main":"lib/elliptic.js","scripts":{"test":"make lint && mocha --reporter=spec test/*-test.js"},"repository":{"type":"git","url":"git+ssh://git@github.com/indutny/elliptic.git"},"keywords":["EC","Elliptic","curve","Cryptography"],"author":{"name":"Fedor Indutny","email":"fedor@indutny.com"},"license":"MIT","bugs":{"url":"https://github.com/indutny/elliptic/issues"},"homepage":"https://github.com/indutny/elliptic","devDependencies":{"browserify":"^3.44.2","jscs":"^1.11.3","jshint":"^2.6.0","mocha":"^2.1.0","uglify-js":"^2.4.13"},"dependencies":{"bn.js":"^2.0.3","brorand":"^1.0.1","hash.js":"^1.0.0","inherits":"^2.0.1"},"gitHead":"d86cd2a8178f7e7cecbd6dd92eea084e2ab44c13","_id":"elliptic@3.1.0","_shasum":"c21682ef762769b56a74201609105da11d5f60cc","_from":"elliptic@>=3.0.0 <4.0.0","_npmVersion":"2.11.0","_nodeVersion":"2.2.1","_npmUser":{"name":"indutny","email":"fedor@indutny.com"},"maintainers":[{"name":"indutny","email":"fedor@indutny.com"}],"dist":{"shasum":"c21682ef762769b56a74201609105da11d5f60cc","tarball":"http://registry.npmjs.org/elliptic/-/elliptic-3.1.0.tgz"},"directories":{},"_resolved":"https://registry.npmjs.org/elliptic/-/elliptic-3.1.0.tgz"};},{}],86:[function(require,module,exports){(function(Buffer){var createHash=require('create-hash');module.exports=function evp(password,salt,keyLen){keyLen=keyLen/8;var ki=0;var key=new Buffer(keyLen);var addmd=0;var md,md_buf;var i;while(true){md=createHash('md5');if(addmd++>0){md.update(md_buf);}md.update(password);md.update(salt);md_buf=md.digest();i=0;if(keyLen>0){while(true){if(keyLen===0){break;}if(i===md_buf.length){break;}key[ki++]=md_buf[i++];keyLen--;}}if(keyLen===0){break;}}for(i=0;i<md_buf.length;i++){md_buf[i]=0;}return key;};}).call(this,require("buffer").Buffer);},{"buffer":37,"create-hash":132}],87:[function(require,module,exports){module.exports={"2.16.840.1.101.3.4.1.1":"aes-128-ecb","2.16.840.1.101.3.4.1.2":"aes-128-cbc","2.16.840.1.101.3.4.1.3":"aes-128-ofb","2.16.840.1.101.3.4.1.4":"aes-128-cfb","2.16.840.1.101.3.4.1.21":"aes-192-ecb","2.16.840.1.101.3.4.1.22":"aes-192-cbc","2.16.840.1.101.3.4.1.23":"aes-192-ofb","2.16.840.1.101.3.4.1.24":"aes-192-cfb","2.16.840.1.101.3.4.1.41":"aes-256-ecb","2.16.840.1.101.3.4.1.42":"aes-256-cbc","2.16.840.1.101.3.4.1.43":"aes-256-ofb","2.16.840.1.101.3.4.1.44":"aes-256-cfb"};},{}],88:[function(require,module,exports){// from https://github.com/indutny/self-signed/blob/gh-pages/lib/asn1.js
     // Fedor, you are amazing.
     var asn1=require('asn1.js');var RSAPrivateKey=asn1.define('RSAPrivateKey',function(){this.seq().obj(this.key('version').int(),this.key('modulus').int(),this.key('publicExponent').int(),this.key('privateExponent').int(),this.key('prime1').int(),this.key('prime2').int(),this.key('exponent1').int(),this.key('exponent2').int(),this.key('coefficient').int());});exports.RSAPrivateKey=RSAPrivateKey;var RSAPublicKey=asn1.define('RSAPublicKey',function(){this.seq().obj(this.key('modulus').int(),this.key('publicExponent').int());});exports.RSAPublicKey=RSAPublicKey;var PublicKey=asn1.define('SubjectPublicKeyInfo',function(){this.seq().obj(this.key('algorithm').use(AlgorithmIdentifier),this.key('subjectPublicKey').bitstr());});exports.PublicKey=PublicKey;var AlgorithmIdentifier=asn1.define('AlgorithmIdentifier',function(){this.seq().obj(this.key('algorithm').objid(),this.key('none').null_().optional(),this.key('curve').objid().optional(),this.key('params').seq().obj(this.key('p').int(),this.key('q').int(),this.key('g').int()).optional());});var PrivateKeyInfo=asn1.define('PrivateKeyInfo',function(){this.seq().obj(this.key('version').int(),this.key('algorithm').use(AlgorithmIdentifier),this.key('subjectPrivateKey').octstr());});exports.PrivateKey=PrivateKeyInfo;var EncryptedPrivateKeyInfo=asn1.define('EncryptedPrivateKeyInfo',function(){this.seq().obj(this.key('algorithm').seq().obj(this.key('id').objid(),this.key('decrypt').seq().obj(this.key('kde').seq().obj(this.key('id').objid(),this.key('kdeparams').seq().obj(this.key('salt').octstr(),this.key('iters').int())),this.key('cipher').seq().obj(this.key('algo').objid(),this.key('iv').octstr()))),this.key('subjectPrivateKey').octstr());});exports.EncryptedPrivateKey=EncryptedPrivateKeyInfo;var DSAPrivateKey=asn1.define('DSAPrivateKey',function(){this.seq().obj(this.key('version').int(),this.key('p').int(),this.key('q').int(),this.key('g').int(),this.key('pub_key').int(),this.key('priv_key').int());});exports.DSAPrivateKey=DSAPrivateKey;exports.DSAparam=asn1.define('DSAparam',function(){this.int();});var ECPrivateKey=asn1.define('ECPrivateKey',function(){this.seq().obj(this.key('version').int(),this.key('privateKey').octstr(),this.key('parameters').optional().explicit(0).use(ECParameters),this.key('publicKey').optional().explicit(1).bitstr());});exports.ECPrivateKey=ECPrivateKey;var ECParameters=asn1.define('ECParameters',function(){this.choice({namedCurve:this.objid()});});exports.signature=asn1.define('signature',function(){this.seq().obj(this.key('r').int(),this.key('s').int());});},{"asn1.js":91}],89:[function(require,module,exports){(function(Buffer){// adapted from https://github.com/apatil/pemstrip
     var findProc=/Proc-Type: 4,ENCRYPTED\r?\nDEK-Info: AES-((?:128)|(?:192)|(?:256))-CBC,([0-9A-H]+)\r?\n\r?\n([0-9A-z\n\r\+\/\=]+)\r?\n/m;var startRegex=/^-----BEGIN (.*) KEY-----\r?\n/m;var fullRegex=/^-----BEGIN (.*) KEY-----\r?\n([0-9A-z\n\r\+\/\=]+)\r?\n-----END \1 KEY-----$/m;var evp=require('./EVP_BytesToKey');var ciphers=require('browserify-aes');module.exports=function(okey,password){var key=okey.toString();var match=key.match(findProc);var decrypted;if(!match){var match2=key.match(fullRegex);decrypted=new Buffer(match2[2].replace(/\r?\n/g,''),'base64');}else{var suite='aes'+match[1];var iv=new Buffer(match[2],'hex');var cipherText=new Buffer(match[3].replace(/\r?\n/g,''),'base64');var cipherKey=evp(password,iv.slice(0,8),parseInt(match[1]));var out=[];var cipher=ciphers.createDecipheriv(suite,cipherKey,iv);out.push(cipher.update(cipherText));out.push(cipher.final());decrypted=Buffer.concat(out);}var tag=key.match(startRegex)[1]+' KEY';return {tag:tag,data:decrypted};};// http://stackoverflow.com/a/7033705
-    }).call(this,require("buffer").Buffer);},{"./EVP_BytesToKey":86,"browserify-aes":45,"buffer":37}],90:[function(require,module,exports){(function(Buffer){var asn1=require('./asn1');var aesid=require('./aesid.json');var fixProc=require('./fixProc');var ciphers=require('browserify-aes');var compat=require('pbkdf2');module.exports=parseKeys;function parseKeys(buffer){var password;if((typeof buffer==="undefined"?"undefined":_typeof(buffer))==='object'&&!Buffer.isBuffer(buffer)){password=buffer.passphrase;buffer=buffer.key;}if(typeof buffer==='string'){buffer=new Buffer(buffer);}var stripped=fixProc(buffer,password);var type=stripped.tag;var data=stripped.data;var subtype,ndata;switch(type){case'PUBLIC KEY':ndata=asn1.PublicKey.decode(data,'der');subtype=ndata.algorithm.algorithm.join('.');switch(subtype){case'1.2.840.113549.1.1.1':return asn1.RSAPublicKey.decode(ndata.subjectPublicKey.data,'der');case'1.2.840.10045.2.1':ndata.subjectPrivateKey=ndata.subjectPublicKey;return {type:'ec',data:ndata};case'1.2.840.10040.4.1':ndata.algorithm.params.pub_key=asn1.DSAparam.decode(ndata.subjectPublicKey.data,'der');return {type:'dsa',data:ndata.algorithm.params};default:throw new Error('unknown key id '+subtype);}throw new Error('unknown key type '+type);case'ENCRYPTED PRIVATE KEY':data=asn1.EncryptedPrivateKey.decode(data,'der');data=decrypt(data,password);//falling through
-    case'PRIVATE KEY':ndata=asn1.PrivateKey.decode(data,'der');subtype=ndata.algorithm.algorithm.join('.');switch(subtype){case'1.2.840.113549.1.1.1':return asn1.RSAPrivateKey.decode(ndata.subjectPrivateKey,'der');case'1.2.840.10045.2.1':return {curve:ndata.algorithm.curve,privateKey:asn1.ECPrivateKey.decode(ndata.subjectPrivateKey,'der').privateKey};case'1.2.840.10040.4.1':ndata.algorithm.params.priv_key=asn1.DSAparam.decode(ndata.subjectPrivateKey,'der');return {type:'dsa',params:ndata.algorithm.params};default:throw new Error('unknown key id '+subtype);}throw new Error('unknown key type '+type);case'RSA PUBLIC KEY':return asn1.RSAPublicKey.decode(data,'der');case'RSA PRIVATE KEY':return asn1.RSAPrivateKey.decode(data,'der');case'DSA PRIVATE KEY':return {type:'dsa',params:asn1.DSAPrivateKey.decode(data,'der')};case'EC PRIVATE KEY':data=asn1.ECPrivateKey.decode(data,'der');return {curve:data.parameters.value,privateKey:data.privateKey};default:throw new Error('unknown key type '+type);}}parseKeys.signature=asn1.signature;function decrypt(data,password){var salt=data.algorithm.decrypt.kde.kdeparams.salt;var iters=parseInt(data.algorithm.decrypt.kde.kdeparams.iters.toString(),10);var algo=aesid[data.algorithm.decrypt.cipher.algo.join('.')];var iv=data.algorithm.decrypt.cipher.iv;var cipherText=data.subjectPrivateKey;var keylen=parseInt(algo.split('-')[1],10)/8;var key=compat.pbkdf2Sync(password,salt,iters,keylen);var cipher=ciphers.createDecipheriv(algo,key,iv);var out=[];out.push(cipher.update(cipherText));out.push(cipher.final());return Buffer.concat(out);}}).call(this,require("buffer").Buffer);},{"./aesid.json":87,"./asn1":88,"./fixProc":89,"browserify-aes":45,"buffer":37,"pbkdf2":152}],91:[function(require,module,exports){var asn1=exports;asn1.bignum=require('bn.js');asn1.define=require('./asn1/api').define;asn1.base=require('./asn1/base');asn1.constants=require('./asn1/constants');asn1.decoders=require('./asn1/decoders');asn1.encoders=require('./asn1/encoders');},{"./asn1/api":92,"./asn1/base":94,"./asn1/constants":98,"./asn1/decoders":100,"./asn1/encoders":103,"bn.js":63}],92:[function(require,module,exports){var asn1=require('../asn1');var inherits$$1=require('inherits');var api=exports;api.define=function define(name,body){return new Entity(name,body);};function Entity(name,body){this.name=name;this.body=body;this.decoders={};this.encoders={};}Entity.prototype._createNamed=function createNamed(base){var named;try{named=require('vm').runInThisContext('(function '+this.name+'(entity) {\n'+'  this._initNamed(entity);\n'+'})');}catch(e){named=function named(entity){this._initNamed(entity);};}inherits$$1(named,base);named.prototype._initNamed=function initnamed(entity){base.call(this,entity);};return new named(this);};Entity.prototype._getDecoder=function _getDecoder(enc){// Lazily create decoder
+    }).call(this,require("buffer").Buffer);},{"./EVP_BytesToKey":86,"browserify-aes":45,"buffer":37}],90:[function(require,module,exports){(function(Buffer){var asn1=require('./asn1');var aesid=require('./aesid.json');var fixProc=require('./fixProc');var ciphers=require('browserify-aes');var compat=require('pbkdf2');module.exports=parseKeys;function parseKeys(buffer){var password;if(_typeof(buffer)==='object'&&!Buffer.isBuffer(buffer)){password=buffer.passphrase;buffer=buffer.key;}if(typeof buffer==='string'){buffer=new Buffer(buffer);}var stripped=fixProc(buffer,password);var type=stripped.tag;var data=stripped.data;var subtype,ndata;switch(type){case'PUBLIC KEY':ndata=asn1.PublicKey.decode(data,'der');subtype=ndata.algorithm.algorithm.join('.');switch(subtype){case'1.2.840.113549.1.1.1':return asn1.RSAPublicKey.decode(ndata.subjectPublicKey.data,'der');case'1.2.840.10045.2.1':ndata.subjectPrivateKey=ndata.subjectPublicKey;return {type:'ec',data:ndata};case'1.2.840.10040.4.1':ndata.algorithm.params.pub_key=asn1.DSAparam.decode(ndata.subjectPublicKey.data,'der');return {type:'dsa',data:ndata.algorithm.params};default:throw new Error('unknown key id '+subtype);}throw new Error('unknown key type '+type);case'ENCRYPTED PRIVATE KEY':data=asn1.EncryptedPrivateKey.decode(data,'der');data=decrypt(data,password);//falling through
+    case'PRIVATE KEY':ndata=asn1.PrivateKey.decode(data,'der');subtype=ndata.algorithm.algorithm.join('.');switch(subtype){case'1.2.840.113549.1.1.1':return asn1.RSAPrivateKey.decode(ndata.subjectPrivateKey,'der');case'1.2.840.10045.2.1':return {curve:ndata.algorithm.curve,privateKey:asn1.ECPrivateKey.decode(ndata.subjectPrivateKey,'der').privateKey};case'1.2.840.10040.4.1':ndata.algorithm.params.priv_key=asn1.DSAparam.decode(ndata.subjectPrivateKey,'der');return {type:'dsa',params:ndata.algorithm.params};default:throw new Error('unknown key id '+subtype);}throw new Error('unknown key type '+type);case'RSA PUBLIC KEY':return asn1.RSAPublicKey.decode(data,'der');case'RSA PRIVATE KEY':return asn1.RSAPrivateKey.decode(data,'der');case'DSA PRIVATE KEY':return {type:'dsa',params:asn1.DSAPrivateKey.decode(data,'der')};case'EC PRIVATE KEY':data=asn1.ECPrivateKey.decode(data,'der');return {curve:data.parameters.value,privateKey:data.privateKey};default:throw new Error('unknown key type '+type);}}parseKeys.signature=asn1.signature;function decrypt(data,password){var salt=data.algorithm.decrypt.kde.kdeparams.salt;var iters=parseInt(data.algorithm.decrypt.kde.kdeparams.iters.toString(),10);var algo=aesid[data.algorithm.decrypt.cipher.algo.join('.')];var iv=data.algorithm.decrypt.cipher.iv;var cipherText=data.subjectPrivateKey;var keylen=parseInt(algo.split('-')[1],10)/8;var key=compat.pbkdf2Sync(password,salt,iters,keylen);var cipher=ciphers.createDecipheriv(algo,key,iv);var out=[];out.push(cipher.update(cipherText));out.push(cipher.final());return Buffer.concat(out);}}).call(this,require("buffer").Buffer);},{"./aesid.json":87,"./asn1":88,"./fixProc":89,"browserify-aes":45,"buffer":37,"pbkdf2":152}],91:[function(require,module,exports){var asn1=exports;asn1.bignum=require('bn.js');asn1.define=require('./asn1/api').define;asn1.base=require('./asn1/base');asn1.constants=require('./asn1/constants');asn1.decoders=require('./asn1/decoders');asn1.encoders=require('./asn1/encoders');},{"./asn1/api":92,"./asn1/base":94,"./asn1/constants":98,"./asn1/decoders":100,"./asn1/encoders":103,"bn.js":63}],92:[function(require,module,exports){var asn1=require('../asn1');var inherits=require('inherits');var api=exports;api.define=function define(name,body){return new Entity(name,body);};function Entity(name,body){this.name=name;this.body=body;this.decoders={};this.encoders={};}Entity.prototype._createNamed=function createNamed(base){var named;try{named=require('vm').runInThisContext('(function '+this.name+'(entity) {\n'+'  this._initNamed(entity);\n'+'})');}catch(e){named=function named(entity){this._initNamed(entity);};}inherits(named,base);named.prototype._initNamed=function initnamed(entity){base.call(this,entity);};return new named(this);};Entity.prototype._getDecoder=function _getDecoder(enc){// Lazily create decoder
     if(!this.decoders.hasOwnProperty(enc))this.decoders[enc]=this._createNamed(asn1.decoders[enc]);return this.decoders[enc];};Entity.prototype.decode=function decode(data,enc,options){return this._getDecoder(enc).decode(data,options);};Entity.prototype._getEncoder=function _getEncoder(enc){// Lazily create encoder
-    if(!this.encoders.hasOwnProperty(enc))this.encoders[enc]=this._createNamed(asn1.encoders[enc]);return this.encoders[enc];};Entity.prototype.encode=function encode(data,enc,/* internal */reporter){return this._getEncoder(enc).encode(data,reporter);};},{"../asn1":91,"inherits":183,"vm":204}],93:[function(require,module,exports){var inherits$$1=require('inherits');var Reporter=require('../base').Reporter;var Buffer=require('buffer').Buffer;function DecoderBuffer(base,options){Reporter.call(this,options);if(!Buffer.isBuffer(base)){this.error('Input not Buffer');return;}this.base=base;this.offset=0;this.length=base.length;}inherits$$1(DecoderBuffer,Reporter);exports.DecoderBuffer=DecoderBuffer;DecoderBuffer.prototype.save=function save(){return {offset:this.offset,reporter:Reporter.prototype.save.call(this)};};DecoderBuffer.prototype.restore=function restore(save){// Return skipped data
+    if(!this.encoders.hasOwnProperty(enc))this.encoders[enc]=this._createNamed(asn1.encoders[enc]);return this.encoders[enc];};Entity.prototype.encode=function encode(data,enc,/* internal */reporter){return this._getEncoder(enc).encode(data,reporter);};},{"../asn1":91,"inherits":183,"vm":204}],93:[function(require,module,exports){var inherits=require('inherits');var Reporter=require('../base').Reporter;var Buffer=require('buffer').Buffer;function DecoderBuffer(base,options){Reporter.call(this,options);if(!Buffer.isBuffer(base)){this.error('Input not Buffer');return;}this.base=base;this.offset=0;this.length=base.length;}inherits(DecoderBuffer,Reporter);exports.DecoderBuffer=DecoderBuffer;DecoderBuffer.prototype.save=function save(){return {offset:this.offset,reporter:Reporter.prototype.save.call(this)};};DecoderBuffer.prototype.restore=function restore(save){// Return skipped data
     var res=new DecoderBuffer(this.base);res.offset=save.offset;res.length=this.offset;this.offset=save.offset;Reporter.prototype.restore.call(this,save.reporter);return res;};DecoderBuffer.prototype.isEmpty=function isEmpty(){return this.offset===this.length;};DecoderBuffer.prototype.readUInt8=function readUInt8(fail){if(this.offset+1<=this.length)return this.base.readUInt8(this.offset++,true);else return this.error(fail||'DecoderBuffer overrun');};DecoderBuffer.prototype.skip=function skip(bytes,fail){if(!(this.offset+bytes<=this.length))return this.error(fail||'DecoderBuffer overrun');var res=new DecoderBuffer(this.base);// Share reporter state
-    res._reporterState=this._reporterState;res.offset=this.offset;res.length=this.offset+bytes;this.offset+=bytes;return res;};DecoderBuffer.prototype.raw=function raw(save){return this.base.slice(save?save.offset:this.offset,this.length);};function EncoderBuffer(value,reporter){if(Array.isArray(value)){this.length=0;this.value=value.map(function(item){if(!(item instanceof EncoderBuffer))item=new EncoderBuffer(item,reporter);this.length+=item.length;return item;},this);}else if(typeof value==='number'){if(!(0<=value&&value<=0xff))return reporter.error('non-byte EncoderBuffer value');this.value=value;this.length=1;}else if(typeof value==='string'){this.value=value;this.length=Buffer.byteLength(value);}else if(Buffer.isBuffer(value)){this.value=value;this.length=value.length;}else{return reporter.error('Unsupported type: '+(typeof value==="undefined"?"undefined":_typeof(value)));}}exports.EncoderBuffer=EncoderBuffer;EncoderBuffer.prototype.join=function join(out,offset){if(!out)out=new Buffer(this.length);if(!offset)offset=0;if(this.length===0)return out;if(Array.isArray(this.value)){this.value.forEach(function(item){item.join(out,offset);offset+=item.length;});}else{if(typeof this.value==='number')out[offset]=this.value;else if(typeof this.value==='string')out.write(this.value,offset);else if(Buffer.isBuffer(this.value))this.value.copy(out,offset);offset+=this.length;}return out;};},{"../base":94,"buffer":37,"inherits":183}],94:[function(require,module,exports){var base=exports;base.Reporter=require('./reporter').Reporter;base.DecoderBuffer=require('./buffer').DecoderBuffer;base.EncoderBuffer=require('./buffer').EncoderBuffer;base.Node=require('./node');},{"./buffer":93,"./node":95,"./reporter":96}],95:[function(require,module,exports){var Reporter=require('../base').Reporter;var EncoderBuffer=require('../base').EncoderBuffer;var assert=require('minimalistic-assert');// Supported tags
+    res._reporterState=this._reporterState;res.offset=this.offset;res.length=this.offset+bytes;this.offset+=bytes;return res;};DecoderBuffer.prototype.raw=function raw(save){return this.base.slice(save?save.offset:this.offset,this.length);};function EncoderBuffer(value,reporter){if(Array.isArray(value)){this.length=0;this.value=value.map(function(item){if(!(item instanceof EncoderBuffer))item=new EncoderBuffer(item,reporter);this.length+=item.length;return item;},this);}else if(typeof value==='number'){if(!(0<=value&&value<=0xff))return reporter.error('non-byte EncoderBuffer value');this.value=value;this.length=1;}else if(typeof value==='string'){this.value=value;this.length=Buffer.byteLength(value);}else if(Buffer.isBuffer(value)){this.value=value;this.length=value.length;}else{return reporter.error('Unsupported type: '+_typeof(value));}}exports.EncoderBuffer=EncoderBuffer;EncoderBuffer.prototype.join=function join(out,offset){if(!out)out=new Buffer(this.length);if(!offset)offset=0;if(this.length===0)return out;if(Array.isArray(this.value)){this.value.forEach(function(item){item.join(out,offset);offset+=item.length;});}else{if(typeof this.value==='number')out[offset]=this.value;else if(typeof this.value==='string')out.write(this.value,offset);else if(Buffer.isBuffer(this.value))this.value.copy(out,offset);offset+=this.length;}return out;};},{"../base":94,"buffer":37,"inherits":183}],94:[function(require,module,exports){var base=exports;base.Reporter=require('./reporter').Reporter;base.DecoderBuffer=require('./buffer').DecoderBuffer;base.EncoderBuffer=require('./buffer').EncoderBuffer;base.Node=require('./node');},{"./buffer":93,"./node":95,"./reporter":96}],95:[function(require,module,exports){var Reporter=require('../base').Reporter;var EncoderBuffer=require('../base').EncoderBuffer;var assert=require('minimalistic-assert');// Supported tags
     var tags=['seq','seqof','set','setof','octstr','bitstr','objid','bool','gentime','utctime','null_','enum','int','ia5str','utf8str'];// Public methods list
     var methods=['key','obj','use','optional','explicit','implicit','def','choice','any'].concat(tags);// Overrided methods list
     var overrided=['_peekTag','_decodeTag','_use','_decodeStr','_decodeObjid','_decodeTime','_decodeNull','_decodeInt','_decodeBool','_decodeList','_encodeComposite','_encodeStr','_encodeObjid','_encodeTime','_encodeNull','_encodeInt','_encodeBool'];function Node(enc,parent){var state={};this._baseState=state;state.enc=enc;state.parent=parent||null;state.children=null;// State
@@ -2271,7 +2268,7 @@ var pmcrypto = (function (exports) {
     if(!state.parent){state.children=[];this._wrap();}}module.exports=Node;var stateProps=['enc','parent','children','tag','args','reverseArgs','choice','optional','any','obj','use','alteredUse','key','default','explicit','implicit'];Node.prototype.clone=function clone(){var state=this._baseState;var cstate={};stateProps.forEach(function(prop){cstate[prop]=state[prop];});var res=new this.constructor(cstate.parent);res._baseState=cstate;return res;};Node.prototype._wrap=function wrap(){var state=this._baseState;methods.forEach(function(method){this[method]=function _wrappedMethod(){var clone=new this.constructor(this);state.children.push(clone);return clone[method].apply(clone,arguments);};},this);};Node.prototype._init=function init(body){var state=this._baseState;assert(state.parent===null);body.call(this);// Filter children
     state.children=state.children.filter(function(child){return child._baseState.parent===this;},this);assert.equal(state.children.length,1,'Root node can have only one child');};Node.prototype._useArgs=function useArgs(args){var state=this._baseState;// Filter children and args
     var children=args.filter(function(arg){return arg instanceof this.constructor;},this);args=args.filter(function(arg){return !(arg instanceof this.constructor);},this);if(children.length!==0){assert(state.children===null);state.children=children;// Replace parent to maintain backward link
-    children.forEach(function(child){child._baseState.parent=this;},this);}if(args.length!==0){assert(state.args===null);state.args=args;state.reverseArgs=args.map(function(arg){if((typeof arg==="undefined"?"undefined":_typeof(arg))!=='object'||arg.constructor!==Object)return arg;var res={};Object.keys(arg).forEach(function(key){if(key==(key|0))key|=0;var value=arg[key];res[value]=key;});return res;});}};//
+    children.forEach(function(child){child._baseState.parent=this;},this);}if(args.length!==0){assert(state.args===null);state.args=args;state.reverseArgs=args.map(function(arg){if(_typeof(arg)!=='object'||arg.constructor!==Object)return arg;var res={};Object.keys(arg).forEach(function(key){if(key==(key|0))key|=0;var value=arg[key];res[value]=key;});return res;});}};//
     // Overrided methods
     //
     overrided.forEach(function(method){Node.prototype[method]=function _overrided(){var state=this._baseState;throw new Error(method+' not implemented for encoding: '+state.enc);};});//
@@ -2300,15 +2297,15 @@ var pmcrypto = (function (exports) {
     if(state.parent===null)return state.children[0]._encode(data,reporter||new Reporter());var result=null;this.reporter=reporter;// Check if data is there
     if(state.optional&&data===undefined){if(state['default']!==null)data=state['default'];else return;}// For error reporting
     var content=null;var primitive=false;if(state.any){// Anything that was given is translated to buffer
-    result=this._createEncoderBuffer(data);}else if(state.choice){result=this._encodeChoice(data,reporter);}else if(state.children){content=state.children.map(function(child){if(child._baseState.tag==='null_')return child._encode(null,reporter,data);if(child._baseState.key===null)return reporter.error('Child should have a key');var prevKey=reporter.enterKey(child._baseState.key);if((typeof data==="undefined"?"undefined":_typeof(data))!=='object')return reporter.error('Child expected, but input is not object');var res=child._encode(data[child._baseState.key],reporter,data);reporter.leaveKey(prevKey);return res;},this).filter(function(child){return child;});content=this._createEncoderBuffer(content);}else{if(state.tag==='seqof'||state.tag==='setof'){// TODO(indutny): this should be thrown on DSL level
+    result=this._createEncoderBuffer(data);}else if(state.choice){result=this._encodeChoice(data,reporter);}else if(state.children){content=state.children.map(function(child){if(child._baseState.tag==='null_')return child._encode(null,reporter,data);if(child._baseState.key===null)return reporter.error('Child should have a key');var prevKey=reporter.enterKey(child._baseState.key);if(_typeof(data)!=='object')return reporter.error('Child expected, but input is not object');var res=child._encode(data[child._baseState.key],reporter,data);reporter.leaveKey(prevKey);return res;},this).filter(function(child){return child;});content=this._createEncoderBuffer(content);}else{if(state.tag==='seqof'||state.tag==='setof'){// TODO(indutny): this should be thrown on DSL level
     if(!(state.args&&state.args.length===1))return reporter.error('Too many args for : '+state.tag);if(!Array.isArray(data))return reporter.error('seqof/setof, but data is not Array');var child=this.clone();child._baseState.implicit=null;content=this._createEncoderBuffer(data.map(function(item){var state=this._baseState;return this._getUse(state.args[0],data)._encode(item,reporter);},child));}else if(state.use!==null){result=this._getUse(state.use,parent)._encode(data,reporter);}else{content=this._encodePrimitive(state.tag,data);primitive=true;}}// Encode data itself
     var result;if(!state.any&&state.choice===null){var tag=state.implicit!==null?state.implicit:state.tag;var cls=state.implicit===null?'universal':'context';if(tag===null){if(state.use===null)reporter.error('Tag could be ommited only for .use()');}else{if(state.use===null)result=this._encodeComposite(tag,primitive,cls,content);}}// Wrap in explicit
-    if(state.explicit!==null)result=this._encodeComposite(state.explicit,false,'context',result);return result;};Node.prototype._encodeChoice=function encodeChoice(data,reporter){var state=this._baseState;var node=state.choice[data.type];if(!node){assert(false,data.type+' not found in '+JSON.stringify(Object.keys(state.choice)));}return node._encode(data.value,reporter);};Node.prototype._encodePrimitive=function encodePrimitive(tag,data){var state=this._baseState;if(tag==='octstr'||tag==='bitstr'||tag==='ia5str')return this._encodeStr(data,tag);else if(tag==='utf8str')return this._encodeStr(data,tag);else if(tag==='objid'&&state.args)return this._encodeObjid(data,state.reverseArgs[0],state.args[1]);else if(tag==='objid')return this._encodeObjid(data,null,null);else if(tag==='gentime'||tag==='utctime')return this._encodeTime(data,tag);else if(tag==='null_')return this._encodeNull();else if(tag==='int'||tag==='enum')return this._encodeInt(data,state.args&&state.reverseArgs[0]);else if(tag==='bool')return this._encodeBool(data);else throw new Error('Unsupported tag: '+tag);};},{"../base":94,"minimalistic-assert":105}],96:[function(require,module,exports){var inherits$$1=require('inherits');function Reporter(options){this._reporterState={obj:null,path:[],options:options||{},errors:[]};}exports.Reporter=Reporter;Reporter.prototype.isError=function isError(obj){return obj instanceof ReporterError;};Reporter.prototype.save=function save(){var state=this._reporterState;return {obj:state.obj,pathLen:state.path.length};};Reporter.prototype.restore=function restore(data){var state=this._reporterState;state.obj=data.obj;state.path=state.path.slice(0,data.pathLen);};Reporter.prototype.enterKey=function enterKey(key){return this._reporterState.path.push(key);};Reporter.prototype.leaveKey=function leaveKey(index,key,value){var state=this._reporterState;state.path=state.path.slice(0,index-1);if(state.obj!==null)state.obj[key]=value;};Reporter.prototype.enterObject=function enterObject(){var state=this._reporterState;var prev=state.obj;state.obj={};return prev;};Reporter.prototype.leaveObject=function leaveObject(prev){var state=this._reporterState;var now=state.obj;state.obj=prev;return now;};Reporter.prototype.error=function error(msg){var err;var state=this._reporterState;var inherited=msg instanceof ReporterError;if(inherited){err=msg;}else{err=new ReporterError(state.path.map(function(elem){return '['+JSON.stringify(elem)+']';}).join(''),msg.message||msg,msg.stack);}if(!state.options.partial)throw err;if(!inherited)state.errors.push(err);return err;};Reporter.prototype.wrapResult=function wrapResult(result){var state=this._reporterState;if(!state.options.partial)return result;return {result:this.isError(result)?null:result,errors:state.errors};};function ReporterError(path,msg){this.path=path;this.rethrow(msg);}inherits$$1(ReporterError,Error);ReporterError.prototype.rethrow=function rethrow(msg){this.message=msg+' at: '+(this.path||'(shallow)');Error.captureStackTrace(this,ReporterError);return this;};},{"inherits":183}],97:[function(require,module,exports){var constants=require('../constants');exports.tagClass={0:'universal',1:'application',2:'context',3:'private'};exports.tagClassByName=constants._reverse(exports.tagClass);exports.tag={0x00:'end',0x01:'bool',0x02:'int',0x03:'bitstr',0x04:'octstr',0x05:'null_',0x06:'objid',0x07:'objDesc',0x08:'external',0x09:'real',0x0a:'enum',0x0b:'embed',0x0c:'utf8str',0x0d:'relativeOid',0x10:'seq',0x11:'set',0x12:'numstr',0x13:'printstr',0x14:'t61str',0x15:'videostr',0x16:'ia5str',0x17:'utctime',0x18:'gentime',0x19:'graphstr',0x1a:'iso646str',0x1b:'genstr',0x1c:'unistr',0x1d:'charstr',0x1e:'bmpstr'};exports.tagByName=constants._reverse(exports.tag);},{"../constants":98}],98:[function(require,module,exports){var constants=exports;// Helper
+    if(state.explicit!==null)result=this._encodeComposite(state.explicit,false,'context',result);return result;};Node.prototype._encodeChoice=function encodeChoice(data,reporter){var state=this._baseState;var node=state.choice[data.type];if(!node){assert(false,data.type+' not found in '+JSON.stringify(Object.keys(state.choice)));}return node._encode(data.value,reporter);};Node.prototype._encodePrimitive=function encodePrimitive(tag,data){var state=this._baseState;if(tag==='octstr'||tag==='bitstr'||tag==='ia5str')return this._encodeStr(data,tag);else if(tag==='utf8str')return this._encodeStr(data,tag);else if(tag==='objid'&&state.args)return this._encodeObjid(data,state.reverseArgs[0],state.args[1]);else if(tag==='objid')return this._encodeObjid(data,null,null);else if(tag==='gentime'||tag==='utctime')return this._encodeTime(data,tag);else if(tag==='null_')return this._encodeNull();else if(tag==='int'||tag==='enum')return this._encodeInt(data,state.args&&state.reverseArgs[0]);else if(tag==='bool')return this._encodeBool(data);else throw new Error('Unsupported tag: '+tag);};},{"../base":94,"minimalistic-assert":105}],96:[function(require,module,exports){var inherits=require('inherits');function Reporter(options){this._reporterState={obj:null,path:[],options:options||{},errors:[]};}exports.Reporter=Reporter;Reporter.prototype.isError=function isError(obj){return obj instanceof ReporterError;};Reporter.prototype.save=function save(){var state=this._reporterState;return {obj:state.obj,pathLen:state.path.length};};Reporter.prototype.restore=function restore(data){var state=this._reporterState;state.obj=data.obj;state.path=state.path.slice(0,data.pathLen);};Reporter.prototype.enterKey=function enterKey(key){return this._reporterState.path.push(key);};Reporter.prototype.leaveKey=function leaveKey(index,key,value){var state=this._reporterState;state.path=state.path.slice(0,index-1);if(state.obj!==null)state.obj[key]=value;};Reporter.prototype.enterObject=function enterObject(){var state=this._reporterState;var prev=state.obj;state.obj={};return prev;};Reporter.prototype.leaveObject=function leaveObject(prev){var state=this._reporterState;var now=state.obj;state.obj=prev;return now;};Reporter.prototype.error=function error(msg){var err;var state=this._reporterState;var inherited=msg instanceof ReporterError;if(inherited){err=msg;}else{err=new ReporterError(state.path.map(function(elem){return '['+JSON.stringify(elem)+']';}).join(''),msg.message||msg,msg.stack);}if(!state.options.partial)throw err;if(!inherited)state.errors.push(err);return err;};Reporter.prototype.wrapResult=function wrapResult(result){var state=this._reporterState;if(!state.options.partial)return result;return {result:this.isError(result)?null:result,errors:state.errors};};function ReporterError(path,msg){this.path=path;this.rethrow(msg);}inherits(ReporterError,Error);ReporterError.prototype.rethrow=function rethrow(msg){this.message=msg+' at: '+(this.path||'(shallow)');Error.captureStackTrace(this,ReporterError);return this;};},{"inherits":183}],97:[function(require,module,exports){var constants=require('../constants');exports.tagClass={0:'universal',1:'application',2:'context',3:'private'};exports.tagClassByName=constants._reverse(exports.tagClass);exports.tag={0x00:'end',0x01:'bool',0x02:'int',0x03:'bitstr',0x04:'octstr',0x05:'null_',0x06:'objid',0x07:'objDesc',0x08:'external',0x09:'real',0x0a:'enum',0x0b:'embed',0x0c:'utf8str',0x0d:'relativeOid',0x10:'seq',0x11:'set',0x12:'numstr',0x13:'printstr',0x14:'t61str',0x15:'videostr',0x16:'ia5str',0x17:'utctime',0x18:'gentime',0x19:'graphstr',0x1a:'iso646str',0x1b:'genstr',0x1c:'unistr',0x1d:'charstr',0x1e:'bmpstr'};exports.tagByName=constants._reverse(exports.tag);},{"../constants":98}],98:[function(require,module,exports){var constants=exports;// Helper
     constants._reverse=function reverse(map){var res={};Object.keys(map).forEach(function(key){// Convert key to integer if it is stringified
-    if((key|0)==key)key=key|0;var value=map[key];res[value]=key;});return res;};constants.der=require('./der');},{"./der":97}],99:[function(require,module,exports){var inherits$$1=require('inherits');var asn1=require('../../asn1');var base=asn1.base;var bignum=asn1.bignum;// Import DER constants
+    if((key|0)==key)key=key|0;var value=map[key];res[value]=key;});return res;};constants.der=require('./der');},{"./der":97}],99:[function(require,module,exports){var inherits=require('inherits');var asn1=require('../../asn1');var base=asn1.base;var bignum=asn1.bignum;// Import DER constants
     var der=asn1.constants.der;function DERDecoder(entity){this.enc='der';this.name=entity.name;this.entity=entity;// Construct base tree
     this.tree=new DERNode();this.tree._init(entity.body);}module.exports=DERDecoder;DERDecoder.prototype.decode=function decode(data,options){if(!(data instanceof base.DecoderBuffer))data=new base.DecoderBuffer(data,options);return this.tree._decode(data,options);};// Tree methods
-    function DERNode(parent){base.Node.call(this,'der',parent);}inherits$$1(DERNode,base.Node);DERNode.prototype._peekTag=function peekTag(buffer,tag,any){if(buffer.isEmpty())return false;var state=buffer.save();var decodedTag=derDecodeTag(buffer,'Failed to peek tag: "'+tag+'"');if(buffer.isError(decodedTag))return decodedTag;buffer.restore(state);return decodedTag.tag===tag||decodedTag.tagStr===tag||any;};DERNode.prototype._decodeTag=function decodeTag(buffer,tag,any){var decodedTag=derDecodeTag(buffer,'Failed to decode tag of "'+tag+'"');if(buffer.isError(decodedTag))return decodedTag;var len=derDecodeLen(buffer,decodedTag.primitive,'Failed to get length of "'+tag+'"');// Failure
+    function DERNode(parent){base.Node.call(this,'der',parent);}inherits(DERNode,base.Node);DERNode.prototype._peekTag=function peekTag(buffer,tag,any){if(buffer.isEmpty())return false;var state=buffer.save();var decodedTag=derDecodeTag(buffer,'Failed to peek tag: "'+tag+'"');if(buffer.isError(decodedTag))return decodedTag;buffer.restore(state);return decodedTag.tag===tag||decodedTag.tagStr===tag||any;};DERNode.prototype._decodeTag=function decodeTag(buffer,tag,any){var decodedTag=derDecodeTag(buffer,'Failed to decode tag of "'+tag+'"');if(buffer.isError(decodedTag))return decodedTag;var len=derDecodeLen(buffer,decodedTag.primitive,'Failed to get length of "'+tag+'"');// Failure
     if(buffer.isError(len))return len;if(!any&&decodedTag.tag!==tag&&decodedTag.tagStr!==tag&&decodedTag.tagStr+'of'!==tag){return buffer.error('Failed to match tag: "'+tag+'"');}if(decodedTag.primitive||len!==null)return buffer.skip(len,'Failed to match body of: "'+tag+'"');// Indefinite length... find END tag
     var state=buffer.save();var res=this._skipUntilEnd(buffer,'Failed to skip indefinite length body: "'+this.tag+'"');if(buffer.isError(res))return res;len=buffer.offset-state.offset;buffer.restore(state);return buffer.skip(len,'Failed to match body of: "'+tag+'"');};DERNode.prototype._skipUntilEnd=function skipUntilEnd(buffer,fail){while(true){var tag=derDecodeTag(buffer,fail);if(buffer.isError(tag))return tag;var len=derDecodeLen(buffer,tag.primitive,fail);if(buffer.isError(len))return len;var res;if(tag.primitive||len!==null)res=buffer.skip(len);else res=this._skipUntilEnd(buffer,fail);// Failure
     if(buffer.isError(res))return res;if(tag.tagStr==='end')break;}};DERNode.prototype._decodeList=function decodeList(buffer,tag,decoder){var result=[];while(!buffer.isEmpty()){var possibleEnd=this._peekTag(buffer,'end');if(buffer.isError(possibleEnd))return possibleEnd;var res=decoder.decode(buffer,'der');if(buffer.isError(res)&&possibleEnd)break;result.push(res);}return result;};DERNode.prototype._decodeStr=function decodeStr(buffer,tag){if(tag==='octstr'){return buffer.raw();}else if(tag==='bitstr'){var unused=buffer.readUInt8();if(buffer.isError(unused))return unused;return {unused:unused,data:buffer.raw()};}else if(tag==='ia5str'||tag==='utf8str'){return buffer.raw().toString();}else{return this.error('Decoding of string type: '+tag+' unsupported');}};DERNode.prototype._decodeObjid=function decodeObjid(buffer,values,relative){var identifiers=[];var ident=0;while(!buffer.isEmpty()){var subident=buffer.readUInt8();ident<<=7;ident|=subident&0x7f;if((subident&0x80)===0){identifiers.push(ident);ident=0;}}if(subident&0x80)identifiers.push(ident);var first=identifiers[0]/40|0;var second=identifiers[0]%40;if(relative)result=identifiers;else result=[first,second].concat(identifiers.slice(1));if(values)result=values[result.join(' ')];return result;};DERNode.prototype._decodeTime=function decodeTime(buffer,tag){var str=buffer.raw().toString();if(tag==='gentime'){var year=str.slice(0,4)|0;var mon=str.slice(4,6)|0;var day=str.slice(6,8)|0;var hour=str.slice(8,10)|0;var min=str.slice(10,12)|0;var sec=str.slice(12,14)|0;}else if(tag==='utctime'){var year=str.slice(0,2)|0;var mon=str.slice(2,4)|0;var day=str.slice(4,6)|0;var hour=str.slice(6,8)|0;var min=str.slice(8,10)|0;var sec=str.slice(10,12)|0;if(year<70)year=2000+year;else year=1900+year;}else{return this.error('Decoding '+tag+' time is not supported yet');}return Date.UTC(year,mon-1,day,hour,min,sec,0);};DERNode.prototype._decodeNull=function decodeNull(buffer){return null;};DERNode.prototype._decodeBool=function decodeBool(buffer){var res=buffer.readUInt8();if(buffer.isError(res))return res;else return res!==0;};DERNode.prototype._decodeInt=function decodeInt(buffer,values){// Bigint, return as it is (assume big endian)
@@ -2318,21 +2315,21 @@ var pmcrypto = (function (exports) {
     if(!primitive&&len===0x80)return null;// Definite form
     if((len&0x80)===0){// Short form
     return len;}// Long form
-    var num=len&0x7f;if(num>=4)return buf.error('length octect is too long');len=0;for(var i=0;i<num;i++){len<<=8;var j=buf.readUInt8(fail);if(buf.isError(j))return j;len|=j;}return len;}},{"../../asn1":91,"inherits":183}],100:[function(require,module,exports){var decoders=exports;decoders.der=require('./der');decoders.pem=require('./pem');},{"./der":99,"./pem":101}],101:[function(require,module,exports){var inherits$$1=require('inherits');var Buffer=require('buffer').Buffer;var asn1=require('../../asn1');var DERDecoder=require('./der');function PEMDecoder(entity){DERDecoder.call(this,entity);this.enc='pem';}inherits$$1(PEMDecoder,DERDecoder);module.exports=PEMDecoder;PEMDecoder.prototype.decode=function decode(data,options){var lines=data.toString().split(/[\r\n]+/g);var label=options.label.toUpperCase();var re=/^-----(BEGIN|END) ([^-]+)-----$/;var start=-1;var end=-1;for(var i=0;i<lines.length;i++){var match=lines[i].match(re);if(match===null)continue;if(match[2]!==label)continue;if(start===-1){if(match[1]!=='BEGIN')break;start=i;}else{if(match[1]!=='END')break;end=i;break;}}if(start===-1||end===-1)throw new Error('PEM section not found for: '+label);var base64=lines.slice(start+1,end).join('');// Remove excessive symbols
-    base64.replace(/[^a-z0-9\+\/=]+/gi,'');var input=new Buffer(base64,'base64');return DERDecoder.prototype.decode.call(this,input,options);};},{"../../asn1":91,"./der":99,"buffer":37,"inherits":183}],102:[function(require,module,exports){var inherits$$1=require('inherits');var Buffer=require('buffer').Buffer;var asn1=require('../../asn1');var base=asn1.base;var bignum=asn1.bignum;// Import DER constants
+    var num=len&0x7f;if(num>=4)return buf.error('length octect is too long');len=0;for(var i=0;i<num;i++){len<<=8;var j=buf.readUInt8(fail);if(buf.isError(j))return j;len|=j;}return len;}},{"../../asn1":91,"inherits":183}],100:[function(require,module,exports){var decoders=exports;decoders.der=require('./der');decoders.pem=require('./pem');},{"./der":99,"./pem":101}],101:[function(require,module,exports){var inherits=require('inherits');var Buffer=require('buffer').Buffer;var asn1=require('../../asn1');var DERDecoder=require('./der');function PEMDecoder(entity){DERDecoder.call(this,entity);this.enc='pem';}inherits(PEMDecoder,DERDecoder);module.exports=PEMDecoder;PEMDecoder.prototype.decode=function decode(data,options){var lines=data.toString().split(/[\r\n]+/g);var label=options.label.toUpperCase();var re=/^-----(BEGIN|END) ([^-]+)-----$/;var start=-1;var end=-1;for(var i=0;i<lines.length;i++){var match=lines[i].match(re);if(match===null)continue;if(match[2]!==label)continue;if(start===-1){if(match[1]!=='BEGIN')break;start=i;}else{if(match[1]!=='END')break;end=i;break;}}if(start===-1||end===-1)throw new Error('PEM section not found for: '+label);var base64=lines.slice(start+1,end).join('');// Remove excessive symbols
+    base64.replace(/[^a-z0-9\+\/=]+/gi,'');var input=new Buffer(base64,'base64');return DERDecoder.prototype.decode.call(this,input,options);};},{"../../asn1":91,"./der":99,"buffer":37,"inherits":183}],102:[function(require,module,exports){var inherits=require('inherits');var Buffer=require('buffer').Buffer;var asn1=require('../../asn1');var base=asn1.base;var bignum=asn1.bignum;// Import DER constants
     var der=asn1.constants.der;function DEREncoder(entity){this.enc='der';this.name=entity.name;this.entity=entity;// Construct base tree
     this.tree=new DERNode();this.tree._init(entity.body);}module.exports=DEREncoder;DEREncoder.prototype.encode=function encode(data,reporter){return this.tree._encode(data,reporter).join();};// Tree methods
-    function DERNode(parent){base.Node.call(this,'der',parent);}inherits$$1(DERNode,base.Node);DERNode.prototype._encodeComposite=function encodeComposite(tag,primitive,cls,content){var encodedTag=encodeTag(tag,primitive,cls,this.reporter);// Short form
+    function DERNode(parent){base.Node.call(this,'der',parent);}inherits(DERNode,base.Node);DERNode.prototype._encodeComposite=function encodeComposite(tag,primitive,cls,content){var encodedTag=encodeTag(tag,primitive,cls,this.reporter);// Short form
     if(content.length<0x80){var header=new Buffer(2);header[0]=encodedTag;header[1]=content.length;return this._createEncoderBuffer([header,content]);}// Long form
     // Count octets required to store length
     var lenOctets=1;for(var i=content.length;i>=0x100;i>>=8){lenOctets++;}var header=new Buffer(1+1+lenOctets);header[0]=encodedTag;header[1]=0x80|lenOctets;for(var i=1+lenOctets,j=content.length;j>0;i--,j>>=8){header[i]=j&0xff;}return this._createEncoderBuffer([header,content]);};DERNode.prototype._encodeStr=function encodeStr(str,tag){if(tag==='octstr')return this._createEncoderBuffer(str);else if(tag==='bitstr')return this._createEncoderBuffer([str.unused|0,str.data]);else if(tag==='ia5str'||tag==='utf8str')return this._createEncoderBuffer(str);return this.reporter.error('Encoding of string type: '+tag+' unsupported');};DERNode.prototype._encodeObjid=function encodeObjid(id,values,relative){if(typeof id==='string'){if(!values)return this.reporter.error('string objid given, but no values map found');if(!values.hasOwnProperty(id))return this.reporter.error('objid not found in values map');id=values[id].split(/[\s\.]+/g);for(var i=0;i<id.length;i++){id[i]|=0;}}else if(Array.isArray(id)){id=id.slice();for(var i=0;i<id.length;i++){id[i]|=0;}}if(!Array.isArray(id)){return this.reporter.error('objid() should be either array or string, '+'got: '+JSON.stringify(id));}if(!relative){if(id[1]>=40)return this.reporter.error('Second objid identifier OOB');id.splice(0,2,id[0]*40+id[1]);}// Count number of octets
     var size=0;for(var i=0;i<id.length;i++){var ident=id[i];for(size++;ident>=0x80;ident>>=7){size++;}}var objid=new Buffer(size);var offset=objid.length-1;for(var i=id.length-1;i>=0;i--){var ident=id[i];objid[offset--]=ident&0x7f;while((ident>>=7)>0){objid[offset--]=0x80|ident&0x7f;}}return this._createEncoderBuffer(objid);};function two(num){if(num<10)return '0'+num;else return num;}DERNode.prototype._encodeTime=function encodeTime(time,tag){var str;var date=new Date(time);if(tag==='gentime'){str=[two(date.getFullYear()),two(date.getUTCMonth()+1),two(date.getUTCDate()),two(date.getUTCHours()),two(date.getUTCMinutes()),two(date.getUTCSeconds()),'Z'].join('');}else if(tag==='utctime'){str=[two(date.getFullYear()%100),two(date.getUTCMonth()+1),two(date.getUTCDate()),two(date.getUTCHours()),two(date.getUTCMinutes()),two(date.getUTCSeconds()),'Z'].join('');}else{this.reporter.error('Encoding '+tag+' time is not supported yet');}return this._encodeStr(str,'octstr');};DERNode.prototype._encodeNull=function encodeNull(){return this._createEncoderBuffer('');};DERNode.prototype._encodeInt=function encodeInt(num,values){if(typeof num==='string'){if(!values)return this.reporter.error('String int or enum given, but no values map');if(!values.hasOwnProperty(num)){return this.reporter.error('Values map doesn\'t contain: '+JSON.stringify(num));}num=values[num];}// Bignum, assume big endian
     if(typeof num!=='number'&&!Buffer.isBuffer(num)){var numArray=num.toArray();if(num.sign===false&&numArray[0]&0x80){numArray.unshift(0);}num=new Buffer(numArray);}if(Buffer.isBuffer(num)){var size=num.length;if(num.length===0)size++;var out=new Buffer(size);num.copy(out);if(num.length===0)out[0]=0;return this._createEncoderBuffer(out);}if(num<0x80)return this._createEncoderBuffer(num);if(num<0x100)return this._createEncoderBuffer([0,num]);var size=1;for(var i=num;i>=0x100;i>>=8){size++;}var out=new Array(size);for(var i=out.length-1;i>=0;i--){out[i]=num&0xff;num>>=8;}if(out[0]&0x80){out.unshift(0);}return this._createEncoderBuffer(new Buffer(out));};DERNode.prototype._encodeBool=function encodeBool(value){return this._createEncoderBuffer(value?0xff:0);};DERNode.prototype._use=function use(entity,obj){if(typeof entity==='function')entity=entity(obj);return entity._getEncoder('der').tree;};DERNode.prototype._skipDefault=function skipDefault(dataBuffer,reporter,parent){var state=this._baseState;var i;if(state['default']===null)return false;var data=dataBuffer.join();if(state.defaultBuffer===undefined)state.defaultBuffer=this._encodeValue(state['default'],reporter,parent).join();if(data.length!==state.defaultBuffer.length)return false;for(i=0;i<data.length;i++){if(data[i]!==state.defaultBuffer[i])return false;}return true;};// Utility methods
-    function encodeTag(tag,primitive,cls,reporter){var res;if(tag==='seqof')tag='seq';else if(tag==='setof')tag='set';if(der.tagByName.hasOwnProperty(tag))res=der.tagByName[tag];else if(typeof tag==='number'&&(tag|0)===tag)res=tag;else return reporter.error('Unknown tag: '+tag);if(res>=0x1f)return reporter.error('Multi-octet tag encoding unsupported');if(!primitive)res|=0x20;res|=der.tagClassByName[cls||'universal']<<6;return res;}},{"../../asn1":91,"buffer":37,"inherits":183}],103:[function(require,module,exports){var encoders=exports;encoders.der=require('./der');encoders.pem=require('./pem');},{"./der":102,"./pem":104}],104:[function(require,module,exports){var inherits$$1=require('inherits');var Buffer=require('buffer').Buffer;var asn1=require('../../asn1');var DEREncoder=require('./der');function PEMEncoder(entity){DEREncoder.call(this,entity);this.enc='pem';}inherits$$1(PEMEncoder,DEREncoder);module.exports=PEMEncoder;PEMEncoder.prototype.encode=function encode(data,options){var buf=DEREncoder.prototype.encode.call(this,data);var p=buf.toString('base64');var out=['-----BEGIN '+options.label+'-----'];for(var i=0;i<p.length;i+=64){out.push(p.slice(i,i+64));}out.push('-----END '+options.label+'-----');return out.join('\n');};},{"../../asn1":91,"./der":102,"buffer":37,"inherits":183}],105:[function(require,module,exports){module.exports=assert;function assert(val,msg){if(!val)throw new Error(msg||'Assertion failed');}assert.equal=function assertEqual(l,r,msg){if(l!=r)throw new Error(msg||'Assertion failed: '+l+' != '+r);};},{}],106:[function(require,module,exports){(function(Buffer){// much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
+    function encodeTag(tag,primitive,cls,reporter){var res;if(tag==='seqof')tag='seq';else if(tag==='setof')tag='set';if(der.tagByName.hasOwnProperty(tag))res=der.tagByName[tag];else if(typeof tag==='number'&&(tag|0)===tag)res=tag;else return reporter.error('Unknown tag: '+tag);if(res>=0x1f)return reporter.error('Multi-octet tag encoding unsupported');if(!primitive)res|=0x20;res|=der.tagClassByName[cls||'universal']<<6;return res;}},{"../../asn1":91,"buffer":37,"inherits":183}],103:[function(require,module,exports){var encoders=exports;encoders.der=require('./der');encoders.pem=require('./pem');},{"./der":102,"./pem":104}],104:[function(require,module,exports){var inherits=require('inherits');var Buffer=require('buffer').Buffer;var asn1=require('../../asn1');var DEREncoder=require('./der');function PEMEncoder(entity){DEREncoder.call(this,entity);this.enc='pem';}inherits(PEMEncoder,DEREncoder);module.exports=PEMEncoder;PEMEncoder.prototype.encode=function encode(data,options){var buf=DEREncoder.prototype.encode.call(this,data);var p=buf.toString('base64');var out=['-----BEGIN '+options.label+'-----'];for(var i=0;i<p.length;i+=64){out.push(p.slice(i,i+64));}out.push('-----END '+options.label+'-----');return out.join('\n');};},{"../../asn1":91,"./der":102,"buffer":37,"inherits":183}],105:[function(require,module,exports){module.exports=assert;function assert(val,msg){if(!val)throw new Error(msg||'Assertion failed');}assert.equal=function assertEqual(l,r,msg){if(l!=r)throw new Error(msg||'Assertion failed: '+l+' != '+r);};},{}],106:[function(require,module,exports){(function(Buffer){// much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
     var createHmac=require('create-hmac');var crt=require('browserify-rsa');var curves=require('./curves');var elliptic=require('elliptic');var parseKeys=require('parse-asn1');var BN=require('bn.js');var EC=elliptic.ec;function sign(hash,key,hashType,signType){var priv=parseKeys(key);if(priv.curve){if(signType!=='ecdsa')throw new Error('wrong private key type');return ecSign(hash,priv);}else if(priv.type==='dsa'){if(signType!=='dsa'){throw new Error('wrong private key type');}return dsaSign(hash,priv,hashType);}else{if(signType!=='rsa')throw new Error('wrong private key type');}var len=priv.modulus.byteLength();var pad=[0,1];while(hash.length+pad.length+1<len){pad.push(0xff);}pad.push(0x00);var i=-1;while(++i<hash.length){pad.push(hash[i]);}var out=crt(pad,priv);return out;}function ecSign(hash,priv){var curveId=curves[priv.curve.join('.')];if(!curveId)throw new Error('unknown curve '+priv.curve.join('.'));var curve=new EC(curveId);var key=curve.genKeyPair();key._importPrivate(priv.privateKey);var out=key.sign(hash);return new Buffer(out.toDER());}function dsaSign(hash,priv,algo){var x=priv.params.priv_key;var p=priv.params.p;var q=priv.params.q;var g=priv.params.g;var r=new BN(0);var k;var H=bits2int(hash,q).mod(q);var s=false;var kv=getKey(x,q,hash,algo);while(s===false){k=makeKey(q,kv,algo);r=makeR(g,k,p,q);s=k.invm(q).imul(H.add(x.mul(r))).mod(q);if(!s.cmpn(0)){s=false;r=new BN(0);}}return toDER(r,s);}function toDER(r,s){r=r.toArray();s=s.toArray();// Pad values
     if(r[0]&0x80){r=[0].concat(r);}// Pad values
     if(s[0]&0x80){s=[0].concat(s);}var total=r.length+s.length+4;var res=[0x30,total,0x02,r.length];res=res.concat(r,[0x02,s.length],s);return new Buffer(res);}function getKey(x,q,hash,algo){x=new Buffer(x.toArray());if(x.length<q.byteLength()){var zeros=new Buffer(q.byteLength()-x.length);zeros.fill(0);x=Buffer.concat([zeros,x]);}var hlen=hash.length;var hbits=bits2octets(hash,q);var v=new Buffer(hlen);v.fill(1);var k=new Buffer(hlen);k.fill(0);k=createHmac(algo,k).update(v).update(new Buffer([0])).update(x).update(hbits).digest();v=createHmac(algo,k).update(v).digest();k=createHmac(algo,k).update(v).update(new Buffer([1])).update(x).update(hbits).digest();v=createHmac(algo,k).update(v).digest();return {k:k,v:v};}function bits2int(obits,q){var bits=new BN(obits);var shift=(obits.length<<3)-q.bitLength();if(shift>0){bits.ishrn(shift);}return bits;}function bits2octets(bits,q){bits=bits2int(bits,q);bits=bits.mod(q);var out=new Buffer(bits.toArray());if(out.length<q.byteLength()){var zeros=new Buffer(q.byteLength()-out.length);zeros.fill(0);out=Buffer.concat([zeros,out]);}return out;}function makeKey(q,kv,algo){var t,k;do{t=new Buffer('');while(t.length*8<q.bitLength()){kv.v=createHmac(algo,kv.k).update(kv.v).digest();t=Buffer.concat([t,kv.v]);}k=bits2int(t,q);kv.k=createHmac(algo,kv.k).update(kv.v).update(new Buffer([0])).digest();kv.v=createHmac(algo,kv.k).update(kv.v).digest();}while(k.cmp(q)!==-1);return k;}function makeR(g,k,p,q){return g.toRed(BN.mont(p)).redPow(k).fromRed().mod(q);}module.exports=sign;module.exports.getKey=getKey;module.exports.makeKey=makeKey;}).call(this,require("buffer").Buffer);},{"./curves":62,"bn.js":63,"browserify-rsa":64,"buffer":37,"create-hmac":144,"elliptic":65,"parse-asn1":90}],107:[function(require,module,exports){(function(Buffer){// much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
-    var curves=require('./curves');var elliptic=require('elliptic');var parseKeys=require('parse-asn1');var BN=require('bn.js');var EC=elliptic.ec;function verify(sig,hash,key,signType){var pub=parseKeys(key);if(pub.type==='ec'){if(signType!=='ecdsa'){throw new Error('wrong public key type');}return ecVerify(sig,hash,pub);}else if(pub.type==='dsa'){if(signType!=='dsa'){throw new Error('wrong public key type');}return dsaVerify(sig,hash,pub);}else{if(signType!=='rsa'){throw new Error('wrong public key type');}}var len=pub.modulus.byteLength();var pad=[1];var padNum=0;while(hash.length+pad.length+2<len){pad.push(0xff);padNum++;}pad.push(0x00);var i=-1;while(++i<hash.length){pad.push(hash[i]);}pad=new Buffer(pad);var red=BN.mont(pub.modulus);sig=new BN(sig).toRed(red);sig=sig.redPow(new BN(pub.publicExponent));sig=new Buffer(sig.fromRed().toArray());var out=0;if(padNum<8){out=1;}len=Math.min(sig.length,pad.length);if(sig.length!==pad.length){out=1;}i=-1;while(++i<len){out|=sig[i]^pad[i];}return out===0;}function ecVerify(sig,hash,pub){var curveId=curves[pub.data.algorithm.curve.join('.')];if(!curveId)throw new Error('unknown curve '+pub.data.algorithm.curve.join('.'));var curve=new EC(curveId);var pubkey=pub.data.subjectPrivateKey.data;return curve.verify(hash,sig,pubkey);}function dsaVerify(sig,hash,pub){var p=pub.data.p;var q=pub.data.q;var g=pub.data.g;var y=pub.data.pub_key;var unpacked=parseKeys.signature.decode(sig,'der');var s=unpacked.s;var r=unpacked.r;checkValue(s,q);checkValue(r,q);var montp=BN.mont(p);var w=s.invm(q);var v=g.toRed(montp).redPow(new BN(hash).mul(w).mod(q)).fromRed().mul(y.toRed(montp).redPow(r.mul(w).mod(q)).fromRed()).mod(p).mod(q);return !v.cmp(r);}function checkValue(b,q){if(b.cmpn(0)<=0){throw new Error('invalid sig');}if(b.cmp(q)>=q){throw new Error('invalid sig');}}module.exports=verify;}).call(this,require("buffer").Buffer);},{"./curves":62,"bn.js":63,"buffer":37,"elliptic":65,"parse-asn1":90}],108:[function(require,module,exports){(function(Buffer){var elliptic=require('elliptic');var BN=require('bn.js');module.exports=function createECDH(curve){return new ECDH(curve);};var aliases={secp256k1:{name:'secp256k1',byteLength:32},secp224r1:{name:'p224',byteLength:28},prime256v1:{name:'p256',byteLength:32},prime192v1:{name:'p192',byteLength:24},ed25519:{name:'ed25519',byteLength:32}};aliases.p224=aliases.secp224r1;aliases.p256=aliases.secp256r1=aliases.prime256v1;aliases.p192=aliases.secp192r1=aliases.prime192v1;function ECDH(curve){this.curveType=aliases[curve];if(!this.curveType){this.curveType={name:curve};}this.curve=new elliptic.ec(this.curveType.name);this.keys=void 0;}ECDH.prototype.generateKeys=function(enc,format){this.keys=this.curve.genKeyPair();return this.getPublicKey(enc,format);};ECDH.prototype.computeSecret=function(other,inenc,enc){inenc=inenc||'utf8';if(!Buffer.isBuffer(other)){other=new Buffer(other,inenc);}var otherPub=this.curve.keyFromPublic(other).getPublic();var out=otherPub.mul(this.keys.getPrivate()).getX();return formatReturnValue(out,enc,this.curveType.byteLength);};ECDH.prototype.getPublicKey=function(enc,format){var key=this.keys.getPublic(format==='compressed',true);if(format==='hybrid'){if(key[key.length-1]%2){key[0]=7;}else{key[0]=6;}}return formatReturnValue(key,enc);};ECDH.prototype.getPrivateKey=function(enc){return formatReturnValue(this.keys.getPrivate(),enc);};ECDH.prototype.setPublicKey=function(pub,enc){enc=enc||'utf8';if(!Buffer.isBuffer(pub)){pub=new Buffer(pub,enc);}this.keys._importPublic(pub);return this;};ECDH.prototype.setPrivateKey=function(priv,enc){enc=enc||'utf8';if(!Buffer.isBuffer(priv)){priv=new Buffer(priv,enc);}var _priv=new BN(priv);_priv=_priv.toString(16);this.keys._importPrivate(_priv);return this;};function formatReturnValue(bn,enc,len){if(!Array.isArray(bn)){bn=bn.toArray();}var buf=new Buffer(bn);if(len&&buf.length<len){var zeros=new Buffer(len-buf.length);zeros.fill(0);buf=Buffer.concat([zeros,buf]);}if(!enc){return buf;}else{return buf.toString(enc);}}}).call(this,require("buffer").Buffer);},{"bn.js":110,"buffer":37,"elliptic":111}],109:[function(require,module,exports){var createECDH=require('crypto').createECDH;module.exports=createECDH||require('./browser');},{"./browser":108,"crypto":41}],110:[function(require,module,exports){arguments[4][63][0].apply(exports,arguments);},{"dup":63}],111:[function(require,module,exports){arguments[4][65][0].apply(exports,arguments);},{"../package.json":131,"./elliptic/curve":114,"./elliptic/curves":117,"./elliptic/ec":118,"./elliptic/hmac-drbg":121,"./elliptic/utils":123,"brorand":124,"dup":65}],112:[function(require,module,exports){arguments[4][66][0].apply(exports,arguments);},{"../../elliptic":111,"bn.js":110,"dup":66}],113:[function(require,module,exports){arguments[4][67][0].apply(exports,arguments);},{"../../elliptic":111,"../curve":114,"bn.js":110,"dup":67,"inherits":183}],114:[function(require,module,exports){arguments[4][68][0].apply(exports,arguments);},{"./base":112,"./edwards":113,"./mont":115,"./short":116,"dup":68}],115:[function(require,module,exports){arguments[4][69][0].apply(exports,arguments);},{"../curve":114,"bn.js":110,"dup":69,"inherits":183}],116:[function(require,module,exports){arguments[4][70][0].apply(exports,arguments);},{"../../elliptic":111,"../curve":114,"bn.js":110,"dup":70,"inherits":183}],117:[function(require,module,exports){arguments[4][71][0].apply(exports,arguments);},{"../elliptic":111,"./precomputed/secp256k1":122,"dup":71,"hash.js":125}],118:[function(require,module,exports){arguments[4][72][0].apply(exports,arguments);},{"../../elliptic":111,"./key":119,"./signature":120,"bn.js":110,"dup":72}],119:[function(require,module,exports){arguments[4][73][0].apply(exports,arguments);},{"../../elliptic":111,"bn.js":110,"dup":73}],120:[function(require,module,exports){arguments[4][74][0].apply(exports,arguments);},{"../../elliptic":111,"bn.js":110,"dup":74}],121:[function(require,module,exports){arguments[4][75][0].apply(exports,arguments);},{"../elliptic":111,"dup":75,"hash.js":125}],122:[function(require,module,exports){arguments[4][76][0].apply(exports,arguments);},{"dup":76}],123:[function(require,module,exports){arguments[4][77][0].apply(exports,arguments);},{"dup":77}],124:[function(require,module,exports){arguments[4][78][0].apply(exports,arguments);},{"dup":78}],125:[function(require,module,exports){arguments[4][79][0].apply(exports,arguments);},{"./hash/common":126,"./hash/hmac":127,"./hash/ripemd":128,"./hash/sha":129,"./hash/utils":130,"dup":79}],126:[function(require,module,exports){arguments[4][80][0].apply(exports,arguments);},{"../hash":125,"dup":80}],127:[function(require,module,exports){arguments[4][81][0].apply(exports,arguments);},{"../hash":125,"dup":81}],128:[function(require,module,exports){arguments[4][82][0].apply(exports,arguments);},{"../hash":125,"dup":82}],129:[function(require,module,exports){arguments[4][83][0].apply(exports,arguments);},{"../hash":125,"dup":83}],130:[function(require,module,exports){arguments[4][84][0].apply(exports,arguments);},{"dup":84,"inherits":183}],131:[function(require,module,exports){arguments[4][85][0].apply(exports,arguments);},{"dup":85}],132:[function(require,module,exports){(function(Buffer){var inherits$$1=require('inherits');var md5=require('./md5');var rmd160=require('ripemd160');var sha=require('sha.js');var Transform=require('stream').Transform;function HashNoConstructor(hash){Transform.call(this);this._hash=hash;this.buffers=[];}inherits$$1(HashNoConstructor,Transform);HashNoConstructor.prototype._transform=function(data,_,next){this.buffers.push(data);next();};HashNoConstructor.prototype._flush=function(next){this.push(this.digest());next();};HashNoConstructor.prototype.update=function(data,enc){if(typeof data==='string'){data=new Buffer(data,enc);}this.buffers.push(data);return this;};HashNoConstructor.prototype.digest=function(enc){var buf=Buffer.concat(this.buffers);var r=this._hash(buf);this.buffers=null;return enc?r.toString(enc):r;};function Hash(hash){Transform.call(this);this._hash=hash;}inherits$$1(Hash,Transform);Hash.prototype._transform=function(data,enc,next){if(enc)data=new Buffer(data,enc);this._hash.update(data);next();};Hash.prototype._flush=function(next){this.push(this._hash.digest());this._hash=null;next();};Hash.prototype.update=function(data,enc){if(typeof data==='string'){data=new Buffer(data,enc);}this._hash.update(data);return this;};Hash.prototype.digest=function(enc){var outData=this._hash.digest();return enc?outData.toString(enc):outData;};module.exports=function createHash(alg){if('md5'===alg)return new HashNoConstructor(md5);if('rmd160'===alg)return new HashNoConstructor(rmd160);return new Hash(sha(alg));};}).call(this,require("buffer").Buffer);},{"./md5":134,"buffer":37,"inherits":183,"ripemd160":135,"sha.js":137,"stream":200}],133:[function(require,module,exports){(function(Buffer){var intSize=4;var zeroBuffer=new Buffer(intSize);zeroBuffer.fill(0);var chrsz=8;function toArray$$1(buf,bigEndian){if(buf.length%intSize!==0){var len=buf.length+(intSize-buf.length%intSize);buf=Buffer.concat([buf,zeroBuffer],len);}var arr=[];var fn=bigEndian?buf.readInt32BE:buf.readInt32LE;for(var i=0;i<buf.length;i+=intSize){arr.push(fn.call(buf,i));}return arr;}function toBuffer(arr,size,bigEndian){var buf=new Buffer(size);var fn=bigEndian?buf.writeInt32BE:buf.writeInt32LE;for(var i=0;i<arr.length;i++){fn.call(buf,arr[i],i*4,true);}return buf;}function hash(buf,fn,hashSize,bigEndian){if(!Buffer.isBuffer(buf))buf=new Buffer(buf);var arr=fn(toArray$$1(buf,bigEndian),buf.length*chrsz);return toBuffer(arr,hashSize,bigEndian);}exports.hash=hash;}).call(this,require("buffer").Buffer);},{"buffer":37}],134:[function(require,module,exports){/*
+    var curves=require('./curves');var elliptic=require('elliptic');var parseKeys=require('parse-asn1');var BN=require('bn.js');var EC=elliptic.ec;function verify(sig,hash,key,signType){var pub=parseKeys(key);if(pub.type==='ec'){if(signType!=='ecdsa'){throw new Error('wrong public key type');}return ecVerify(sig,hash,pub);}else if(pub.type==='dsa'){if(signType!=='dsa'){throw new Error('wrong public key type');}return dsaVerify(sig,hash,pub);}else{if(signType!=='rsa'){throw new Error('wrong public key type');}}var len=pub.modulus.byteLength();var pad=[1];var padNum=0;while(hash.length+pad.length+2<len){pad.push(0xff);padNum++;}pad.push(0x00);var i=-1;while(++i<hash.length){pad.push(hash[i]);}pad=new Buffer(pad);var red=BN.mont(pub.modulus);sig=new BN(sig).toRed(red);sig=sig.redPow(new BN(pub.publicExponent));sig=new Buffer(sig.fromRed().toArray());var out=0;if(padNum<8){out=1;}len=Math.min(sig.length,pad.length);if(sig.length!==pad.length){out=1;}i=-1;while(++i<len){out|=sig[i]^pad[i];}return out===0;}function ecVerify(sig,hash,pub){var curveId=curves[pub.data.algorithm.curve.join('.')];if(!curveId)throw new Error('unknown curve '+pub.data.algorithm.curve.join('.'));var curve=new EC(curveId);var pubkey=pub.data.subjectPrivateKey.data;return curve.verify(hash,sig,pubkey);}function dsaVerify(sig,hash,pub){var p=pub.data.p;var q=pub.data.q;var g=pub.data.g;var y=pub.data.pub_key;var unpacked=parseKeys.signature.decode(sig,'der');var s=unpacked.s;var r=unpacked.r;checkValue(s,q);checkValue(r,q);var montp=BN.mont(p);var w=s.invm(q);var v=g.toRed(montp).redPow(new BN(hash).mul(w).mod(q)).fromRed().mul(y.toRed(montp).redPow(r.mul(w).mod(q)).fromRed()).mod(p).mod(q);return !v.cmp(r);}function checkValue(b,q){if(b.cmpn(0)<=0){throw new Error('invalid sig');}if(b.cmp(q)>=q){throw new Error('invalid sig');}}module.exports=verify;}).call(this,require("buffer").Buffer);},{"./curves":62,"bn.js":63,"buffer":37,"elliptic":65,"parse-asn1":90}],108:[function(require,module,exports){(function(Buffer){var elliptic=require('elliptic');var BN=require('bn.js');module.exports=function createECDH(curve){return new ECDH(curve);};var aliases={secp256k1:{name:'secp256k1',byteLength:32},secp224r1:{name:'p224',byteLength:28},prime256v1:{name:'p256',byteLength:32},prime192v1:{name:'p192',byteLength:24},ed25519:{name:'ed25519',byteLength:32}};aliases.p224=aliases.secp224r1;aliases.p256=aliases.secp256r1=aliases.prime256v1;aliases.p192=aliases.secp192r1=aliases.prime192v1;function ECDH(curve){this.curveType=aliases[curve];if(!this.curveType){this.curveType={name:curve};}this.curve=new elliptic.ec(this.curveType.name);this.keys=void 0;}ECDH.prototype.generateKeys=function(enc,format){this.keys=this.curve.genKeyPair();return this.getPublicKey(enc,format);};ECDH.prototype.computeSecret=function(other,inenc,enc){inenc=inenc||'utf8';if(!Buffer.isBuffer(other)){other=new Buffer(other,inenc);}var otherPub=this.curve.keyFromPublic(other).getPublic();var out=otherPub.mul(this.keys.getPrivate()).getX();return formatReturnValue(out,enc,this.curveType.byteLength);};ECDH.prototype.getPublicKey=function(enc,format){var key=this.keys.getPublic(format==='compressed',true);if(format==='hybrid'){if(key[key.length-1]%2){key[0]=7;}else{key[0]=6;}}return formatReturnValue(key,enc);};ECDH.prototype.getPrivateKey=function(enc){return formatReturnValue(this.keys.getPrivate(),enc);};ECDH.prototype.setPublicKey=function(pub,enc){enc=enc||'utf8';if(!Buffer.isBuffer(pub)){pub=new Buffer(pub,enc);}this.keys._importPublic(pub);return this;};ECDH.prototype.setPrivateKey=function(priv,enc){enc=enc||'utf8';if(!Buffer.isBuffer(priv)){priv=new Buffer(priv,enc);}var _priv=new BN(priv);_priv=_priv.toString(16);this.keys._importPrivate(_priv);return this;};function formatReturnValue(bn,enc,len){if(!Array.isArray(bn)){bn=bn.toArray();}var buf=new Buffer(bn);if(len&&buf.length<len){var zeros=new Buffer(len-buf.length);zeros.fill(0);buf=Buffer.concat([zeros,buf]);}if(!enc){return buf;}else{return buf.toString(enc);}}}).call(this,require("buffer").Buffer);},{"bn.js":110,"buffer":37,"elliptic":111}],109:[function(require,module,exports){var createECDH=require('crypto').createECDH;module.exports=createECDH||require('./browser');},{"./browser":108,"crypto":41}],110:[function(require,module,exports){arguments[4][63][0].apply(exports,arguments);},{"dup":63}],111:[function(require,module,exports){arguments[4][65][0].apply(exports,arguments);},{"../package.json":131,"./elliptic/curve":114,"./elliptic/curves":117,"./elliptic/ec":118,"./elliptic/hmac-drbg":121,"./elliptic/utils":123,"brorand":124,"dup":65}],112:[function(require,module,exports){arguments[4][66][0].apply(exports,arguments);},{"../../elliptic":111,"bn.js":110,"dup":66}],113:[function(require,module,exports){arguments[4][67][0].apply(exports,arguments);},{"../../elliptic":111,"../curve":114,"bn.js":110,"dup":67,"inherits":183}],114:[function(require,module,exports){arguments[4][68][0].apply(exports,arguments);},{"./base":112,"./edwards":113,"./mont":115,"./short":116,"dup":68}],115:[function(require,module,exports){arguments[4][69][0].apply(exports,arguments);},{"../curve":114,"bn.js":110,"dup":69,"inherits":183}],116:[function(require,module,exports){arguments[4][70][0].apply(exports,arguments);},{"../../elliptic":111,"../curve":114,"bn.js":110,"dup":70,"inherits":183}],117:[function(require,module,exports){arguments[4][71][0].apply(exports,arguments);},{"../elliptic":111,"./precomputed/secp256k1":122,"dup":71,"hash.js":125}],118:[function(require,module,exports){arguments[4][72][0].apply(exports,arguments);},{"../../elliptic":111,"./key":119,"./signature":120,"bn.js":110,"dup":72}],119:[function(require,module,exports){arguments[4][73][0].apply(exports,arguments);},{"../../elliptic":111,"bn.js":110,"dup":73}],120:[function(require,module,exports){arguments[4][74][0].apply(exports,arguments);},{"../../elliptic":111,"bn.js":110,"dup":74}],121:[function(require,module,exports){arguments[4][75][0].apply(exports,arguments);},{"../elliptic":111,"dup":75,"hash.js":125}],122:[function(require,module,exports){arguments[4][76][0].apply(exports,arguments);},{"dup":76}],123:[function(require,module,exports){arguments[4][77][0].apply(exports,arguments);},{"dup":77}],124:[function(require,module,exports){arguments[4][78][0].apply(exports,arguments);},{"dup":78}],125:[function(require,module,exports){arguments[4][79][0].apply(exports,arguments);},{"./hash/common":126,"./hash/hmac":127,"./hash/ripemd":128,"./hash/sha":129,"./hash/utils":130,"dup":79}],126:[function(require,module,exports){arguments[4][80][0].apply(exports,arguments);},{"../hash":125,"dup":80}],127:[function(require,module,exports){arguments[4][81][0].apply(exports,arguments);},{"../hash":125,"dup":81}],128:[function(require,module,exports){arguments[4][82][0].apply(exports,arguments);},{"../hash":125,"dup":82}],129:[function(require,module,exports){arguments[4][83][0].apply(exports,arguments);},{"../hash":125,"dup":83}],130:[function(require,module,exports){arguments[4][84][0].apply(exports,arguments);},{"dup":84,"inherits":183}],131:[function(require,module,exports){arguments[4][85][0].apply(exports,arguments);},{"dup":85}],132:[function(require,module,exports){(function(Buffer){var inherits=require('inherits');var md5=require('./md5');var rmd160=require('ripemd160');var sha=require('sha.js');var Transform=require('stream').Transform;function HashNoConstructor(hash){Transform.call(this);this._hash=hash;this.buffers=[];}inherits(HashNoConstructor,Transform);HashNoConstructor.prototype._transform=function(data,_,next){this.buffers.push(data);next();};HashNoConstructor.prototype._flush=function(next){this.push(this.digest());next();};HashNoConstructor.prototype.update=function(data,enc){if(typeof data==='string'){data=new Buffer(data,enc);}this.buffers.push(data);return this;};HashNoConstructor.prototype.digest=function(enc){var buf=Buffer.concat(this.buffers);var r=this._hash(buf);this.buffers=null;return enc?r.toString(enc):r;};function Hash(hash){Transform.call(this);this._hash=hash;}inherits(Hash,Transform);Hash.prototype._transform=function(data,enc,next){if(enc)data=new Buffer(data,enc);this._hash.update(data);next();};Hash.prototype._flush=function(next){this.push(this._hash.digest());this._hash=null;next();};Hash.prototype.update=function(data,enc){if(typeof data==='string'){data=new Buffer(data,enc);}this._hash.update(data);return this;};Hash.prototype.digest=function(enc){var outData=this._hash.digest();return enc?outData.toString(enc):outData;};module.exports=function createHash(alg){if('md5'===alg)return new HashNoConstructor(md5);if('rmd160'===alg)return new HashNoConstructor(rmd160);return new Hash(sha(alg));};}).call(this,require("buffer").Buffer);},{"./md5":134,"buffer":37,"inherits":183,"ripemd160":135,"sha.js":137,"stream":200}],133:[function(require,module,exports){(function(Buffer){var intSize=4;var zeroBuffer=new Buffer(intSize);zeroBuffer.fill(0);var chrsz=8;function toArray(buf,bigEndian){if(buf.length%intSize!==0){var len=buf.length+(intSize-buf.length%intSize);buf=Buffer.concat([buf,zeroBuffer],len);}var arr=[];var fn=bigEndian?buf.readInt32BE:buf.readInt32LE;for(var i=0;i<buf.length;i+=intSize){arr.push(fn.call(buf,i));}return arr;}function toBuffer(arr,size,bigEndian){var buf=new Buffer(size);var fn=bigEndian?buf.writeInt32BE:buf.writeInt32LE;for(var i=0;i<arr.length;i++){fn.call(buf,arr[i],i*4,true);}return buf;}function hash(buf,fn,hashSize,bigEndian){if(!Buffer.isBuffer(buf))buf=new Buffer(buf);var arr=fn(toArray(buf,bigEndian),buf.length*chrsz);return toBuffer(arr,hashSize,bigEndian);}exports.hash=hash;}).call(this,require("buffer").Buffer);},{"buffer":37}],134:[function(require,module,exports){/*
      * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
      * Digest Algorithm, as defined in RFC 1321.
      * Version 2.1 Copyright (C) Paul Johnston 1999 - 2002.
@@ -2353,7 +2350,7 @@ var pmcrypto = (function (exports) {
     code.google.com/p/crypto-js
     (c) 2009-2013 by Jeff Mott. All rights reserved.
     code.google.com/p/crypto-js/wiki/License
-    *//** @preserve
+    */ /** @preserve
                  (c) 2012 by Cédric Mesnil. All rights reserved.
 
                  Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -2362,7 +2359,7 @@ var pmcrypto = (function (exports) {
                  - Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 
                  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-                 */// constants table
+                 */ // constants table
     var zl=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,7,4,13,1,10,6,15,3,12,0,9,5,2,14,11,8,3,10,14,4,9,15,8,1,2,7,0,6,13,11,5,12,1,9,11,10,0,8,12,4,13,3,7,15,14,5,6,2,4,0,5,9,7,12,2,10,14,1,3,8,11,6,15,13];var zr=[5,14,7,0,9,2,11,4,13,6,15,8,1,10,3,12,6,11,3,7,0,13,5,10,14,15,8,12,4,9,1,2,15,5,1,3,7,14,6,9,11,8,12,2,10,0,4,13,8,6,4,1,3,11,15,0,5,12,2,13,9,7,10,14,12,15,10,4,1,5,8,7,6,2,13,14,0,3,9,11];var sl=[11,14,15,12,5,8,7,9,11,13,14,15,6,7,9,8,7,6,8,13,11,9,7,15,7,12,15,9,11,7,13,12,11,13,6,7,14,9,13,15,14,8,13,6,5,12,7,5,11,12,14,15,14,15,9,8,9,14,5,6,8,6,5,12,9,15,5,11,6,8,13,12,5,12,13,14,11,8,5,6];var sr=[8,9,9,11,13,15,15,5,7,7,8,11,14,14,12,6,9,13,15,7,12,8,9,11,7,7,12,7,6,15,13,11,9,7,15,11,8,6,6,14,12,13,5,14,13,13,7,5,15,5,8,11,14,14,6,14,6,9,12,9,12,5,15,8,8,5,12,9,12,5,14,6,8,13,6,5,15,13,11,11];var hl=[0x00000000,0x5A827999,0x6ED9EBA1,0x8F1BBCDC,0xA953FD4E];var hr=[0x50A28BE6,0x5C4DD124,0x6D703EF3,0x7A6D76E9,0x00000000];function bytesToWords(bytes){var words=[];for(var i=0,b=0;i<bytes.length;i++,b+=8){words[b>>>5]|=bytes[i]<<24-b%32;}return words;}function wordsToBytes(words){var bytes=[];for(var b=0;b<words.length*32;b+=8){bytes.push(words[b>>>5]>>>24-b%32&0xFF);}return bytes;}function processBlock(H,M,offset){// swap endian
     for(var i=0;i<16;i++){var offset_i=offset+i;var M_offset_i=M[offset_i];// Swap
     M[offset_i]=(M_offset_i<<8|M_offset_i>>>24)&0x00ff00ff|(M_offset_i<<24|M_offset_i>>>8)&0xff00ff00;}// Working variables
@@ -2386,7 +2383,7 @@ var pmcrypto = (function (exports) {
      * This source code is derived from sha1.js of the same repository.
      * The difference between SHA-0 and SHA-1 is just a bitwise rotate left
      * operation was added.
-     */var inherits$$1=require('inherits');var Hash=require('./hash');var W=new Array(80);function Sha(){this.init();this._w=W;Hash.call(this,64,56);}inherits$$1(Sha,Hash);Sha.prototype.init=function(){this._a=0x67452301|0;this._b=0xefcdab89|0;this._c=0x98badcfe|0;this._d=0x10325476|0;this._e=0xc3d2e1f0|0;return this;};/*
+     */var inherits=require('inherits');var Hash=require('./hash');var W=new Array(80);function Sha(){this.init();this._w=W;Hash.call(this,64,56);}inherits(Sha,Hash);Sha.prototype.init=function(){this._a=0x67452301|0;this._b=0xefcdab89|0;this._c=0x98badcfe|0;this._d=0x10325476|0;this._e=0xc3d2e1f0|0;return this;};/*
      * Bitwise rotate a 32-bit number to the left.
      */function rol(num,cnt){return num<<cnt|num>>>32-cnt;}Sha.prototype._update=function(M){var W=this._w;var a=this._a;var b=this._b;var c=this._c;var d=this._d;var e=this._e;var j=0;var k;/*
        * SHA-1 has a bitwise rotate left operation. But, SHA is not
@@ -2398,7 +2395,7 @@ var pmcrypto = (function (exports) {
      * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
      * Distributed under the BSD License
      * See http://pajhome.org.uk/crypt/md5 for details.
-     */var inherits$$1=require('inherits');var Hash=require('./hash');var W=new Array(80);function Sha1(){this.init();this._w=W;Hash.call(this,64,56);}inherits$$1(Sha1,Hash);Sha1.prototype.init=function(){this._a=0x67452301|0;this._b=0xefcdab89|0;this._c=0x98badcfe|0;this._d=0x10325476|0;this._e=0xc3d2e1f0|0;return this;};/*
+     */var inherits=require('inherits');var Hash=require('./hash');var W=new Array(80);function Sha1(){this.init();this._w=W;Hash.call(this,64,56);}inherits(Sha1,Hash);Sha1.prototype.init=function(){this._a=0x67452301|0;this._b=0xefcdab89|0;this._c=0x98badcfe|0;this._d=0x10325476|0;this._e=0xc3d2e1f0|0;return this;};/*
      * Bitwise rotate a 32-bit number to the left.
      */function rol(num,cnt){return num<<cnt|num>>>32-cnt;}Sha1.prototype._update=function(M){var W=this._w;var a=this._a;var b=this._b;var c=this._c;var d=this._d;var e=this._e;var j=0;var k;function calcW(){return rol(W[j-3]^W[j-8]^W[j-14]^W[j-16],1);}function loop(w,f){W[j]=w;var t=rol(a,5)+f+e+w+k;e=d;d=c;c=rol(b,30);b=a;a=t;j++;}k=1518500249;while(j<16){loop(M.readInt32BE(j*4),b&c|~b&d);}while(j<20){loop(calcW(),b&c|~b&d);}k=1859775393;while(j<40){loop(calcW(),b^c^d);}k=-1894007588;while(j<60){loop(calcW(),b&c|b&d|c&d);}k=-899497514;while(j<80){loop(calcW(),b^c^d);}this._a=a+this._a|0;this._b=b+this._b|0;this._c=c+this._c|0;this._d=d+this._d|0;this._e=e+this._e|0;};Sha1.prototype._hash=function(){var H=new Buffer(20);H.writeInt32BE(this._a|0,0);H.writeInt32BE(this._b|0,4);H.writeInt32BE(this._c|0,8);H.writeInt32BE(this._d|0,12);H.writeInt32BE(this._e|0,16);return H;};module.exports=Sha1;}).call(this,require("buffer").Buffer);},{"./hash":136,"buffer":37,"inherits":183}],140:[function(require,module,exports){(function(Buffer){/**
                  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -2406,18 +2403,18 @@ var pmcrypto = (function (exports) {
                  * Version 2.2-beta Copyright Angel Marin, Paul Johnston 2000 - 2009.
                  * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
                  *
-                 */var inherits$$1=require('inherits');var Sha256=require('./sha256');var Hash=require('./hash');var W=new Array(64);function Sha224(){this.init();this._w=W;// new Array(64)
-    Hash.call(this,64,56);}inherits$$1(Sha224,Sha256);Sha224.prototype.init=function(){this._a=0xc1059ed8|0;this._b=0x367cd507|0;this._c=0x3070dd17|0;this._d=0xf70e5939|0;this._e=0xffc00b31|0;this._f=0x68581511|0;this._g=0x64f98fa7|0;this._h=0xbefa4fa4|0;return this;};Sha224.prototype._hash=function(){var H=new Buffer(28);H.writeInt32BE(this._a,0);H.writeInt32BE(this._b,4);H.writeInt32BE(this._c,8);H.writeInt32BE(this._d,12);H.writeInt32BE(this._e,16);H.writeInt32BE(this._f,20);H.writeInt32BE(this._g,24);return H;};module.exports=Sha224;}).call(this,require("buffer").Buffer);},{"./hash":136,"./sha256":141,"buffer":37,"inherits":183}],141:[function(require,module,exports){(function(Buffer){/**
+                 */var inherits=require('inherits');var Sha256=require('./sha256');var Hash=require('./hash');var W=new Array(64);function Sha224(){this.init();this._w=W;// new Array(64)
+    Hash.call(this,64,56);}inherits(Sha224,Sha256);Sha224.prototype.init=function(){this._a=0xc1059ed8|0;this._b=0x367cd507|0;this._c=0x3070dd17|0;this._d=0xf70e5939|0;this._e=0xffc00b31|0;this._f=0x68581511|0;this._g=0x64f98fa7|0;this._h=0xbefa4fa4|0;return this;};Sha224.prototype._hash=function(){var H=new Buffer(28);H.writeInt32BE(this._a,0);H.writeInt32BE(this._b,4);H.writeInt32BE(this._c,8);H.writeInt32BE(this._d,12);H.writeInt32BE(this._e,16);H.writeInt32BE(this._f,20);H.writeInt32BE(this._g,24);return H;};module.exports=Sha224;}).call(this,require("buffer").Buffer);},{"./hash":136,"./sha256":141,"buffer":37,"inherits":183}],141:[function(require,module,exports){(function(Buffer){/**
                  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
                  * in FIPS 180-2
                  * Version 2.2-beta Copyright Angel Marin, Paul Johnston 2000 - 2009.
                  * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
                  *
-                 */var inherits$$1=require('inherits');var Hash=require('./hash');var K=[0x428A2F98,0x71374491,0xB5C0FBCF,0xE9B5DBA5,0x3956C25B,0x59F111F1,0x923F82A4,0xAB1C5ED5,0xD807AA98,0x12835B01,0x243185BE,0x550C7DC3,0x72BE5D74,0x80DEB1FE,0x9BDC06A7,0xC19BF174,0xE49B69C1,0xEFBE4786,0x0FC19DC6,0x240CA1CC,0x2DE92C6F,0x4A7484AA,0x5CB0A9DC,0x76F988DA,0x983E5152,0xA831C66D,0xB00327C8,0xBF597FC7,0xC6E00BF3,0xD5A79147,0x06CA6351,0x14292967,0x27B70A85,0x2E1B2138,0x4D2C6DFC,0x53380D13,0x650A7354,0x766A0ABB,0x81C2C92E,0x92722C85,0xA2BFE8A1,0xA81A664B,0xC24B8B70,0xC76C51A3,0xD192E819,0xD6990624,0xF40E3585,0x106AA070,0x19A4C116,0x1E376C08,0x2748774C,0x34B0BCB5,0x391C0CB3,0x4ED8AA4A,0x5B9CCA4F,0x682E6FF3,0x748F82EE,0x78A5636F,0x84C87814,0x8CC70208,0x90BEFFFA,0xA4506CEB,0xBEF9A3F7,0xC67178F2];var W=new Array(64);function Sha256(){this.init();this._w=W;// new Array(64)
-    Hash.call(this,64,56);}inherits$$1(Sha256,Hash);Sha256.prototype.init=function(){this._a=0x6a09e667|0;this._b=0xbb67ae85|0;this._c=0x3c6ef372|0;this._d=0xa54ff53a|0;this._e=0x510e527f|0;this._f=0x9b05688c|0;this._g=0x1f83d9ab|0;this._h=0x5be0cd19|0;return this;};function S(X,n){return X>>>n|X<<32-n;}function R(X,n){return X>>>n;}function Ch(x,y,z){return x&y^~x&z;}function Maj(x,y,z){return x&y^x&z^y&z;}function Sigma0256(x){return S(x,2)^S(x,13)^S(x,22);}function Sigma1256(x){return S(x,6)^S(x,11)^S(x,25);}function Gamma0256(x){return S(x,7)^S(x,18)^R(x,3);}function Gamma1256(x){return S(x,17)^S(x,19)^R(x,10);}Sha256.prototype._update=function(M){var W=this._w;var a=this._a|0;var b=this._b|0;var c=this._c|0;var d=this._d|0;var e=this._e|0;var f=this._f|0;var g=this._g|0;var h=this._h|0;var j=0;function calcW(){return Gamma1256(W[j-2])+W[j-7]+Gamma0256(W[j-15])+W[j-16];}function loop(w){W[j]=w;var T1=h+Sigma1256(e)+Ch(e,f,g)+K[j]+w;var T2=Sigma0256(a)+Maj(a,b,c);h=g;g=f;f=e;e=d+T1;d=c;c=b;b=a;a=T1+T2;j++;}while(j<16){loop(M.readInt32BE(j*4));}while(j<64){loop(calcW());}this._a=a+this._a|0;this._b=b+this._b|0;this._c=c+this._c|0;this._d=d+this._d|0;this._e=e+this._e|0;this._f=f+this._f|0;this._g=g+this._g|0;this._h=h+this._h|0;};Sha256.prototype._hash=function(){var H=new Buffer(32);H.writeInt32BE(this._a,0);H.writeInt32BE(this._b,4);H.writeInt32BE(this._c,8);H.writeInt32BE(this._d,12);H.writeInt32BE(this._e,16);H.writeInt32BE(this._f,20);H.writeInt32BE(this._g,24);H.writeInt32BE(this._h,28);return H;};module.exports=Sha256;}).call(this,require("buffer").Buffer);},{"./hash":136,"buffer":37,"inherits":183}],142:[function(require,module,exports){(function(Buffer){var inherits$$1=require('inherits');var SHA512=require('./sha512');var Hash=require('./hash');var W=new Array(160);function Sha384(){this.init();this._w=W;Hash.call(this,128,112);}inherits$$1(Sha384,SHA512);Sha384.prototype.init=function(){this._a=0xcbbb9d5d|0;this._b=0x629a292a|0;this._c=0x9159015a|0;this._d=0x152fecd8|0;this._e=0x67332667|0;this._f=0x8eb44a87|0;this._g=0xdb0c2e0d|0;this._h=0x47b5481d|0;this._al=0xc1059ed8|0;this._bl=0x367cd507|0;this._cl=0x3070dd17|0;this._dl=0xf70e5939|0;this._el=0xffc00b31|0;this._fl=0x68581511|0;this._gl=0x64f98fa7|0;this._hl=0xbefa4fa4|0;return this;};Sha384.prototype._hash=function(){var H=new Buffer(48);function writeInt64BE(h,l,offset){H.writeInt32BE(h,offset);H.writeInt32BE(l,offset+4);}writeInt64BE(this._a,this._al,0);writeInt64BE(this._b,this._bl,8);writeInt64BE(this._c,this._cl,16);writeInt64BE(this._d,this._dl,24);writeInt64BE(this._e,this._el,32);writeInt64BE(this._f,this._fl,40);return H;};module.exports=Sha384;}).call(this,require("buffer").Buffer);},{"./hash":136,"./sha512":143,"buffer":37,"inherits":183}],143:[function(require,module,exports){(function(Buffer){var inherits$$1=require('inherits');var Hash=require('./hash');var K=[0x428a2f98,0xd728ae22,0x71374491,0x23ef65cd,0xb5c0fbcf,0xec4d3b2f,0xe9b5dba5,0x8189dbbc,0x3956c25b,0xf348b538,0x59f111f1,0xb605d019,0x923f82a4,0xaf194f9b,0xab1c5ed5,0xda6d8118,0xd807aa98,0xa3030242,0x12835b01,0x45706fbe,0x243185be,0x4ee4b28c,0x550c7dc3,0xd5ffb4e2,0x72be5d74,0xf27b896f,0x80deb1fe,0x3b1696b1,0x9bdc06a7,0x25c71235,0xc19bf174,0xcf692694,0xe49b69c1,0x9ef14ad2,0xefbe4786,0x384f25e3,0x0fc19dc6,0x8b8cd5b5,0x240ca1cc,0x77ac9c65,0x2de92c6f,0x592b0275,0x4a7484aa,0x6ea6e483,0x5cb0a9dc,0xbd41fbd4,0x76f988da,0x831153b5,0x983e5152,0xee66dfab,0xa831c66d,0x2db43210,0xb00327c8,0x98fb213f,0xbf597fc7,0xbeef0ee4,0xc6e00bf3,0x3da88fc2,0xd5a79147,0x930aa725,0x06ca6351,0xe003826f,0x14292967,0x0a0e6e70,0x27b70a85,0x46d22ffc,0x2e1b2138,0x5c26c926,0x4d2c6dfc,0x5ac42aed,0x53380d13,0x9d95b3df,0x650a7354,0x8baf63de,0x766a0abb,0x3c77b2a8,0x81c2c92e,0x47edaee6,0x92722c85,0x1482353b,0xa2bfe8a1,0x4cf10364,0xa81a664b,0xbc423001,0xc24b8b70,0xd0f89791,0xc76c51a3,0x0654be30,0xd192e819,0xd6ef5218,0xd6990624,0x5565a910,0xf40e3585,0x5771202a,0x106aa070,0x32bbd1b8,0x19a4c116,0xb8d2d0c8,0x1e376c08,0x5141ab53,0x2748774c,0xdf8eeb99,0x34b0bcb5,0xe19b48a8,0x391c0cb3,0xc5c95a63,0x4ed8aa4a,0xe3418acb,0x5b9cca4f,0x7763e373,0x682e6ff3,0xd6b2b8a3,0x748f82ee,0x5defb2fc,0x78a5636f,0x43172f60,0x84c87814,0xa1f0ab72,0x8cc70208,0x1a6439ec,0x90befffa,0x23631e28,0xa4506ceb,0xde82bde9,0xbef9a3f7,0xb2c67915,0xc67178f2,0xe372532b,0xca273ece,0xea26619c,0xd186b8c7,0x21c0c207,0xeada7dd6,0xcde0eb1e,0xf57d4f7f,0xee6ed178,0x06f067aa,0x72176fba,0x0a637dc5,0xa2c898a6,0x113f9804,0xbef90dae,0x1b710b35,0x131c471b,0x28db77f5,0x23047d84,0x32caab7b,0x40c72493,0x3c9ebe0a,0x15c9bebc,0x431d67c4,0x9c100d4c,0x4cc5d4be,0xcb3e42b6,0x597f299c,0xfc657e2a,0x5fcb6fab,0x3ad6faec,0x6c44198c,0x4a475817];var W=new Array(160);function Sha512(){this.init();this._w=W;Hash.call(this,128,112);}inherits$$1(Sha512,Hash);Sha512.prototype.init=function(){this._a=0x6a09e667|0;this._b=0xbb67ae85|0;this._c=0x3c6ef372|0;this._d=0xa54ff53a|0;this._e=0x510e527f|0;this._f=0x9b05688c|0;this._g=0x1f83d9ab|0;this._h=0x5be0cd19|0;this._al=0xf3bcc908|0;this._bl=0x84caa73b|0;this._cl=0xfe94f82b|0;this._dl=0x5f1d36f1|0;this._el=0xade682d1|0;this._fl=0x2b3e6c1f|0;this._gl=0xfb41bd6b|0;this._hl=0x137e2179|0;return this;};function S(X,Xl,n){return X>>>n|Xl<<32-n;}function Ch(x,y,z){return x&y^~x&z;}function Maj(x,y,z){return x&y^x&z^y&z;}Sha512.prototype._update=function(M){var W=this._w;var a=this._a|0;var b=this._b|0;var c=this._c|0;var d=this._d|0;var e=this._e|0;var f=this._f|0;var g=this._g|0;var h=this._h|0;var al=this._al|0;var bl=this._bl|0;var cl=this._cl|0;var dl=this._dl|0;var el=this._el|0;var fl=this._fl|0;var gl=this._gl|0;var hl=this._hl|0;var i=0;var j=0;var Wi,Wil;function calcW(){var x=W[j-15*2];var xl=W[j-15*2+1];var gamma0=S(x,xl,1)^S(x,xl,8)^x>>>7;var gamma0l=S(xl,x,1)^S(xl,x,8)^S(xl,x,7);x=W[j-2*2];xl=W[j-2*2+1];var gamma1=S(x,xl,19)^S(xl,x,29)^x>>>6;var gamma1l=S(xl,x,19)^S(x,xl,29)^S(xl,x,6);// W[i] = gamma0 + W[i - 7] + gamma1 + W[i - 16]
+                 */var inherits=require('inherits');var Hash=require('./hash');var K=[0x428A2F98,0x71374491,0xB5C0FBCF,0xE9B5DBA5,0x3956C25B,0x59F111F1,0x923F82A4,0xAB1C5ED5,0xD807AA98,0x12835B01,0x243185BE,0x550C7DC3,0x72BE5D74,0x80DEB1FE,0x9BDC06A7,0xC19BF174,0xE49B69C1,0xEFBE4786,0x0FC19DC6,0x240CA1CC,0x2DE92C6F,0x4A7484AA,0x5CB0A9DC,0x76F988DA,0x983E5152,0xA831C66D,0xB00327C8,0xBF597FC7,0xC6E00BF3,0xD5A79147,0x06CA6351,0x14292967,0x27B70A85,0x2E1B2138,0x4D2C6DFC,0x53380D13,0x650A7354,0x766A0ABB,0x81C2C92E,0x92722C85,0xA2BFE8A1,0xA81A664B,0xC24B8B70,0xC76C51A3,0xD192E819,0xD6990624,0xF40E3585,0x106AA070,0x19A4C116,0x1E376C08,0x2748774C,0x34B0BCB5,0x391C0CB3,0x4ED8AA4A,0x5B9CCA4F,0x682E6FF3,0x748F82EE,0x78A5636F,0x84C87814,0x8CC70208,0x90BEFFFA,0xA4506CEB,0xBEF9A3F7,0xC67178F2];var W=new Array(64);function Sha256(){this.init();this._w=W;// new Array(64)
+    Hash.call(this,64,56);}inherits(Sha256,Hash);Sha256.prototype.init=function(){this._a=0x6a09e667|0;this._b=0xbb67ae85|0;this._c=0x3c6ef372|0;this._d=0xa54ff53a|0;this._e=0x510e527f|0;this._f=0x9b05688c|0;this._g=0x1f83d9ab|0;this._h=0x5be0cd19|0;return this;};function S(X,n){return X>>>n|X<<32-n;}function R(X,n){return X>>>n;}function Ch(x,y,z){return x&y^~x&z;}function Maj(x,y,z){return x&y^x&z^y&z;}function Sigma0256(x){return S(x,2)^S(x,13)^S(x,22);}function Sigma1256(x){return S(x,6)^S(x,11)^S(x,25);}function Gamma0256(x){return S(x,7)^S(x,18)^R(x,3);}function Gamma1256(x){return S(x,17)^S(x,19)^R(x,10);}Sha256.prototype._update=function(M){var W=this._w;var a=this._a|0;var b=this._b|0;var c=this._c|0;var d=this._d|0;var e=this._e|0;var f=this._f|0;var g=this._g|0;var h=this._h|0;var j=0;function calcW(){return Gamma1256(W[j-2])+W[j-7]+Gamma0256(W[j-15])+W[j-16];}function loop(w){W[j]=w;var T1=h+Sigma1256(e)+Ch(e,f,g)+K[j]+w;var T2=Sigma0256(a)+Maj(a,b,c);h=g;g=f;f=e;e=d+T1;d=c;c=b;b=a;a=T1+T2;j++;}while(j<16){loop(M.readInt32BE(j*4));}while(j<64){loop(calcW());}this._a=a+this._a|0;this._b=b+this._b|0;this._c=c+this._c|0;this._d=d+this._d|0;this._e=e+this._e|0;this._f=f+this._f|0;this._g=g+this._g|0;this._h=h+this._h|0;};Sha256.prototype._hash=function(){var H=new Buffer(32);H.writeInt32BE(this._a,0);H.writeInt32BE(this._b,4);H.writeInt32BE(this._c,8);H.writeInt32BE(this._d,12);H.writeInt32BE(this._e,16);H.writeInt32BE(this._f,20);H.writeInt32BE(this._g,24);H.writeInt32BE(this._h,28);return H;};module.exports=Sha256;}).call(this,require("buffer").Buffer);},{"./hash":136,"buffer":37,"inherits":183}],142:[function(require,module,exports){(function(Buffer){var inherits=require('inherits');var SHA512=require('./sha512');var Hash=require('./hash');var W=new Array(160);function Sha384(){this.init();this._w=W;Hash.call(this,128,112);}inherits(Sha384,SHA512);Sha384.prototype.init=function(){this._a=0xcbbb9d5d|0;this._b=0x629a292a|0;this._c=0x9159015a|0;this._d=0x152fecd8|0;this._e=0x67332667|0;this._f=0x8eb44a87|0;this._g=0xdb0c2e0d|0;this._h=0x47b5481d|0;this._al=0xc1059ed8|0;this._bl=0x367cd507|0;this._cl=0x3070dd17|0;this._dl=0xf70e5939|0;this._el=0xffc00b31|0;this._fl=0x68581511|0;this._gl=0x64f98fa7|0;this._hl=0xbefa4fa4|0;return this;};Sha384.prototype._hash=function(){var H=new Buffer(48);function writeInt64BE(h,l,offset){H.writeInt32BE(h,offset);H.writeInt32BE(l,offset+4);}writeInt64BE(this._a,this._al,0);writeInt64BE(this._b,this._bl,8);writeInt64BE(this._c,this._cl,16);writeInt64BE(this._d,this._dl,24);writeInt64BE(this._e,this._el,32);writeInt64BE(this._f,this._fl,40);return H;};module.exports=Sha384;}).call(this,require("buffer").Buffer);},{"./hash":136,"./sha512":143,"buffer":37,"inherits":183}],143:[function(require,module,exports){(function(Buffer){var inherits=require('inherits');var Hash=require('./hash');var K=[0x428a2f98,0xd728ae22,0x71374491,0x23ef65cd,0xb5c0fbcf,0xec4d3b2f,0xe9b5dba5,0x8189dbbc,0x3956c25b,0xf348b538,0x59f111f1,0xb605d019,0x923f82a4,0xaf194f9b,0xab1c5ed5,0xda6d8118,0xd807aa98,0xa3030242,0x12835b01,0x45706fbe,0x243185be,0x4ee4b28c,0x550c7dc3,0xd5ffb4e2,0x72be5d74,0xf27b896f,0x80deb1fe,0x3b1696b1,0x9bdc06a7,0x25c71235,0xc19bf174,0xcf692694,0xe49b69c1,0x9ef14ad2,0xefbe4786,0x384f25e3,0x0fc19dc6,0x8b8cd5b5,0x240ca1cc,0x77ac9c65,0x2de92c6f,0x592b0275,0x4a7484aa,0x6ea6e483,0x5cb0a9dc,0xbd41fbd4,0x76f988da,0x831153b5,0x983e5152,0xee66dfab,0xa831c66d,0x2db43210,0xb00327c8,0x98fb213f,0xbf597fc7,0xbeef0ee4,0xc6e00bf3,0x3da88fc2,0xd5a79147,0x930aa725,0x06ca6351,0xe003826f,0x14292967,0x0a0e6e70,0x27b70a85,0x46d22ffc,0x2e1b2138,0x5c26c926,0x4d2c6dfc,0x5ac42aed,0x53380d13,0x9d95b3df,0x650a7354,0x8baf63de,0x766a0abb,0x3c77b2a8,0x81c2c92e,0x47edaee6,0x92722c85,0x1482353b,0xa2bfe8a1,0x4cf10364,0xa81a664b,0xbc423001,0xc24b8b70,0xd0f89791,0xc76c51a3,0x0654be30,0xd192e819,0xd6ef5218,0xd6990624,0x5565a910,0xf40e3585,0x5771202a,0x106aa070,0x32bbd1b8,0x19a4c116,0xb8d2d0c8,0x1e376c08,0x5141ab53,0x2748774c,0xdf8eeb99,0x34b0bcb5,0xe19b48a8,0x391c0cb3,0xc5c95a63,0x4ed8aa4a,0xe3418acb,0x5b9cca4f,0x7763e373,0x682e6ff3,0xd6b2b8a3,0x748f82ee,0x5defb2fc,0x78a5636f,0x43172f60,0x84c87814,0xa1f0ab72,0x8cc70208,0x1a6439ec,0x90befffa,0x23631e28,0xa4506ceb,0xde82bde9,0xbef9a3f7,0xb2c67915,0xc67178f2,0xe372532b,0xca273ece,0xea26619c,0xd186b8c7,0x21c0c207,0xeada7dd6,0xcde0eb1e,0xf57d4f7f,0xee6ed178,0x06f067aa,0x72176fba,0x0a637dc5,0xa2c898a6,0x113f9804,0xbef90dae,0x1b710b35,0x131c471b,0x28db77f5,0x23047d84,0x32caab7b,0x40c72493,0x3c9ebe0a,0x15c9bebc,0x431d67c4,0x9c100d4c,0x4cc5d4be,0xcb3e42b6,0x597f299c,0xfc657e2a,0x5fcb6fab,0x3ad6faec,0x6c44198c,0x4a475817];var W=new Array(160);function Sha512(){this.init();this._w=W;Hash.call(this,128,112);}inherits(Sha512,Hash);Sha512.prototype.init=function(){this._a=0x6a09e667|0;this._b=0xbb67ae85|0;this._c=0x3c6ef372|0;this._d=0xa54ff53a|0;this._e=0x510e527f|0;this._f=0x9b05688c|0;this._g=0x1f83d9ab|0;this._h=0x5be0cd19|0;this._al=0xf3bcc908|0;this._bl=0x84caa73b|0;this._cl=0xfe94f82b|0;this._dl=0x5f1d36f1|0;this._el=0xade682d1|0;this._fl=0x2b3e6c1f|0;this._gl=0xfb41bd6b|0;this._hl=0x137e2179|0;return this;};function S(X,Xl,n){return X>>>n|Xl<<32-n;}function Ch(x,y,z){return x&y^~x&z;}function Maj(x,y,z){return x&y^x&z^y&z;}Sha512.prototype._update=function(M){var W=this._w;var a=this._a|0;var b=this._b|0;var c=this._c|0;var d=this._d|0;var e=this._e|0;var f=this._f|0;var g=this._g|0;var h=this._h|0;var al=this._al|0;var bl=this._bl|0;var cl=this._cl|0;var dl=this._dl|0;var el=this._el|0;var fl=this._fl|0;var gl=this._gl|0;var hl=this._hl|0;var i=0;var j=0;var Wi,Wil;function calcW(){var x=W[j-15*2];var xl=W[j-15*2+1];var gamma0=S(x,xl,1)^S(x,xl,8)^x>>>7;var gamma0l=S(xl,x,1)^S(xl,x,8)^S(xl,x,7);x=W[j-2*2];xl=W[j-2*2+1];var gamma1=S(x,xl,19)^S(xl,x,29)^x>>>6;var gamma1l=S(xl,x,19)^S(x,xl,29)^S(xl,x,6);// W[i] = gamma0 + W[i - 7] + gamma1 + W[i - 16]
     var Wi7=W[j-7*2];var Wi7l=W[j-7*2+1];var Wi16=W[j-16*2];var Wi16l=W[j-16*2+1];Wil=gamma0l+Wi7l;Wi=gamma0+Wi7+(Wil>>>0<gamma0l>>>0?1:0);Wil=Wil+gamma1l;Wi=Wi+gamma1+(Wil>>>0<gamma1l>>>0?1:0);Wil=Wil+Wi16l;Wi=Wi+Wi16+(Wil>>>0<Wi16l>>>0?1:0);}function loop(){W[j]=Wi;W[j+1]=Wil;var maj=Maj(a,b,c);var majl=Maj(al,bl,cl);var sigma0h=S(a,al,28)^S(al,a,2)^S(al,a,7);var sigma0l=S(al,a,28)^S(a,al,2)^S(a,al,7);var sigma1h=S(e,el,14)^S(e,el,18)^S(el,e,9);var sigma1l=S(el,e,14)^S(el,e,18)^S(e,el,9);// t1 = h + sigma1 + ch + K[i] + W[i]
     var Ki=K[j];var Kil=K[j+1];var ch=Ch(e,f,g);var chl=Ch(el,fl,gl);var t1l=hl+sigma1l;var t1=h+sigma1h+(t1l>>>0<hl>>>0?1:0);t1l=t1l+chl;t1=t1+ch+(t1l>>>0<chl>>>0?1:0);t1l=t1l+Kil;t1=t1+Ki+(t1l>>>0<Kil>>>0?1:0);t1l=t1l+Wil;t1=t1+Wi+(t1l>>>0<Wil>>>0?1:0);// t2 = sigma0 + maj
-    var t2l=sigma0l+majl;var t2=sigma0h+maj+(t2l>>>0<sigma0l>>>0?1:0);h=g;hl=gl;g=f;gl=fl;f=e;fl=el;el=dl+t1l|0;e=d+t1+(el>>>0<dl>>>0?1:0)|0;d=c;dl=cl;c=b;cl=bl;b=a;bl=al;al=t1l+t2l|0;a=t1+t2+(al>>>0<t1l>>>0?1:0)|0;i++;j+=2;}while(i<16){Wi=M.readInt32BE(j*4);Wil=M.readInt32BE(j*4+4);loop();}while(i<80){calcW();loop();}this._al=this._al+al|0;this._bl=this._bl+bl|0;this._cl=this._cl+cl|0;this._dl=this._dl+dl|0;this._el=this._el+el|0;this._fl=this._fl+fl|0;this._gl=this._gl+gl|0;this._hl=this._hl+hl|0;this._a=this._a+a+(this._al>>>0<al>>>0?1:0)|0;this._b=this._b+b+(this._bl>>>0<bl>>>0?1:0)|0;this._c=this._c+c+(this._cl>>>0<cl>>>0?1:0)|0;this._d=this._d+d+(this._dl>>>0<dl>>>0?1:0)|0;this._e=this._e+e+(this._el>>>0<el>>>0?1:0)|0;this._f=this._f+f+(this._fl>>>0<fl>>>0?1:0)|0;this._g=this._g+g+(this._gl>>>0<gl>>>0?1:0)|0;this._h=this._h+h+(this._hl>>>0<hl>>>0?1:0)|0;};Sha512.prototype._hash=function(){var H=new Buffer(64);function writeInt64BE(h,l,offset){H.writeInt32BE(h,offset);H.writeInt32BE(l,offset+4);}writeInt64BE(this._a,this._al,0);writeInt64BE(this._b,this._bl,8);writeInt64BE(this._c,this._cl,16);writeInt64BE(this._d,this._dl,24);writeInt64BE(this._e,this._el,32);writeInt64BE(this._f,this._fl,40);writeInt64BE(this._g,this._gl,48);writeInt64BE(this._h,this._hl,56);return H;};module.exports=Sha512;}).call(this,require("buffer").Buffer);},{"./hash":136,"buffer":37,"inherits":183}],144:[function(require,module,exports){(function(Buffer){var createHash=require('create-hash/browser');var inherits$$1=require('inherits');var Transform=require('stream').Transform;var ZEROS=new Buffer(128);ZEROS.fill(0);function Hmac(alg,key){Transform.call(this);if(typeof key==='string'){key=new Buffer(key);}var blocksize=alg==='sha512'||alg==='sha384'?128:64;this._alg=alg;this._key=key;if(key.length>blocksize){key=createHash(alg).update(key).digest();}else if(key.length<blocksize){key=Buffer.concat([key,ZEROS],blocksize);}var ipad=this._ipad=new Buffer(blocksize);var opad=this._opad=new Buffer(blocksize);for(var i=0;i<blocksize;i++){ipad[i]=key[i]^0x36;opad[i]=key[i]^0x5C;}this._hash=createHash(alg).update(ipad);}inherits$$1(Hmac,Transform);Hmac.prototype.update=function(data,enc){this._hash.update(data,enc);return this;};Hmac.prototype._transform=function(data,_,next){this._hash.update(data);next();};Hmac.prototype._flush=function(next){this.push(this.digest());next();};Hmac.prototype.digest=function(enc){var h=this._hash.digest();return createHash(this._alg).update(this._opad).update(h).digest(enc);};module.exports=function createHmac(alg,key){return new Hmac(alg,key);};}).call(this,require("buffer").Buffer);},{"buffer":37,"create-hash/browser":132,"inherits":183,"stream":200}],145:[function(require,module,exports){(function(Buffer){var generatePrime=require('./lib/generatePrime');var primes=require('./lib/primes');var DH=require('./lib/dh');function getDiffieHellman(mod){var prime=new Buffer(primes[mod].prime,'hex');var gen=new Buffer(primes[mod].gen,'hex');return new DH(prime,gen);}function createDiffieHellman(prime,enc,generator,genc){if(Buffer.isBuffer(enc)||typeof enc==='string'&&['hex','binary','base64'].indexOf(enc)===-1){genc=generator;generator=enc;enc=undefined;}enc=enc||'binary';genc=genc||'binary';generator=generator||new Buffer([2]);if(!Buffer.isBuffer(generator)){generator=new Buffer(generator,genc);}if(typeof prime==='number'){return new DH(generatePrime(prime,generator),generator,true);}if(!Buffer.isBuffer(prime)){prime=new Buffer(prime,enc);}return new DH(prime,generator,true);}exports.DiffieHellmanGroup=exports.createDiffieHellmanGroup=exports.getDiffieHellman=getDiffieHellman;exports.createDiffieHellman=exports.DiffieHellman=createDiffieHellman;}).call(this,require("buffer").Buffer);},{"./lib/dh":146,"./lib/generatePrime":147,"./lib/primes":148,"buffer":37}],146:[function(require,module,exports){(function(Buffer){var BN=require('bn.js');var MillerRabin=require('miller-rabin');var millerRabin=new MillerRabin();var TWENTYFOUR=new BN(24);var ELEVEN=new BN(11);var TEN=new BN(10);var THREE=new BN(3);var SEVEN=new BN(7);var primes=require('./generatePrime');var randomBytes=require('randombytes');module.exports=DH;function setPublicKey(pub,enc){enc=enc||'utf8';if(!Buffer.isBuffer(pub)){pub=new Buffer(pub,enc);}this._pub=new BN(pub);return this;}function setPrivateKey(priv,enc){enc=enc||'utf8';if(!Buffer.isBuffer(priv)){priv=new Buffer(priv,enc);}this._priv=new BN(priv);return this;}var primeCache={};function checkPrime(prime,generator){var gen=generator.toString('hex');var hex=[gen,prime.toString(16)].join('_');if(hex in primeCache){return primeCache[hex];}var error=0;if(prime.isEven()||!primes.simpleSieve||!primes.fermatTest(prime)||!millerRabin.test(prime)){//not a prime so +1
+    var t2l=sigma0l+majl;var t2=sigma0h+maj+(t2l>>>0<sigma0l>>>0?1:0);h=g;hl=gl;g=f;gl=fl;f=e;fl=el;el=dl+t1l|0;e=d+t1+(el>>>0<dl>>>0?1:0)|0;d=c;dl=cl;c=b;cl=bl;b=a;bl=al;al=t1l+t2l|0;a=t1+t2+(al>>>0<t1l>>>0?1:0)|0;i++;j+=2;}while(i<16){Wi=M.readInt32BE(j*4);Wil=M.readInt32BE(j*4+4);loop();}while(i<80){calcW();loop();}this._al=this._al+al|0;this._bl=this._bl+bl|0;this._cl=this._cl+cl|0;this._dl=this._dl+dl|0;this._el=this._el+el|0;this._fl=this._fl+fl|0;this._gl=this._gl+gl|0;this._hl=this._hl+hl|0;this._a=this._a+a+(this._al>>>0<al>>>0?1:0)|0;this._b=this._b+b+(this._bl>>>0<bl>>>0?1:0)|0;this._c=this._c+c+(this._cl>>>0<cl>>>0?1:0)|0;this._d=this._d+d+(this._dl>>>0<dl>>>0?1:0)|0;this._e=this._e+e+(this._el>>>0<el>>>0?1:0)|0;this._f=this._f+f+(this._fl>>>0<fl>>>0?1:0)|0;this._g=this._g+g+(this._gl>>>0<gl>>>0?1:0)|0;this._h=this._h+h+(this._hl>>>0<hl>>>0?1:0)|0;};Sha512.prototype._hash=function(){var H=new Buffer(64);function writeInt64BE(h,l,offset){H.writeInt32BE(h,offset);H.writeInt32BE(l,offset+4);}writeInt64BE(this._a,this._al,0);writeInt64BE(this._b,this._bl,8);writeInt64BE(this._c,this._cl,16);writeInt64BE(this._d,this._dl,24);writeInt64BE(this._e,this._el,32);writeInt64BE(this._f,this._fl,40);writeInt64BE(this._g,this._gl,48);writeInt64BE(this._h,this._hl,56);return H;};module.exports=Sha512;}).call(this,require("buffer").Buffer);},{"./hash":136,"buffer":37,"inherits":183}],144:[function(require,module,exports){(function(Buffer){var createHash=require('create-hash/browser');var inherits=require('inherits');var Transform=require('stream').Transform;var ZEROS=new Buffer(128);ZEROS.fill(0);function Hmac(alg,key){Transform.call(this);if(typeof key==='string'){key=new Buffer(key);}var blocksize=alg==='sha512'||alg==='sha384'?128:64;this._alg=alg;this._key=key;if(key.length>blocksize){key=createHash(alg).update(key).digest();}else if(key.length<blocksize){key=Buffer.concat([key,ZEROS],blocksize);}var ipad=this._ipad=new Buffer(blocksize);var opad=this._opad=new Buffer(blocksize);for(var i=0;i<blocksize;i++){ipad[i]=key[i]^0x36;opad[i]=key[i]^0x5C;}this._hash=createHash(alg).update(ipad);}inherits(Hmac,Transform);Hmac.prototype.update=function(data,enc){this._hash.update(data,enc);return this;};Hmac.prototype._transform=function(data,_,next){this._hash.update(data);next();};Hmac.prototype._flush=function(next){this.push(this.digest());next();};Hmac.prototype.digest=function(enc){var h=this._hash.digest();return createHash(this._alg).update(this._opad).update(h).digest(enc);};module.exports=function createHmac(alg,key){return new Hmac(alg,key);};}).call(this,require("buffer").Buffer);},{"buffer":37,"create-hash/browser":132,"inherits":183,"stream":200}],145:[function(require,module,exports){(function(Buffer){var generatePrime=require('./lib/generatePrime');var primes=require('./lib/primes');var DH=require('./lib/dh');function getDiffieHellman(mod){var prime=new Buffer(primes[mod].prime,'hex');var gen=new Buffer(primes[mod].gen,'hex');return new DH(prime,gen);}function createDiffieHellman(prime,enc,generator,genc){if(Buffer.isBuffer(enc)||typeof enc==='string'&&['hex','binary','base64'].indexOf(enc)===-1){genc=generator;generator=enc;enc=undefined;}enc=enc||'binary';genc=genc||'binary';generator=generator||new Buffer([2]);if(!Buffer.isBuffer(generator)){generator=new Buffer(generator,genc);}if(typeof prime==='number'){return new DH(generatePrime(prime,generator),generator,true);}if(!Buffer.isBuffer(prime)){prime=new Buffer(prime,enc);}return new DH(prime,generator,true);}exports.DiffieHellmanGroup=exports.createDiffieHellmanGroup=exports.getDiffieHellman=getDiffieHellman;exports.createDiffieHellman=exports.DiffieHellman=createDiffieHellman;}).call(this,require("buffer").Buffer);},{"./lib/dh":146,"./lib/generatePrime":147,"./lib/primes":148,"buffer":37}],146:[function(require,module,exports){(function(Buffer){var BN=require('bn.js');var MillerRabin=require('miller-rabin');var millerRabin=new MillerRabin();var TWENTYFOUR=new BN(24);var ELEVEN=new BN(11);var TEN=new BN(10);var THREE=new BN(3);var SEVEN=new BN(7);var primes=require('./generatePrime');var randomBytes=require('randombytes');module.exports=DH;function setPublicKey(pub,enc){enc=enc||'utf8';if(!Buffer.isBuffer(pub)){pub=new Buffer(pub,enc);}this._pub=new BN(pub);return this;}function setPrivateKey(priv,enc){enc=enc||'utf8';if(!Buffer.isBuffer(priv)){priv=new Buffer(priv,enc);}this._priv=new BN(priv);return this;}var primeCache={};function checkPrime(prime,generator){var gen=generator.toString('hex');var hex=[gen,prime.toString(16)].join('_');if(hex in primeCache){return primeCache[hex];}var error=0;if(prime.isEven()||!primes.simpleSieve||!primes.fermatTest(prime)||!millerRabin.test(prime)){//not a prime so +1
     error+=1;if(gen==='02'||gen==='05'){// we'd be able to check the generator
     // it would fail so +8
     error+=8;}else{//we wouldn't be able to test the generator
@@ -2474,9 +2471,9 @@ var pmcrypto = (function (exports) {
     EventEmitter.prototype.removeListener=function(type,listener){var list,position,length,i;if(!isFunction(listener))throw TypeError('listener must be a function');if(!this._events||!this._events[type])return this;list=this._events[type];length=list.length;position=-1;if(list===listener||isFunction(list.listener)&&list.listener===listener){delete this._events[type];if(this._events.removeListener)this.emit('removeListener',type,listener);}else if(isObject(list)){for(i=length;i-->0;){if(list[i]===listener||list[i].listener&&list[i].listener===listener){position=i;break;}}if(position<0)return this;if(list.length===1){list.length=0;delete this._events[type];}else{list.splice(position,1);}if(this._events.removeListener)this.emit('removeListener',type,listener);}return this;};EventEmitter.prototype.removeAllListeners=function(type){var key,listeners;if(!this._events)return this;// not listening for removeListener, no need to emit
     if(!this._events.removeListener){if(arguments.length===0)this._events={};else if(this._events[type])delete this._events[type];return this;}// emit removeListener for all listeners on all events
     if(arguments.length===0){for(key in this._events){if(key==='removeListener')continue;this.removeAllListeners(key);}this.removeAllListeners('removeListener');this._events={};return this;}listeners=this._events[type];if(isFunction(listeners)){this.removeListener(type,listeners);}else{// LIFO order
-    while(listeners.length){this.removeListener(type,listeners[listeners.length-1]);}}delete this._events[type];return this;};EventEmitter.prototype.listeners=function(type){var ret;if(!this._events||!this._events[type])ret=[];else if(isFunction(this._events[type]))ret=[this._events[type]];else ret=this._events[type].slice();return ret;};EventEmitter.listenerCount=function(emitter,type){var ret;if(!emitter._events||!emitter._events[type])ret=0;else if(isFunction(emitter._events[type]))ret=1;else ret=emitter._events[type].length;return ret;};function isFunction(arg){return typeof arg==='function';}function isNumber(arg){return typeof arg==='number';}function isObject(arg){return (typeof arg==="undefined"?"undefined":_typeof(arg))==='object'&&arg!==null;}function isUndefined(arg){return arg===void 0;}},{}],183:[function(require,module,exports){if(typeof Object.create==='function'){// implementation from standard node.js 'util' module
-    module.exports=function inherits$$1(ctor,superCtor){ctor.super_=superCtor;ctor.prototype=Object.create(superCtor.prototype,{constructor:{value:ctor,enumerable:false,writable:true,configurable:true}});};}else{// old school shim for old browsers
-    module.exports=function inherits$$1(ctor,superCtor){ctor.super_=superCtor;var TempCtor=function TempCtor(){};TempCtor.prototype=superCtor.prototype;ctor.prototype=new TempCtor();ctor.prototype.constructor=ctor;};}},{}],184:[function(require,module,exports){module.exports=Array.isArray||function(arr){return Object.prototype.toString.call(arr)=='[object Array]';};},{}],185:[function(require,module,exports){(function(process){// Copyright Joyent, Inc. and other Node contributors.
+    while(listeners.length){this.removeListener(type,listeners[listeners.length-1]);}}delete this._events[type];return this;};EventEmitter.prototype.listeners=function(type){var ret;if(!this._events||!this._events[type])ret=[];else if(isFunction(this._events[type]))ret=[this._events[type]];else ret=this._events[type].slice();return ret;};EventEmitter.listenerCount=function(emitter,type){var ret;if(!emitter._events||!emitter._events[type])ret=0;else if(isFunction(emitter._events[type]))ret=1;else ret=emitter._events[type].length;return ret;};function isFunction(arg){return typeof arg==='function';}function isNumber(arg){return typeof arg==='number';}function isObject(arg){return _typeof(arg)==='object'&&arg!==null;}function isUndefined(arg){return arg===void 0;}},{}],183:[function(require,module,exports){if(typeof Object.create==='function'){// implementation from standard node.js 'util' module
+    module.exports=function inherits(ctor,superCtor){ctor.super_=superCtor;ctor.prototype=Object.create(superCtor.prototype,{constructor:{value:ctor,enumerable:false,writable:true,configurable:true}});};}else{// old school shim for old browsers
+    module.exports=function inherits(ctor,superCtor){ctor.super_=superCtor;var TempCtor=function TempCtor(){};TempCtor.prototype=superCtor.prototype;ctor.prototype=new TempCtor();ctor.prototype.constructor=ctor;};}},{}],184:[function(require,module,exports){module.exports=Array.isArray||function(arr){return Object.prototype.toString.call(arr)=='[object Array]';};},{}],185:[function(require,module,exports){(function(process){// Copyright Joyent, Inc. and other Node contributors.
     //
     // Permission is hereby granted, free of charge, to any person obtaining a
     // copy of this software and associated documentation files (the
@@ -2525,13 +2522,13 @@ var pmcrypto = (function (exports) {
     var process=module.exports={};var queue=[];var draining=false;var currentQueue;var queueIndex=-1;function cleanUpNextTick(){draining=false;if(currentQueue.length){queue=currentQueue.concat(queue);}else{queueIndex=-1;}if(queue.length){drainQueue();}}function drainQueue(){if(draining){return;}var timeout=setTimeout(cleanUpNextTick);draining=true;var len=queue.length;while(len){currentQueue=queue;queue=[];while(++queueIndex<len){if(currentQueue){currentQueue[queueIndex].run();}}queueIndex=-1;len=queue.length;}currentQueue=null;draining=false;clearTimeout(timeout);}process.nextTick=function(fun){var args=new Array(arguments.length-1);if(arguments.length>1){for(var i=1;i<arguments.length;i++){args[i-1]=arguments[i];}}queue.push(new Item(fun,args));if(queue.length===1&&!draining){setTimeout(drainQueue,0);}};// v8 likes predictible objects
     function Item(fun,array){this.fun=fun;this.array=array;}Item.prototype.run=function(){this.fun.apply(null,this.array);};process.title='browser';process.browser=true;process.env={};process.argv=[];process.version='';// empty string to avoid regexp issues
     process.versions={};function noop(){}process.on=noop;process.addListener=noop;process.once=noop;process.off=noop;process.removeListener=noop;process.removeAllListeners=noop;process.emit=noop;process.binding=function(name){throw new Error('process.binding is not supported');};process.cwd=function(){return '/';};process.chdir=function(dir){throw new Error('process.chdir is not supported');};process.umask=function(){return 0;};},{}],187:[function(require,module,exports){module.exports=require("./lib/_stream_duplex.js");},{"./lib/_stream_duplex.js":188}],188:[function(require,module,exports){// a duplex stream is just a stream that is both readable and writable.
-    /*<replacement>*/var objectKeys=Object.keys||function(obj){var keys=[];for(var key in obj){keys.push(key);}return keys;};/*</replacement>*/module.exports=Duplex;/*<replacement>*/var processNextTick=require('process-nextick-args');/*</replacement>*//*<replacement>*/var util=require('core-util-is');util.inherits=require('inherits');/*</replacement>*/var Readable=require('./_stream_readable');var Writable=require('./_stream_writable');util.inherits(Duplex,Readable);var keys=objectKeys(Writable.prototype);for(var v=0;v<keys.length;v++){var method=keys[v];if(!Duplex.prototype[method])Duplex.prototype[method]=Writable.prototype[method];}function Duplex(options){if(!(this instanceof Duplex))return new Duplex(options);Readable.call(this,options);Writable.call(this,options);if(options&&options.readable===false)this.readable=false;if(options&&options.writable===false)this.writable=false;this.allowHalfOpen=true;if(options&&options.allowHalfOpen===false)this.allowHalfOpen=false;this.once('end',onend);}// the no-half-open enforcer
+    /*<replacement>*/var objectKeys=Object.keys||function(obj){var keys=[];for(var key in obj){keys.push(key);}return keys;};/*</replacement>*/module.exports=Duplex;/*<replacement>*/var processNextTick=require('process-nextick-args');/*</replacement>*/ /*<replacement>*/var util=require('core-util-is');util.inherits=require('inherits');/*</replacement>*/var Readable=require('./_stream_readable');var Writable=require('./_stream_writable');util.inherits(Duplex,Readable);var keys=objectKeys(Writable.prototype);for(var v=0;v<keys.length;v++){var method=keys[v];if(!Duplex.prototype[method])Duplex.prototype[method]=Writable.prototype[method];}function Duplex(options){if(!(this instanceof Duplex))return new Duplex(options);Readable.call(this,options);Writable.call(this,options);if(options&&options.readable===false)this.readable=false;if(options&&options.writable===false)this.writable=false;this.allowHalfOpen=true;if(options&&options.allowHalfOpen===false)this.allowHalfOpen=false;this.once('end',onend);}// the no-half-open enforcer
     function onend(){// if we allow half-open state, or if the writable side ended,
     // then we're ok.
     if(this.allowHalfOpen||this._writableState.ended)return;// no more data can be written.
     // But allow more writes to happen in this tick.
     processNextTick(onEndNT,this);}function onEndNT(self){self.end();}},{"./_stream_readable":190,"./_stream_writable":192,"core-util-is":193,"inherits":183,"process-nextick-args":194}],189:[function(require,module,exports){// a passthrough stream.
-    module.exports=PassThrough;var Transform=require('./_stream_transform');/*<replacement>*/var util=require('core-util-is');util.inherits=require('inherits');/*</replacement>*/util.inherits(PassThrough,Transform);function PassThrough(options){if(!(this instanceof PassThrough))return new PassThrough(options);Transform.call(this,options);}PassThrough.prototype._transform=function(chunk,encoding,cb){cb(null,chunk);};},{"./_stream_transform":191,"core-util-is":193,"inherits":183}],190:[function(require,module,exports){(function(process){module.exports=Readable;/*<replacement>*/var processNextTick=require('process-nextick-args');/*</replacement>*//*<replacement>*/var isArray=require('isarray');/*</replacement>*//*<replacement>*/var Buffer=require('buffer').Buffer;/*</replacement>*/Readable.ReadableState=ReadableState;var EE=require('events').EventEmitter;/*<replacement>*/if(!EE.listenerCount)EE.listenerCount=function(emitter,type){return emitter.listeners(type).length;};/*</replacement>*//*<replacement>*/var Stream;(function(){try{Stream=require('st'+'ream');}catch(_){}finally{if(!Stream)Stream=require('events').EventEmitter;}})();/*</replacement>*/var Buffer=require('buffer').Buffer;/*<replacement>*/var util=require('core-util-is');util.inherits=require('inherits');/*</replacement>*//*<replacement>*/var debug=require('util');if(debug&&debug.debuglog){debug=debug.debuglog('stream');}else{debug=function debug(){};}/*</replacement>*/var StringDecoder;util.inherits(Readable,Stream);function ReadableState(options,stream){var Duplex=require('./_stream_duplex');options=options||{};// object stream flag. Used to make read(n) ignore n and to
+    module.exports=PassThrough;var Transform=require('./_stream_transform');/*<replacement>*/var util=require('core-util-is');util.inherits=require('inherits');/*</replacement>*/util.inherits(PassThrough,Transform);function PassThrough(options){if(!(this instanceof PassThrough))return new PassThrough(options);Transform.call(this,options);}PassThrough.prototype._transform=function(chunk,encoding,cb){cb(null,chunk);};},{"./_stream_transform":191,"core-util-is":193,"inherits":183}],190:[function(require,module,exports){(function(process){module.exports=Readable;/*<replacement>*/var processNextTick=require('process-nextick-args');/*</replacement>*/ /*<replacement>*/var isArray=require('isarray');/*</replacement>*/ /*<replacement>*/var Buffer=require('buffer').Buffer;/*</replacement>*/Readable.ReadableState=ReadableState;var EE=require('events').EventEmitter;/*<replacement>*/if(!EE.listenerCount)EE.listenerCount=function(emitter,type){return emitter.listeners(type).length;};/*</replacement>*/ /*<replacement>*/var Stream;(function(){try{Stream=require('st'+'ream');}catch(_){}finally{if(!Stream)Stream=require('events').EventEmitter;}})();/*</replacement>*/var Buffer=require('buffer').Buffer;/*<replacement>*/var util=require('core-util-is');util.inherits=require('inherits');/*</replacement>*/ /*<replacement>*/var debug=require('util');if(debug&&debug.debuglog){debug=debug.debuglog('stream');}else{debug=function debug(){};}/*</replacement>*/var StringDecoder;util.inherits(Readable,Stream);function ReadableState(options,stream){var Duplex=require('./_stream_duplex');options=options||{};// object stream flag. Used to make read(n) ignore n and to
     // make all the buffer merging and length checks go away
     this.objectMode=!!options.objectMode;if(stream instanceof Duplex)this.objectMode=this.objectMode||!!options.readableObjectMode;// the point at which it stops calling _read() to fill the buffer
     // Note: 0 is a valid value, means "don't call _read preemptively ever"
@@ -2702,7 +2699,7 @@ var pmcrypto = (function (exports) {
     ts.needTransform=true;}};function done(stream,er){if(er)return stream.emit('error',er);// if there's nothing in the write buffer, then that means
     // that nothing more will ever be provided
     var ws=stream._writableState;var ts=stream._transformState;if(ws.length)throw new Error('calling transform done when ws.length != 0');if(ts.transforming)throw new Error('calling transform done when still transforming');return stream.push(null);}},{"./_stream_duplex":188,"core-util-is":193,"inherits":183}],192:[function(require,module,exports){// A bit simpler than readable streams.
-    module.exports=Writable;/*<replacement>*/var processNextTick=require('process-nextick-args');/*</replacement>*//*<replacement>*/var Buffer=require('buffer').Buffer;/*</replacement>*/Writable.WritableState=WritableState;/*<replacement>*/var util=require('core-util-is');util.inherits=require('inherits');/*</replacement>*//*<replacement>*/var Stream;(function(){try{Stream=require('st'+'ream');}catch(_){}finally{if(!Stream)Stream=require('events').EventEmitter;}})();/*</replacement>*/var Buffer=require('buffer').Buffer;util.inherits(Writable,Stream);function nop(){}function WriteReq(chunk,encoding,cb){this.chunk=chunk;this.encoding=encoding;this.callback=cb;this.next=null;}function WritableState(options,stream){var Duplex=require('./_stream_duplex');options=options||{};// object stream flag to indicate whether or not this stream
+    module.exports=Writable;/*<replacement>*/var processNextTick=require('process-nextick-args');/*</replacement>*/ /*<replacement>*/var Buffer=require('buffer').Buffer;/*</replacement>*/Writable.WritableState=WritableState;/*<replacement>*/var util=require('core-util-is');util.inherits=require('inherits');/*</replacement>*/ /*<replacement>*/var Stream;(function(){try{Stream=require('st'+'ream');}catch(_){}finally{if(!Stream)Stream=require('events').EventEmitter;}})();/*</replacement>*/var Buffer=require('buffer').Buffer;util.inherits(Writable,Stream);function nop(){}function WriteReq(chunk,encoding,cb){this.chunk=chunk;this.encoding=encoding;this.callback=cb;this.next=null;}function WritableState(options,stream){var Duplex=require('./_stream_duplex');options=options||{};// object stream flag to indicate whether or not this stream
     // contains buffers or objects.
     this.objectMode=!!options.objectMode;if(stream instanceof Duplex)this.objectMode=this.objectMode||!!options.writableObjectMode;// the point at which write() starts returning false
     // Note: 0 is a valid value, means that we always return false if
@@ -2790,7 +2787,7 @@ var pmcrypto = (function (exports) {
     // USE OR OTHER DEALINGS IN THE SOFTWARE.
     // NOTE: These type checking functions intentionally don't use `instanceof`
     // because it is fragile and can be easily faked with `Object.create()`.
-    function isArray(ar){return Array.isArray(ar);}exports.isArray=isArray;function isBoolean(arg){return typeof arg==='boolean';}exports.isBoolean=isBoolean;function isNull(arg){return arg===null;}exports.isNull=isNull;function isNullOrUndefined(arg){return arg==null;}exports.isNullOrUndefined=isNullOrUndefined;function isNumber(arg){return typeof arg==='number';}exports.isNumber=isNumber;function isString(arg){return typeof arg==='string';}exports.isString=isString;function isSymbol(arg){return (typeof arg==="undefined"?"undefined":_typeof(arg))==='symbol';}exports.isSymbol=isSymbol;function isUndefined(arg){return arg===void 0;}exports.isUndefined=isUndefined;function isRegExp(re){return isObject(re)&&objectToString(re)==='[object RegExp]';}exports.isRegExp=isRegExp;function isObject(arg){return (typeof arg==="undefined"?"undefined":_typeof(arg))==='object'&&arg!==null;}exports.isObject=isObject;function isDate(d){return isObject(d)&&objectToString(d)==='[object Date]';}exports.isDate=isDate;function isError(e){return isObject(e)&&(objectToString(e)==='[object Error]'||e instanceof Error);}exports.isError=isError;function isFunction(arg){return typeof arg==='function';}exports.isFunction=isFunction;function isPrimitive(arg){return arg===null||typeof arg==='boolean'||typeof arg==='number'||typeof arg==='string'||(typeof arg==="undefined"?"undefined":_typeof(arg))==='symbol'||// ES6 symbol
+    function isArray(ar){return Array.isArray(ar);}exports.isArray=isArray;function isBoolean(arg){return typeof arg==='boolean';}exports.isBoolean=isBoolean;function isNull(arg){return arg===null;}exports.isNull=isNull;function isNullOrUndefined(arg){return arg==null;}exports.isNullOrUndefined=isNullOrUndefined;function isNumber(arg){return typeof arg==='number';}exports.isNumber=isNumber;function isString(arg){return typeof arg==='string';}exports.isString=isString;function isSymbol(arg){return _typeof(arg)==='symbol';}exports.isSymbol=isSymbol;function isUndefined(arg){return arg===void 0;}exports.isUndefined=isUndefined;function isRegExp(re){return isObject(re)&&objectToString(re)==='[object RegExp]';}exports.isRegExp=isRegExp;function isObject(arg){return _typeof(arg)==='object'&&arg!==null;}exports.isObject=isObject;function isDate(d){return isObject(d)&&objectToString(d)==='[object Date]';}exports.isDate=isDate;function isError(e){return isObject(e)&&(objectToString(e)==='[object Error]'||e instanceof Error);}exports.isError=isError;function isFunction(arg){return typeof arg==='function';}exports.isFunction=isFunction;function isPrimitive(arg){return arg===null||typeof arg==='boolean'||typeof arg==='number'||typeof arg==='string'||_typeof(arg)==='symbol'||// ES6 symbol
     typeof arg==='undefined';}exports.isPrimitive=isPrimitive;function isBuffer(arg){return Buffer.isBuffer(arg);}exports.isBuffer=isBuffer;function objectToString(o){return Object.prototype.toString.call(o);}}).call(this,require("buffer").Buffer);},{"buffer":37}],194:[function(require,module,exports){(function(process){module.exports=nextTick;function nextTick(fn){var args=new Array(arguments.length-1);var i=0;while(i<args.length){args[i++]=arguments[i];}process.nextTick(function afterTick(){fn.apply(null,args);});}}).call(this,require('_process'));},{"_process":186}],195:[function(require,module,exports){(function(global){/**
                  * Module exports.
                  */module.exports=deprecate;/**
@@ -2836,7 +2833,7 @@ var pmcrypto = (function (exports) {
     // DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
     // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
     // USE OR OTHER DEALINGS IN THE SOFTWARE.
-    module.exports=Stream;var EE=require('events').EventEmitter;var inherits$$1=require('inherits');inherits$$1(Stream,EE);Stream.Readable=require('readable-stream/readable.js');Stream.Writable=require('readable-stream/writable.js');Stream.Duplex=require('readable-stream/duplex.js');Stream.Transform=require('readable-stream/transform.js');Stream.PassThrough=require('readable-stream/passthrough.js');// Backwards-compat with node 0.4.x
+    module.exports=Stream;var EE=require('events').EventEmitter;var inherits=require('inherits');inherits(Stream,EE);Stream.Readable=require('readable-stream/readable.js');Stream.Writable=require('readable-stream/writable.js');Stream.Duplex=require('readable-stream/duplex.js');Stream.Transform=require('readable-stream/transform.js');Stream.PassThrough=require('readable-stream/passthrough.js');// Backwards-compat with node 0.4.x
     Stream.Stream=Stream;// old-style streams.  Note that the pipe method (the only relevant
     // part of this class) is overridden in the Readable class.
     function Stream(){EE.call(this);}Stream.prototype.pipe=function(dest,options){var source=this;function ondata(chunk){if(dest.writable){if(false===dest.write(chunk)&&source.pause){source.pause();}}}source.on('data',ondata);function ondrain(){if(source.readable&&source.resume){source.resume();}}dest.on('drain',ondrain);// If the 'end' option is not supplied, dest.end() will be called when
@@ -2912,7 +2909,7 @@ var pmcrypto = (function (exports) {
     // 110XXXXX
     if(i==1&&c>>5==0x06){this.charLength=2;break;}// 1110XXXX
     if(i<=2&&c>>4==0x0E){this.charLength=3;break;}// 11110XXX
-    if(i<=3&&c>>3==0x1E){this.charLength=4;break;}}this.charReceived=i;};StringDecoder.prototype.end=function(buffer){var res='';if(buffer&&buffer.length)res=this.write(buffer);if(this.charReceived){var cr=this.charReceived;var buf=this.charBuffer;var enc=this.encoding;res+=buf.slice(0,cr).toString(enc);}return res;};function passThroughWrite(buffer){return buffer.toString(this.encoding);}function utf16DetectIncompleteChar(buffer){this.charReceived=buffer.length%2;this.charLength=this.charReceived?2:0;}function base64DetectIncompleteChar(buffer){this.charReceived=buffer.length%3;this.charLength=this.charReceived?3:0;}},{"buffer":37}],202:[function(require,module,exports){module.exports=function isBuffer(arg){return arg&&(typeof arg==="undefined"?"undefined":_typeof(arg))==='object'&&typeof arg.copy==='function'&&typeof arg.fill==='function'&&typeof arg.readUInt8==='function';};},{}],203:[function(require,module,exports){(function(process,global){// Copyright Joyent, Inc. and other Node contributors.
+    if(i<=3&&c>>3==0x1E){this.charLength=4;break;}}this.charReceived=i;};StringDecoder.prototype.end=function(buffer){var res='';if(buffer&&buffer.length)res=this.write(buffer);if(this.charReceived){var cr=this.charReceived;var buf=this.charBuffer;var enc=this.encoding;res+=buf.slice(0,cr).toString(enc);}return res;};function passThroughWrite(buffer){return buffer.toString(this.encoding);}function utf16DetectIncompleteChar(buffer){this.charReceived=buffer.length%2;this.charLength=this.charReceived?2:0;}function base64DetectIncompleteChar(buffer){this.charReceived=buffer.length%3;this.charLength=this.charReceived?3:0;}},{"buffer":37}],202:[function(require,module,exports){module.exports=function isBuffer(arg){return arg&&_typeof(arg)==='object'&&typeof arg.copy==='function'&&typeof arg.fill==='function'&&typeof arg.readUInt8==='function';};},{}],203:[function(require,module,exports){(function(process,global){// Copyright Joyent, Inc. and other Node contributors.
     //
     // Permission is hereby granted, free of charge, to any person obtaining a
     // copy of this software and associated documentation files (the
@@ -2936,13 +2933,13 @@ var pmcrypto = (function (exports) {
     // Returns a modified function which warns once by default.
     // If --no-deprecation is set, then it is a no-op.
     exports.deprecate=function(fn,msg){// Allow for deprecating things in the process of starting up.
-    if(isUndefined(global.process)){return function(){return exports.deprecate(fn,msg).apply(this,arguments);};}if(process.noDeprecation===true){return fn;}var warned=false;function deprecated(){if(!warned){if(process.throwDeprecation){throw new Error(msg);}else if(process.traceDeprecation){console.trace(msg);}else{console.error(msg);}warned=true;}return fn.apply(this,arguments);}return deprecated;};var debugs={};var debugEnviron;exports.debuglog=function(set$$1){if(isUndefined(debugEnviron))debugEnviron=process.env.NODE_DEBUG||'';set$$1=set$$1.toUpperCase();if(!debugs[set$$1]){if(new RegExp('\\b'+set$$1+'\\b','i').test(debugEnviron)){var pid=process.pid;debugs[set$$1]=function(){var msg=exports.format.apply(exports,arguments);console.error('%s %d: %s',set$$1,pid,msg);};}else{debugs[set$$1]=function(){};}}return debugs[set$$1];};/**
+    if(isUndefined(global.process)){return function(){return exports.deprecate(fn,msg).apply(this,arguments);};}if(process.noDeprecation===true){return fn;}var warned=false;function deprecated(){if(!warned){if(process.throwDeprecation){throw new Error(msg);}else if(process.traceDeprecation){console.trace(msg);}else{console.error(msg);}warned=true;}return fn.apply(this,arguments);}return deprecated;};var debugs={};var debugEnviron;exports.debuglog=function(set){if(isUndefined(debugEnviron))debugEnviron=process.env.NODE_DEBUG||'';set=set.toUpperCase();if(!debugs[set]){if(new RegExp('\\b'+set+'\\b','i').test(debugEnviron)){var pid=process.pid;debugs[set]=function(){var msg=exports.format.apply(exports,arguments);console.error('%s %d: %s',set,pid,msg);};}else{debugs[set]=function(){};}}return debugs[set];};/**
                  * Echos the value of a value. Trys to print the value out
                  * in the best way possible given the different types.
                  *
                  * @param {Object} obj The object to print out.
                  * @param {Object} opts Optional options object that alters the output.
-                 *//* legacy: obj, showHidden, depth, colors*/function inspect(obj,opts){// default options
+                 */ /* legacy: obj, showHidden, depth, colors*/function inspect(obj,opts){// default options
     var ctx={seen:[],stylize:stylizeNoColor};// legacy...
     if(arguments.length>=3)ctx.depth=arguments[2];if(arguments.length>=4)ctx.colors=arguments[3];if(isBoolean(opts)){// legacy...
     ctx.showHidden=opts;}else if(opts){// got an "options" object
@@ -2967,7 +2964,7 @@ var pmcrypto = (function (exports) {
     if(isError(value)){base=' '+formatError(value);}if(keys.length===0&&(!array||value.length==0)){return braces[0]+base+braces[1];}if(recurseTimes<0){if(isRegExp(value)){return ctx.stylize(RegExp.prototype.toString.call(value),'regexp');}else{return ctx.stylize('[Object]','special');}}ctx.seen.push(value);var output;if(array){output=formatArray(ctx,value,recurseTimes,visibleKeys,keys);}else{output=keys.map(function(key){return formatProperty(ctx,value,recurseTimes,visibleKeys,key,array);});}ctx.seen.pop();return reduceToSingleString(output,base,braces);}function formatPrimitive(ctx,value){if(isUndefined(value))return ctx.stylize('undefined','undefined');if(isString(value)){var simple='\''+JSON.stringify(value).replace(/^"|"$/g,'').replace(/'/g,"\\'").replace(/\\"/g,'"')+'\'';return ctx.stylize(simple,'string');}if(isNumber(value))return ctx.stylize(''+value,'number');if(isBoolean(value))return ctx.stylize(''+value,'boolean');// For some reason typeof null is "object", so special case here.
     if(isNull(value))return ctx.stylize('null','null');}function formatError(value){return '['+Error.prototype.toString.call(value)+']';}function formatArray(ctx,value,recurseTimes,visibleKeys,keys){var output=[];for(var i=0,l=value.length;i<l;++i){if(hasOwnProperty(value,String(i))){output.push(formatProperty(ctx,value,recurseTimes,visibleKeys,String(i),true));}else{output.push('');}}keys.forEach(function(key){if(!key.match(/^\d+$/)){output.push(formatProperty(ctx,value,recurseTimes,visibleKeys,key,true));}});return output;}function formatProperty(ctx,value,recurseTimes,visibleKeys,key,array){var name,str,desc;desc=Object.getOwnPropertyDescriptor(value,key)||{value:value[key]};if(desc.get){if(desc.set){str=ctx.stylize('[Getter/Setter]','special');}else{str=ctx.stylize('[Getter]','special');}}else{if(desc.set){str=ctx.stylize('[Setter]','special');}}if(!hasOwnProperty(visibleKeys,key)){name='['+key+']';}if(!str){if(ctx.seen.indexOf(desc.value)<0){if(isNull(recurseTimes)){str=formatValue(ctx,desc.value,null);}else{str=formatValue(ctx,desc.value,recurseTimes-1);}if(str.indexOf('\n')>-1){if(array){str=str.split('\n').map(function(line){return '  '+line;}).join('\n').substr(2);}else{str='\n'+str.split('\n').map(function(line){return '   '+line;}).join('\n');}}}else{str=ctx.stylize('[Circular]','special');}}if(isUndefined(name)){if(array&&key.match(/^\d+$/)){return str;}name=JSON.stringify(''+key);if(name.match(/^"([a-zA-Z_][a-zA-Z_0-9]*)"$/)){name=name.substr(1,name.length-2);name=ctx.stylize(name,'name');}else{name=name.replace(/'/g,"\\'").replace(/\\"/g,'"').replace(/(^"|"$)/g,"'");name=ctx.stylize(name,'string');}}return name+': '+str;}function reduceToSingleString(output,base,braces){var length=output.reduce(function(prev,cur){if(cur.indexOf('\n')>=0);return prev+cur.replace(/\u001b\[\d\d?m/g,'').length+1;},0);if(length>60){return braces[0]+(base===''?'':base+'\n ')+' '+output.join(',\n  ')+' '+braces[1];}return braces[0]+base+' '+output.join(', ')+' '+braces[1];}// NOTE: These type checking functions intentionally don't use `instanceof`
     // because it is fragile and can be easily faked with `Object.create()`.
-    function isArray(ar){return Array.isArray(ar);}exports.isArray=isArray;function isBoolean(arg){return typeof arg==='boolean';}exports.isBoolean=isBoolean;function isNull(arg){return arg===null;}exports.isNull=isNull;function isNullOrUndefined(arg){return arg==null;}exports.isNullOrUndefined=isNullOrUndefined;function isNumber(arg){return typeof arg==='number';}exports.isNumber=isNumber;function isString(arg){return typeof arg==='string';}exports.isString=isString;function isSymbol(arg){return (typeof arg==="undefined"?"undefined":_typeof(arg))==='symbol';}exports.isSymbol=isSymbol;function isUndefined(arg){return arg===void 0;}exports.isUndefined=isUndefined;function isRegExp(re){return isObject(re)&&objectToString(re)==='[object RegExp]';}exports.isRegExp=isRegExp;function isObject(arg){return (typeof arg==="undefined"?"undefined":_typeof(arg))==='object'&&arg!==null;}exports.isObject=isObject;function isDate(d){return isObject(d)&&objectToString(d)==='[object Date]';}exports.isDate=isDate;function isError(e){return isObject(e)&&(objectToString(e)==='[object Error]'||e instanceof Error);}exports.isError=isError;function isFunction(arg){return typeof arg==='function';}exports.isFunction=isFunction;function isPrimitive(arg){return arg===null||typeof arg==='boolean'||typeof arg==='number'||typeof arg==='string'||(typeof arg==="undefined"?"undefined":_typeof(arg))==='symbol'||// ES6 symbol
+    function isArray(ar){return Array.isArray(ar);}exports.isArray=isArray;function isBoolean(arg){return typeof arg==='boolean';}exports.isBoolean=isBoolean;function isNull(arg){return arg===null;}exports.isNull=isNull;function isNullOrUndefined(arg){return arg==null;}exports.isNullOrUndefined=isNullOrUndefined;function isNumber(arg){return typeof arg==='number';}exports.isNumber=isNumber;function isString(arg){return typeof arg==='string';}exports.isString=isString;function isSymbol(arg){return _typeof(arg)==='symbol';}exports.isSymbol=isSymbol;function isUndefined(arg){return arg===void 0;}exports.isUndefined=isUndefined;function isRegExp(re){return isObject(re)&&objectToString(re)==='[object RegExp]';}exports.isRegExp=isRegExp;function isObject(arg){return _typeof(arg)==='object'&&arg!==null;}exports.isObject=isObject;function isDate(d){return isObject(d)&&objectToString(d)==='[object Date]';}exports.isDate=isDate;function isError(e){return isObject(e)&&(objectToString(e)==='[object Error]'||e instanceof Error);}exports.isError=isError;function isFunction(arg){return typeof arg==='function';}exports.isFunction=isFunction;function isPrimitive(arg){return arg===null||typeof arg==='boolean'||typeof arg==='number'||typeof arg==='string'||_typeof(arg)==='symbol'||// ES6 symbol
     typeof arg==='undefined';}exports.isPrimitive=isPrimitive;exports.isBuffer=require('./support/isBuffer');function objectToString(o){return Object.prototype.toString.call(o);}function pad(n){return n<10?'0'+n.toString(10):n.toString(10);}var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];// 26 Feb 16:19:34
     function timestamp(){var d=new Date();var time=[pad(d.getHours()),pad(d.getMinutes()),pad(d.getSeconds())].join(':');return [d.getDate(),months[d.getMonth()],time].join(' ');}// log is just a thin wrapper to console.log that prepends a timestamp
     exports.log=function(){console.log('%s - %s',timestamp(),exports.format.apply(exports,arguments));};/**
@@ -2988,9 +2985,7 @@ var pmcrypto = (function (exports) {
     // updating existing context properties or new properties in the `win`
     // that was only introduced after the eval.
     if(key in context||indexOf(winKeys,key)===-1){context[key]=win[key];}});forEach(globals,function(key){if(!(key in context)){defineProp(context,key,win[key]);}});document.body.removeChild(iframe);return res;};Script.prototype.runInThisContext=function(){return eval(this.code);// maybe...
-    };Script.prototype.runInNewContext=function(context){var ctx=Script.createContext(context);var res=this.runInContext(ctx);forEach(Object_keys(ctx),function(key){context[key]=ctx[key];});return res;};forEach(Object_keys(Script.prototype),function(name){exports[name]=Script[name]=function(code){var s=Script(code);return s[name].apply(s,[].slice.call(arguments,1));};});exports.createScript=function(code){return exports.Script(code);};exports.createContext=Script.createContext=function(context){var copy=new Context();if((typeof context==="undefined"?"undefined":_typeof(context))==='object'){forEach(Object_keys(context),function(key){copy[key]=context[key];});}return copy;};},{"indexof":205}],205:[function(require,module,exports){var indexOf=[].indexOf;module.exports=function(arr,obj){if(indexOf)return arr.indexOf(obj);for(var i=0;i<arr.length;++i){if(arr[i]===obj)return i;}return -1;};},{}]},{},[1]);var MailParser = parserTemp;
-
-    var _this = undefined;
+    };Script.prototype.runInNewContext=function(context){var ctx=Script.createContext(context);var res=this.runInContext(ctx);forEach(Object_keys(ctx),function(key){context[key]=ctx[key];});return res;};forEach(Object_keys(Script.prototype),function(name){exports[name]=Script[name]=function(code){var s=Script(code);return s[name].apply(s,[].slice.call(arguments,1));};});exports.createScript=function(code){return exports.Script(code);};exports.createContext=Script.createContext=function(context){var copy=new Context();if(_typeof(context)==='object'){forEach(Object_keys(context),function(key){copy[key]=context[key];});}return copy;};},{"indexof":205}],205:[function(require,module,exports){var indexOf=[].indexOf;module.exports=function(arr,obj){if(indexOf)return arr.indexOf(obj);for(var i=0;i<arr.length;++i){if(arr[i]===obj)return i;}return -1;};},{}]},{},[1]);var MailParser = parserTemp;
 
     /**
      * Parse a mail into an object format, splitting, headers, html, text/plain and attachments. The result is defined
@@ -2998,108 +2993,127 @@ var pmcrypto = (function (exports) {
      * @param data
      * @return {Promise}
      */
+
     var parseMail = function parseMail(data) {
-        return new Promise(function (resolve) {
-            var mailparser = new MailParser({ defaultCharset: 'UTF-8' });
-            mailparser.on('end', resolve);
-            mailparser.write(data);
-            mailparser.end();
+      return new Promise(function (resolve) {
+        var mailparser = new MailParser({
+          defaultCharset: 'UTF-8'
         });
+        mailparser.on('end', resolve);
+        mailparser.write(data);
+        mailparser.end();
+      });
     };
 
-    var verifySignature = function () {
-        var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(_ref2, data) {
-            var publicKeys = _ref2.publicKeys,
-                date = _ref2.date;
+    var verifySignature =
+    /*#__PURE__*/
+    function () {
+      var _ref2 = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee(_ref, data) {
+        var publicKeys, date, _ref3, headers, contentType, _contentType$split, _contentType$split2, baseContentType, _ref4, _ref5, rawboundary, boundary, parts, _ref6, _ref6$attachments, _ref6$attachments2, sigAttachment, sigData, signature, body, _ref7, subdata, verified;
 
-            var _ref3, headers, contentType, _contentType$split, _contentType$split2, baseContentType, _ref4, _ref5, rawboundary, boundary, parts, _ref6, _ref6$attachments, _ref6$attachments2, sigAttachment, sigData, signature, body, _ref7, subdata, verified;
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                publicKeys = _ref.publicKeys, date = _ref.date;
+                _context.next = 3;
+                return parseMail(data.split(/\r?\n\s*\r?\n/g)[0] + '\n\n');
 
-            return regeneratorRuntime.wrap(function _callee$(_context) {
-                while (1) {
-                    switch (_context.prev = _context.next) {
-                        case 0:
-                            _context.next = 2;
-                            return parseMail(data.split(/\r?\n\s*\r?\n/g)[0] + '\n\n');
+              case 3:
+                _ref3 = _context.sent;
+                headers = _ref3.headers;
+                contentType = headers['content-type'] || '';
+                _contentType$split = contentType.split(';'), _contentType$split2 = _slicedToArray(_contentType$split, 1), baseContentType = _contentType$split2[0];
 
-                        case 2:
-                            _ref3 = _context.sent;
-                            headers = _ref3.headers;
-                            contentType = headers['content-type'] || '';
-                            _contentType$split = contentType.split(';'), _contentType$split2 = slicedToArray(_contentType$split, 1), baseContentType = _contentType$split2[0];
-
-                            if (!(baseContentType.toLowerCase() !== 'multipart/signed')) {
-                                _context.next = 8;
-                                break;
-                            }
-
-                            return _context.abrupt('return', { subdata: data, verified: 0 });
-
-                        case 8:
-                            _ref4 = /boundary\s*=\s*([^;]*)\s*;/gi.exec(contentType) || [], _ref5 = slicedToArray(_ref4, 2), rawboundary = _ref5[1];
-
-                            if (rawboundary) {
-                                _context.next = 11;
-                                break;
-                            }
-
-                            return _context.abrupt('return', data);
-
-                        case 11:
-                            boundary = rawboundary[0] === '"' ? JSON.parse(rawboundary) || rawboundary : rawboundary;
-                            parts = data.split(new RegExp('\n--' + boundary + '(?:--)?\n', 'g'));
-
-                            if (!(!parts.length === 4)) {
-                                _context.next = 15;
-                                break;
-                            }
-
-                            return _context.abrupt('return', { subdata: data, verified: 0 });
-
-                        case 15:
-                            _context.next = 17;
-                            return parseMail(parts[2].trim());
-
-                        case 17:
-                            _ref6 = _context.sent;
-                            _ref6$attachments = _ref6.attachments;
-                            _ref6$attachments = _ref6$attachments === undefined ? [] : _ref6$attachments;
-                            _ref6$attachments2 = slicedToArray(_ref6$attachments, 1), sigAttachment = _ref6$attachments2[0];
-
-                            if (!(sigAttachment.contentType.toLowerCase() !== 'application/pgp-signature')) {
-                                _context.next = 23;
-                                break;
-                            }
-
-                            return _context.abrupt('return', { subdata: data, verified: 0 });
-
-                        case 23:
-                            sigData = sigAttachment.content.toString();
-                            signature = getSignature(sigData);
-                            body = parts[1];
-                            _context.next = 28;
-                            return verifyMessage({
-                                message: getCleartextMessage(body), publicKeys: publicKeys, date: date, signature: signature
-                            });
-
-                        case 28:
-                            _ref7 = _context.sent;
-                            subdata = _ref7.data;
-                            verified = _ref7.verified;
-                            return _context.abrupt('return', { subdata: subdata, verified: verified });
-
-                        case 32:
-                        case 'end':
-                            return _context.stop();
-                    }
+                if (!(baseContentType.toLowerCase() !== 'multipart/signed')) {
+                  _context.next = 9;
+                  break;
                 }
-            }, _callee, _this);
-        }));
 
-        return function verifySignature(_x, _x2) {
-            return _ref.apply(this, arguments);
-        };
+                return _context.abrupt("return", {
+                  subdata: data,
+                  verified: 0
+                });
+
+              case 9:
+                _ref4 = /boundary\s*=\s*([^;]*)\s*;/gi.exec(contentType) || [], _ref5 = _slicedToArray(_ref4, 2), rawboundary = _ref5[1];
+
+                if (rawboundary) {
+                  _context.next = 12;
+                  break;
+                }
+
+                return _context.abrupt("return", data);
+
+              case 12:
+                boundary = rawboundary[0] === '"' ? JSON.parse(rawboundary) || rawboundary : rawboundary;
+                parts = data.split(new RegExp("\n--".concat(boundary, "(?:--)?\n"), 'g'));
+
+                if (!(!parts.length === 4)) {
+                  _context.next = 16;
+                  break;
+                }
+
+                return _context.abrupt("return", {
+                  subdata: data,
+                  verified: 0
+                });
+
+              case 16:
+                _context.next = 18;
+                return parseMail(parts[2].trim());
+
+              case 18:
+                _ref6 = _context.sent;
+                _ref6$attachments = _ref6.attachments;
+                _ref6$attachments = _ref6$attachments === void 0 ? [] : _ref6$attachments;
+                _ref6$attachments2 = _slicedToArray(_ref6$attachments, 1), sigAttachment = _ref6$attachments2[0];
+
+                if (!(sigAttachment.contentType.toLowerCase() !== 'application/pgp-signature')) {
+                  _context.next = 24;
+                  break;
+                }
+
+                return _context.abrupt("return", {
+                  subdata: data,
+                  verified: 0
+                });
+
+              case 24:
+                sigData = sigAttachment.content.toString();
+                signature = getSignature(sigData);
+                body = parts[1];
+                _context.next = 29;
+                return verifyMessage({
+                  message: getCleartextMessage(body),
+                  publicKeys: publicKeys,
+                  date: date,
+                  signature: signature
+                });
+
+              case 29:
+                _ref7 = _context.sent;
+                subdata = _ref7.data;
+                verified = _ref7.verified;
+                return _context.abrupt("return", {
+                  subdata: subdata,
+                  verified: verified
+                });
+
+              case 33:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee, this);
+      }));
+
+      return function verifySignature(_x, _x2) {
+        return _ref2.apply(this, arguments);
+      };
     }();
-
     /**
      * This function parses MIME format into attachments, content, encryptedSubject. The attachment automatically
      * inherit the verified status from the message verified status, as they are included in the body. For more
@@ -3111,685 +3125,742 @@ var pmcrypto = (function (exports) {
      * @param verified
      * @returns {Promise.<*>}
      */
-    var parse = function () {
-        var _ref8 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(_ref9) {
-            var _ref9$headerFilename = _ref9.headerFilename,
-                headerFilename = _ref9$headerFilename === undefined ? 'Encrypted Headers.txt' : _ref9$headerFilename,
-                _ref9$sender = _ref9.sender,
-                sender = _ref9$sender === undefined ? null : _ref9$sender;
-            var content = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
-            var verified = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : VERIFICATION_STATUS.NOT_VERIFIED;
 
-            var data, _data$attachments, attachments, _data$text, text, _data$html, html, _data$subject, mimeSubject, result, _result$filter, _result$filter2, _result$filter2$, encryptedSubject;
 
-            return regeneratorRuntime.wrap(function _callee3$(_context3) {
-                while (1) {
-                    switch (_context3.prev = _context3.next) {
-                        case 0:
-                            _context3.next = 2;
-                            return parseMail(content);
+    var parse =
+    /*#__PURE__*/
+    function () {
+      var _ref9 = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee3(_ref8) {
+        var _ref8$headerFilename,
+            headerFilename,
+            _ref8$sender,
+            sender,
+            content,
+            verified,
+            data,
+            _data$attachments,
+            attachments,
+            _data$text,
+            text,
+            _data$html,
+            html,
+            _data$subject,
+            mimeSubject,
+            result,
+            _result$filter,
+            _result$filter2,
+            _result$filter2$,
+            encryptedSubject,
+            _args3 = arguments;
 
-                        case 2:
-                            data = _context3.sent;
+        return regeneratorRuntime.wrap(function _callee3$(_context3) {
+          while (1) {
+            switch (_context3.prev = _context3.next) {
+              case 0:
+                _ref8$headerFilename = _ref8.headerFilename, headerFilename = _ref8$headerFilename === void 0 ? 'Encrypted Headers.txt' : _ref8$headerFilename, _ref8$sender = _ref8.sender, sender = _ref8$sender === void 0 ? null : _ref8$sender;
+                content = _args3.length > 1 && _args3[1] !== undefined ? _args3[1] : '';
+                verified = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : VERIFICATION_STATUS.NOT_VERIFIED;
+                _context3.next = 5;
+                return parseMail(content);
 
-                            // cf. https://github.com/autocrypt/memoryhole subject can be in the MIME headers
-                            _data$attachments = data.attachments, attachments = _data$attachments === undefined ? [] : _data$attachments, _data$text = data.text, text = _data$text === undefined ? '' : _data$text, _data$html = data.html, html = _data$html === undefined ? '' : _data$html, _data$subject = data.subject, mimeSubject = _data$subject === undefined ? false : _data$subject;
-                            _context3.next = 6;
-                            return Promise.all(attachments.map(function () {
-                                var _ref10 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(att) {
-                                    var _ref11, headers, from;
+              case 5:
+                data = _context3.sent;
+                // cf. https://github.com/autocrypt/memoryhole subject can be in the MIME headers
+                _data$attachments = data.attachments, attachments = _data$attachments === void 0 ? [] : _data$attachments, _data$text = data.text, text = _data$text === void 0 ? '' : _data$text, _data$html = data.html, html = _data$html === void 0 ? '' : _data$html, _data$subject = data.subject, mimeSubject = _data$subject === void 0 ? false : _data$subject;
+                _context3.next = 9;
+                return Promise.all(attachments.map(
+                /*#__PURE__*/
+                function () {
+                  var _ref10 = _asyncToGenerator(
+                  /*#__PURE__*/
+                  regeneratorRuntime.mark(function _callee2(att) {
+                    var _ref11, headers, from;
 
-                                    return regeneratorRuntime.wrap(function _callee2$(_context2) {
-                                        while (1) {
-                                            switch (_context2.prev = _context2.next) {
-                                                case 0:
-                                                    _context2.next = 2;
-                                                    return parseMail(att.content);
+                    return regeneratorRuntime.wrap(function _callee2$(_context2) {
+                      while (1) {
+                        switch (_context2.prev = _context2.next) {
+                          case 0:
+                            _context2.next = 2;
+                            return parseMail(att.content);
 
-                                                case 2:
-                                                    _ref11 = _context2.sent;
-                                                    headers = _ref11.headers;
+                          case 2:
+                            _ref11 = _context2.sent;
+                            headers = _ref11.headers;
 
-                                                    if (!(att.fileName || att.contentType !== 'text/rfc822-headers' || att.content.length > MAX_ENC_HEADER_LENGTH)) {
-                                                        _context2.next = 6;
-                                                        break;
-                                                    }
-
-                                                    return _context2.abrupt('return');
-
-                                                case 6:
-                                                    // probably some encrypted headers, not sure about the subjects yet. We don't want to attach them on reply
-                                                    // the headers for this current message shouldn't be carried over to the next message.
-                                                    att.generatedFileName = headerFilename + '.txt';
-                                                    att.contentDisposition = 'attachment';
-                                                    // check for subject headers and from headers to match the current message with the right sender.
-
-                                                    if (!(!headers.subject || !headers.from)) {
-                                                        _context2.next = 10;
-                                                        break;
-                                                    }
-
-                                                    return _context2.abrupt('return');
-
-                                                case 10:
-                                                    from = headers.from.split('<').pop().replace('>', '').trim().toLowerCase();
-
-                                                    if (!(from !== sender.toLowerCase())) {
-                                                        _context2.next = 13;
-                                                        break;
-                                                    }
-
-                                                    return _context2.abrupt('return');
-
-                                                case 13:
-                                                    return _context2.abrupt('return', headers.subject);
-
-                                                case 14:
-                                                case 'end':
-                                                    return _context2.stop();
-                                            }
-                                        }
-                                    }, _callee2, _this);
-                                }));
-
-                                return function (_x6) {
-                                    return _ref10.apply(this, arguments);
-                                };
-                            }()));
-
-                        case 6:
-                            result = _context3.sent;
-                            _result$filter = result.filter(function (i) {
-                                return i;
-                            }), _result$filter2 = slicedToArray(_result$filter, 1), _result$filter2$ = _result$filter2[0], encryptedSubject = _result$filter2$ === undefined ? mimeSubject : _result$filter2$;
-
-                            if (!html) {
-                                _context3.next = 10;
-                                break;
+                            if (!(att.fileName || att.contentType !== 'text/rfc822-headers' || att.content.length > MAX_ENC_HEADER_LENGTH)) {
+                              _context2.next = 6;
+                              break;
                             }
 
-                            return _context3.abrupt('return', {
-                                body: html, attachments: attachments, verified: verified, encryptedSubject: encryptedSubject, mimetype: 'text/html'
-                            });
+                            return _context2.abrupt("return");
 
-                        case 10:
-                            if (!text) {
-                                _context3.next = 12;
-                                break;
+                          case 6:
+                            // probably some encrypted headers, not sure about the subjects yet. We don't want to attach them on reply
+                            // the headers for this current message shouldn't be carried over to the next message.
+                            att.generatedFileName = "".concat(headerFilename, ".txt");
+                            att.contentDisposition = 'attachment'; // check for subject headers and from headers to match the current message with the right sender.
+
+                            if (!(!headers.subject || !headers.from)) {
+                              _context2.next = 10;
+                              break;
                             }
 
-                            return _context3.abrupt('return', {
-                                body: text, attachments: attachments, verified: verified, encryptedSubject: encryptedSubject, mimetype: 'text/plain'
-                            });
+                            return _context2.abrupt("return");
 
-                        case 12:
-                            if (!attachments.length) {
-                                _context3.next = 14;
-                                break;
+                          case 10:
+                            from = headers.from.split('<').pop().replace('>', '').trim().toLowerCase();
+
+                            if (!(from !== sender.toLowerCase())) {
+                              _context2.next = 13;
+                              break;
                             }
 
-                            return _context3.abrupt('return', {
-                                attachments: attachments, verified: verified, encryptedSubject: encryptedSubject
-                            });
+                            return _context2.abrupt("return");
 
-                        case 14:
-                            throw new Error('No body or attachments found in the mime message');
+                          case 13:
+                            return _context2.abrupt("return", headers.subject);
 
-                        case 15:
-                        case 'end':
-                            return _context3.stop();
-                    }
+                          case 14:
+                          case "end":
+                            return _context2.stop();
+                        }
+                      }
+                    }, _callee2, this);
+                  }));
+
+                  return function (_x4) {
+                    return _ref10.apply(this, arguments);
+                  };
+                }()));
+
+              case 9:
+                result = _context3.sent;
+                _result$filter = result.filter(function (i) {
+                  return i;
+                }), _result$filter2 = _slicedToArray(_result$filter, 1), _result$filter2$ = _result$filter2[0], encryptedSubject = _result$filter2$ === void 0 ? mimeSubject : _result$filter2$;
+
+                if (!html) {
+                  _context3.next = 13;
+                  break;
                 }
-            }, _callee3, _this);
-        }));
 
-        return function parse(_x3) {
-            return _ref8.apply(this, arguments);
-        };
+                return _context3.abrupt("return", {
+                  body: html,
+                  attachments: attachments,
+                  verified: verified,
+                  encryptedSubject: encryptedSubject,
+                  mimetype: 'text/html'
+                });
+
+              case 13:
+                if (!text) {
+                  _context3.next = 15;
+                  break;
+                }
+
+                return _context3.abrupt("return", {
+                  body: text,
+                  attachments: attachments,
+                  verified: verified,
+                  encryptedSubject: encryptedSubject,
+                  mimetype: 'text/plain'
+                });
+
+              case 15:
+                if (!attachments.length) {
+                  _context3.next = 17;
+                  break;
+                }
+
+                return _context3.abrupt("return", {
+                  attachments: attachments,
+                  verified: verified,
+                  encryptedSubject: encryptedSubject
+                });
+
+              case 17:
+                throw new Error('No body or attachments found in the mime message');
+
+              case 18:
+              case "end":
+                return _context3.stop();
+            }
+          }
+        }, _callee3, this);
+      }));
+
+      return function parse(_x3) {
+        return _ref9.apply(this, arguments);
+      };
     }();
-
     /**
      * Process the mime structure in the right attachment.
      * @param options
      * @param data
      * @return {Promise<*>}
      */
-    var processMIME = (function () {
-        var _ref12 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee4(options, data) {
-            var _ref13, subdata, verified;
 
-            return regeneratorRuntime.wrap(function _callee4$(_context4) {
-                while (1) {
-                    switch (_context4.prev = _context4.next) {
-                        case 0:
-                            _context4.next = 2;
-                            return verifySignature(options, data);
 
-                        case 2:
-                            _ref13 = _context4.sent;
-                            subdata = _ref13.subdata;
-                            verified = _ref13.verified;
-                            return _context4.abrupt('return', parse(options, subdata, verified));
+    function processMIME(_x5, _x6) {
+      return _processMIME.apply(this, arguments);
+    }
 
-                        case 6:
-                        case 'end':
-                            return _context4.stop();
-                    }
-                }
-            }, _callee4, this);
-        }));
+    function _processMIME() {
+      _processMIME = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee4(options, data) {
+        var _ref12, subdata, verified;
 
-        function processMIME(_x7, _x8) {
-            return _ref12.apply(this, arguments);
-        }
+        return regeneratorRuntime.wrap(function _callee4$(_context4) {
+          while (1) {
+            switch (_context4.prev = _context4.next) {
+              case 0:
+                _context4.next = 2;
+                return verifySignature(options, data);
 
-        return processMIME;
-    })();
+              case 2:
+                _ref12 = _context4.sent;
+                subdata = _ref12.subdata;
+                verified = _ref12.verified;
+                return _context4.abrupt("return", parse(options, subdata, verified));
+
+              case 6:
+              case "end":
+                return _context4.stop();
+            }
+          }
+        }, _callee4, this);
+      }));
+      return _processMIME.apply(this, arguments);
+    }
 
     // Deprecated, backwards compatibility
     var protonmailCryptoHeaderMessage = '---BEGIN ENCRYPTED MESSAGE---';
     var protonmailCryptoTailMessage = '---END ENCRYPTED MESSAGE---';
     var protonmailCryptoHeaderRandomKey = '---BEGIN ENCRYPTED RANDOM KEY---';
     var protonmailCryptoTailRandomKey = '---END ENCRYPTED RANDOM KEY---';
-
     function getEncMessageFromEmailPM(EmailPM) {
-        if (EmailPM !== undefined && typeof EmailPM.search === 'function') {
-            var begin = EmailPM.search(protonmailCryptoHeaderMessage) + protonmailCryptoHeaderMessage.length;
-            var end = EmailPM.search(protonmailCryptoTailMessage);
-            if (begin === -1 || end === -1) return '';
-            return EmailPM.substring(begin, end);
-        }
-        return '';
-    }
+      if (EmailPM !== undefined && typeof EmailPM.search === 'function') {
+        var begin = EmailPM.search(protonmailCryptoHeaderMessage) + protonmailCryptoHeaderMessage.length;
+        var end = EmailPM.search(protonmailCryptoTailMessage);
+        if (begin === -1 || end === -1) return '';
+        return EmailPM.substring(begin, end);
+      }
 
+      return '';
+    }
     function getEncRandomKeyFromEmailPM(EmailPM) {
-        if (EmailPM !== undefined && typeof EmailPM.search === 'function') {
-            var begin = EmailPM.search(protonmailCryptoHeaderRandomKey) + protonmailCryptoHeaderRandomKey.length;
-            var end = EmailPM.search(protonmailCryptoTailRandomKey);
-            if (begin === -1 || end === -1) return '';
-            return EmailPM.substring(begin, end);
-        }
-        return '';
+      if (EmailPM !== undefined && typeof EmailPM.search === 'function') {
+        var begin = EmailPM.search(protonmailCryptoHeaderRandomKey) + protonmailCryptoHeaderRandomKey.length;
+        var end = EmailPM.search(protonmailCryptoTailRandomKey);
+        if (begin === -1 || end === -1) return '';
+        return EmailPM.substring(begin, end);
+      }
+
+      return '';
     }
 
     function decryptMessage(options) {
-        var _options$publicKeys = options.publicKeys,
-            publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
-
-        options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
-
-        return Promise.resolve().then(function () {
-
-            try {
-                return openpgpjs.decrypt(options).then(function (result) {
-                    return handleVerificationResult(result, publicKeys, options.date);
-                }).then(function (_ref) {
-                    var data = _ref.data,
-                        filename = _ref.filename,
-                        verified = _ref.verified,
-                        signatures = _ref.signatures;
-
-                    return {
-                        data: data, filename: filename, verified: verified, signatures: signatures
-                    };
-                }).catch(function (err) {
-                    console.error(err);
-                    return Promise.reject(err);
-                });
-            } catch (err) {
-                if (err.message === 'CFB decrypt: invalid key' && options.passwords && options.passwords.length) {
-                    return Promise.reject(new Error('Incorrect message password')); // Bad password, reject without Error object
-                }
-                return Promise.reject(err);
-            }
-        });
-    }
-
-    // Backwards-compatible decrypt message function
-    // 'message' option must be a string!
-    function decryptMessageLegacy(options) {
-
-        return Promise.resolve().then(function () {
-
-            if (options.date === undefined || !(options.date instanceof Date)) {
-                throw new Error('Missing message time');
-            }
-
-            var oldEncMessage = getEncMessageFromEmailPM(options.message);
-            var oldEncRandomKey = getEncRandomKeyFromEmailPM(options.message);
-
-            // OpenPGP
-            if (oldEncMessage === '' || oldEncRandomKey === '') {
-                // Convert message string to object
-                options.message = getMessage(options.message);
-                return decryptMessage(options);
-            }
-
-            // Old message encryption format
-            var oldOptions = {
-                privateKeys: options.privateKeys,
-                message: getMessage(oldEncRandomKey)
+      var _options$publicKeys = options.publicKeys,
+          publicKeys = _options$publicKeys === void 0 ? [] : _options$publicKeys;
+      options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
+      return Promise.resolve().then(function () {
+        try {
+          return openpgpjs.decrypt(options).then(function (result) {
+            return handleVerificationResult(result, publicKeys, options.date);
+          }).then(function (_ref) {
+            var data = _ref.data,
+                filename = _ref.filename,
+                verified = _ref.verified,
+                signatures = _ref.signatures;
+            return {
+              data: data,
+              filename: filename,
+              verified: verified,
+              signatures: signatures
             };
+          }).catch(function (err) {
+            console.error(err);
+            return Promise.reject(err);
+          });
+        } catch (err) {
+          if (err.message === 'CFB decrypt: invalid key' && options.passwords && options.passwords.length) {
+            return Promise.reject(new Error('Incorrect message password')); // Bad password, reject without Error object
+          }
 
-            return decryptMessage(oldOptions).then(function (_ref2) {
-                var data = _ref2.data;
-                return decodeUtf8Base64(data);
-            }).then(binaryStringToArray).then(function (randomKey) {
+          return Promise.reject(err);
+        }
+      });
+    } // Backwards-compatible decrypt message function
+    // 'message' option must be a string!
 
-                if (randomKey.length === 0) {
-                    return Promise.reject(new Error('Random key is empty'));
-                }
+    function decryptMessageLegacy(options) {
+      return Promise.resolve().then(function () {
+        if (options.date === undefined || !(options.date instanceof Date)) {
+          throw new Error('Missing message time');
+        }
 
-                oldEncMessage = binaryStringToArray(decodeUtf8Base64(oldEncMessage));
+        var oldEncMessage = getEncMessageFromEmailPM(options.message);
+        var oldEncRandomKey = getEncRandomKeyFromEmailPM(options.message); // OpenPGP
 
-                var data = void 0;
-                try {
-                    // cutoff time for enabling multilanguage support
-                    if (+options.date > 1399086120000) {
-                        data = decodeUtf8Base64(arrayToBinaryString(openpgpjs.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true)));
-                    } else {
-                        data = arrayToBinaryString(openpgpjs.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true));
-                    }
-                } catch (err) {
-                    return Promise.reject(err);
-                }
-                return { data: data, signature: 0 };
-            });
+        if (oldEncMessage === '' || oldEncRandomKey === '') {
+          // Convert message string to object
+          options.message = getMessage(options.message);
+          return decryptMessage(options);
+        } // Old message encryption format
+
+
+        var oldOptions = {
+          privateKeys: options.privateKeys,
+          message: getMessage(oldEncRandomKey)
+        };
+        return decryptMessage(oldOptions).then(function (_ref2) {
+          var data = _ref2.data;
+          return decodeUtf8Base64(data);
+        }).then(binaryStringToArray).then(function (randomKey) {
+          if (randomKey.length === 0) {
+            return Promise.reject(new Error('Random key is empty'));
+          }
+
+          oldEncMessage = binaryStringToArray(decodeUtf8Base64(oldEncMessage));
+          var data;
+
+          try {
+            // cutoff time for enabling multilanguage support
+            if (+options.date > 1399086120000) {
+              data = decodeUtf8Base64(arrayToBinaryString(openpgpjs.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true)));
+            } else {
+              data = arrayToBinaryString(openpgpjs.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true));
+            }
+          } catch (err) {
+            return Promise.reject(err);
+          }
+
+          return {
+            data: data,
+            signature: 0
+          };
         });
+      });
     }
-
     /**
      * Decrypts the mime message and parses the body and attachments in the right structure.
      * @param options
      * @return {Promise<{getBody: (function(): Promise<{body, mimetype}>), getAttachments: (function(): Promise<any>), getEncryptedSubject: (function(): Promise<any>), verify: (function(): Promise<any>), stop: stop}>}
      */
-    var decryptMIMEMessage = function () {
-        var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(options) {
-            var _ref4, rawData, embeddedVerified, _ref5, body, mimetype, pgpVerified, attachments, encryptedSubject, verified;
 
-            return regeneratorRuntime.wrap(function _callee$(_context) {
-                while (1) {
-                    switch (_context.prev = _context.next) {
-                        case 0:
-                            _context.next = 2;
-                            return decryptMessageLegacy(options);
+    function decryptMIMEMessage(_x) {
+      return _decryptMIMEMessage.apply(this, arguments);
+    }
 
-                        case 2:
-                            _ref4 = _context.sent;
-                            rawData = _ref4.data;
-                            embeddedVerified = _ref4.verified;
-                            _context.next = 7;
-                            return processMIME(options, rawData);
+    function _decryptMIMEMessage() {
+      _decryptMIMEMessage = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee(options) {
+        var _ref3, rawData, embeddedVerified, _ref4, body, mimetype, pgpVerified, attachments, encryptedSubject, verified;
 
-                        case 7:
-                            _ref5 = _context.sent;
-                            body = _ref5.body;
-                            mimetype = _ref5.mimetype;
-                            pgpVerified = _ref5.verified;
-                            attachments = _ref5.attachments;
-                            encryptedSubject = _ref5.encryptedSubject;
-                            verified = embeddedVerified === VERIFICATION_STATUS.NOT_SIGNED ? pgpVerified : embeddedVerified;
-                            return _context.abrupt('return', {
-                                getBody: function getBody() {
-                                    return Promise.resolve(body ? { body: body, mimetype: mimetype } : undefined);
-                                },
-                                getAttachments: function getAttachments() {
-                                    return Promise.resolve(attachments);
-                                },
-                                getEncryptedSubject: function getEncryptedSubject() {
-                                    return Promise.resolve(encryptedSubject);
-                                },
-                                verify: function verify() {
-                                    return Promise.resolve(verified);
-                                },
-                                stop: function stop() {}
-                            });
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                _context.next = 2;
+                return decryptMessageLegacy(options);
 
-                        case 15:
-                        case 'end':
-                            return _context.stop();
-                    }
-                }
-            }, _callee, this);
-        }));
+              case 2:
+                _ref3 = _context.sent;
+                rawData = _ref3.data;
+                embeddedVerified = _ref3.verified;
+                _context.next = 7;
+                return processMIME(options, rawData);
 
-        return function decryptMIMEMessage(_x) {
-            return _ref3.apply(this, arguments);
-        };
-    }();
+              case 7:
+                _ref4 = _context.sent;
+                body = _ref4.body;
+                mimetype = _ref4.mimetype;
+                pgpVerified = _ref4.verified;
+                attachments = _ref4.attachments;
+                encryptedSubject = _ref4.encryptedSubject;
+                verified = embeddedVerified === VERIFICATION_STATUS.NOT_SIGNED ? pgpVerified : embeddedVerified;
+                return _context.abrupt("return", {
+                  getBody: function getBody() {
+                    return Promise.resolve(body ? {
+                      body: body,
+                      mimetype: mimetype
+                    } : undefined);
+                  },
+                  getAttachments: function getAttachments() {
+                    return Promise.resolve(attachments);
+                  },
+                  getEncryptedSubject: function getEncryptedSubject() {
+                    return Promise.resolve(encryptedSubject);
+                  },
+                  verify: function verify() {
+                    return Promise.resolve(verified);
+                  },
+                  stop: function stop() {}
+                });
+
+              case 15:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee, this);
+      }));
+      return _decryptMIMEMessage.apply(this, arguments);
+    }
 
     function encryptMessage(options) {
-        if (typeof options.data === 'string') {
-            options.data = options.data.replace(/[ \t]*$/mg, '');
-        }
-        options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
-        options.compression = options.compression ? openpgpjs.enums.compression.zlib : undefined;
-        return openpgpjs.encrypt(options);
+      if (typeof options.data === 'string') {
+        options.data = options.data.replace(/[ \t]*$/mg, '');
+      }
+
+      options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
+      options.compression = options.compression ? openpgpjs.enums.compression.zlib : undefined;
+      return openpgpjs.encrypt(options);
     }
 
     function keyCheck(info, email, expectEncrypted) {
+      if (info.decrypted && expectEncrypted) {
+        throw new Error('Expected encrypted key but got decrypted key');
+      }
 
-        if (info.decrypted && expectEncrypted) {
-            throw new Error('Expected encrypted key but got decrypted key');
+      if (info.version !== 4) {
+        throw new Error('Key is not OpenPGP version 4');
+      }
+
+      if (email) {
+        if (info.userIds.length !== 1) {
+          throw new Error('Missing or too many UserID packets');
         }
 
-        if (info.version !== 4) {
-            throw new Error('Key is not OpenPGP version 4');
+        if (!new RegExp('<' + email + '>$').test(info.user.userId)) {
+          throw new Error('UserID does not contain correct email address');
         }
+      }
 
-        if (email) {
-            if (info.userIds.length !== 1) {
-                throw new Error('Missing or too many UserID packets');
-            }
+      if (info.bitSize && info.bitSize < 1024) {
+        throw new Error('Key is less than 1024 bits');
+      }
 
-            if (!new RegExp('<' + email + '>$').test(info.user.userId)) {
-                throw new Error('UserID does not contain correct email address');
-            }
+      if (isFinite(info.expires)) {
+        throw new Error('Key will expire');
+      }
+
+      if (!info.encrypt) {
+        throw new Error('Key cannot be used for encryption');
+      }
+
+      if (isFinite(info.encrypt.expires)) {
+        throw new Error('Key will expire');
+      }
+
+      if (info.revocationSignatures.length) {
+        throw new Error('Key is revoked');
+      }
+
+      if (!info.sign) {
+        throw new Error('Key cannot be used for signing');
+      }
+
+      if (isFinite(info.sign.expires)) {
+        throw new Error('Key will expire');
+      } // Hash algorithms
+
+
+      if (info.user.hash && info.user.hash.length) {
+        if (info.user.hash[0] !== openpgpjs.enums.hash.sha256) {
+          throw new Error('Preferred hash algorithm must be SHA256');
         }
+      } else {
+        throw new Error('Key missing preferred hash algorithms');
+      } // Symmetric algorithms
 
-        if (info.bitSize && info.bitSize < 1024) {
-            throw new Error('Key is less than 1024 bits');
+
+      if (info.user.symmetric && info.user.symmetric.length) {
+        if (info.user.symmetric[0] !== openpgpjs.enums.symmetric.aes256) {
+          throw new Error('Preferred symmetric algorithm must be AES256');
         }
+      } else {
+        throw new Error('Key missing preferred symmetric algorithms');
+      } // Compression algorithms
 
-        if (isFinite(info.expires)) {
-            throw new Error('Key will expire');
+
+      if (info.user.compression && info.user.compression.length) {
+        if (info.user.compression[0] !== openpgpjs.enums.compression.zlib) {
+          throw new Error('Preferred compression algorithm must be zlib');
         }
+      }
 
-        if (!info.encrypt) {
-            throw new Error('Key cannot be used for encryption');
-        }
-
-        if (isFinite(info.encrypt.expires)) {
-            throw new Error('Key will expire');
-        }
-
-        if (info.revocationSignatures.length) {
-            throw new Error('Key is revoked');
-        }
-
-        if (!info.sign) {
-            throw new Error('Key cannot be used for signing');
-        }
-
-        if (isFinite(info.sign.expires)) {
-            throw new Error('Key will expire');
-        }
-
-        // Hash algorithms
-        if (info.user.hash && info.user.hash.length) {
-            if (info.user.hash[0] !== openpgpjs.enums.hash.sha256) {
-                throw new Error('Preferred hash algorithm must be SHA256');
-            }
-        } else {
-            throw new Error('Key missing preferred hash algorithms');
-        }
-
-        // Symmetric algorithms
-        if (info.user.symmetric && info.user.symmetric.length) {
-            if (info.user.symmetric[0] !== openpgpjs.enums.symmetric.aes256) {
-                throw new Error('Preferred symmetric algorithm must be AES256');
-            }
-        } else {
-            throw new Error('Key missing preferred symmetric algorithms');
-        }
-
-        // Compression algorithms
-        if (info.user.compression && info.user.compression.length) {
-            if (info.user.compression[0] !== openpgpjs.enums.compression.zlib) {
-                throw new Error('Preferred compression algorithm must be zlib');
-            }
-        }
-
-        return info;
+      return info;
     }
 
-    var _this$1 = undefined;
-
-    var packetInfo = function () {
-        var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(packet, key) {
-            var i;
-            return regeneratorRuntime.wrap(function _callee$(_context) {
-                while (1) {
-                    switch (_context.prev = _context.next) {
-                        case 0:
-                            if (packet) {
-                                _context.next = 2;
-                                break;
-                            }
-
-                            return _context.abrupt('return', null);
-
-                        case 2:
-                            if (!key.subKeys) {
-                                _context.next = 14;
-                                break;
-                            }
-
-                            i = 0;
-
-                        case 4:
-                            if (!(i < key.subKeys.length)) {
-                                _context.next = 14;
-                                break;
-                            }
-
-                            if (!(packet === key.subKeys[i].subKey)) {
-                                _context.next = 11;
-                                break;
-                            }
-
-                            _context.t0 = openpgpjs.enums.publicKey[packet.algorithm];
-                            _context.next = 9;
-                            return key.subKeys[i].getExpirationTime('encrypt_sign');
-
-                        case 9:
-                            _context.t1 = _context.sent;
-                            return _context.abrupt('return', {
-                                algorithm: _context.t0,
-                                expires: _context.t1
-                            });
-
-                        case 11:
-                            i++;
-                            _context.next = 4;
-                            break;
-
-                        case 14:
-                            _context.t2 = openpgpjs.enums.publicKey[packet.algorithm];
-                            _context.next = 17;
-                            return key.getExpirationTime('encrypt_sign');
-
-                        case 17:
-                            _context.t3 = _context.sent;
-                            return _context.abrupt('return', {
-                                algorithm: _context.t2,
-                                expires: _context.t3
-                            });
-
-                        case 19:
-                        case 'end':
-                            return _context.stop();
-                    }
+    var packetInfo =
+    /*#__PURE__*/
+    function () {
+      var _ref = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee(packet, key) {
+        var i;
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                if (packet) {
+                  _context.next = 2;
+                  break;
                 }
-            }, _callee, _this$1);
-        }));
 
-        return function packetInfo(_x, _x2) {
-            return _ref.apply(this, arguments);
-        };
+                return _context.abrupt("return", null);
+
+              case 2:
+                if (!key.subKeys) {
+                  _context.next = 14;
+                  break;
+                }
+
+                i = 0;
+
+              case 4:
+                if (!(i < key.subKeys.length)) {
+                  _context.next = 14;
+                  break;
+                }
+
+                if (!(packet === key.subKeys[i].subKey)) {
+                  _context.next = 11;
+                  break;
+                }
+
+                _context.t0 = openpgpjs.enums.publicKey[packet.algorithm];
+                _context.next = 9;
+                return key.subKeys[i].getExpirationTime('encrypt_sign');
+
+              case 9:
+                _context.t1 = _context.sent;
+                return _context.abrupt("return", {
+                  algorithm: _context.t0,
+                  expires: _context.t1
+                });
+
+              case 11:
+                i++;
+                _context.next = 4;
+                break;
+
+              case 14:
+                _context.t2 = openpgpjs.enums.publicKey[packet.algorithm];
+                _context.next = 17;
+                return key.getExpirationTime('encrypt_sign');
+
+              case 17:
+                _context.t3 = _context.sent;
+                return _context.abrupt("return", {
+                  algorithm: _context.t2,
+                  expires: _context.t3
+                });
+
+              case 19:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee, this);
+      }));
+
+      return function packetInfo(_x, _x2) {
+        return _ref.apply(this, arguments);
+      };
     }();
 
-    var primaryUser = function () {
-        var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(key, date) {
-            var primary, cert;
-            return regeneratorRuntime.wrap(function _callee2$(_context2) {
-                while (1) {
-                    switch (_context2.prev = _context2.next) {
-                        case 0:
-                            _context2.next = 2;
-                            return key.getPrimaryUser(date);
+    var primaryUser =
+    /*#__PURE__*/
+    function () {
+      var _ref2 = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee2(key, date) {
+        var primary, cert;
+        return regeneratorRuntime.wrap(function _callee2$(_context2) {
+          while (1) {
+            switch (_context2.prev = _context2.next) {
+              case 0:
+                _context2.next = 2;
+                return key.getPrimaryUser(date);
 
-                        case 2:
-                            primary = _context2.sent;
+              case 2:
+                primary = _context2.sent;
 
-                            if (primary) {
-                                _context2.next = 5;
-                                break;
-                            }
-
-                            return _context2.abrupt('return', null);
-
-                        case 5:
-                            if (primary.user) {
-                                _context2.next = 7;
-                                break;
-                            }
-
-                            return _context2.abrupt('return', null);
-
-                        case 7:
-                            if (primary.selfCertification) {
-                                _context2.next = 9;
-                                break;
-                            }
-
-                            return _context2.abrupt('return', null);
-
-                        case 9:
-                            cert = primary.selfCertification;
-                            return _context2.abrupt('return', {
-                                userId: primary.user.userId.userid,
-                                symmetric: cert.preferredSymmetricAlgorithms ? cert.preferredSymmetricAlgorithms : [],
-                                hash: cert.preferredHashAlgorithms ? cert.preferredHashAlgorithms : [],
-                                compression: cert.preferredCompressionAlgorithms ? cert.preferredCompressionAlgorithms : []
-                            });
-
-                        case 11:
-                        case 'end':
-                            return _context2.stop();
-                    }
+                if (primary) {
+                  _context2.next = 5;
+                  break;
                 }
-            }, _callee2, _this$1);
-        }));
 
-        return function primaryUser(_x3, _x4) {
-            return _ref2.apply(this, arguments);
-        };
+                return _context2.abrupt("return", null);
+
+              case 5:
+                if (primary.user) {
+                  _context2.next = 7;
+                  break;
+                }
+
+                return _context2.abrupt("return", null);
+
+              case 7:
+                if (primary.selfCertification) {
+                  _context2.next = 9;
+                  break;
+                }
+
+                return _context2.abrupt("return", null);
+
+              case 9:
+                cert = primary.selfCertification;
+                return _context2.abrupt("return", {
+                  userId: primary.user.userId.userid,
+                  symmetric: cert.preferredSymmetricAlgorithms ? cert.preferredSymmetricAlgorithms : [],
+                  hash: cert.preferredHashAlgorithms ? cert.preferredHashAlgorithms : [],
+                  compression: cert.preferredCompressionAlgorithms ? cert.preferredCompressionAlgorithms : []
+                });
+
+              case 11:
+              case "end":
+                return _context2.stop();
+            }
+          }
+        }, _callee2, this);
+      }));
+
+      return function primaryUser(_x3, _x4) {
+        return _ref2.apply(this, arguments);
+      };
     }();
 
-    var info = (function () {
-        var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(rawKey, email) {
-            var expectEncrypted = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-            var date = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : serverTime();
-            var keys, algoInfo, obj, encryptCheck;
-            return regeneratorRuntime.wrap(function _callee3$(_context3) {
-                while (1) {
-                    switch (_context3.prev = _context3.next) {
-                        case 0:
-                            _context3.next = 2;
-                            return getKeys(rawKey);
+    function keyInfo(_x5, _x6) {
+      return _keyInfo.apply(this, arguments);
+    }
 
-                        case 2:
-                            keys = _context3.sent;
-                            algoInfo = keys[0].getAlgorithmInfo();
-                            _context3.t0 = keys[0].primaryKey.version;
-                            _context3.t1 = keys[0].toPublic().armor();
-                            _context3.t2 = keys[0].getFingerprint();
-                            _context3.t3 = keys[0].getUserIds();
-                            _context3.next = 10;
-                            return primaryUser(keys[0], date);
+    function _keyInfo() {
+      _keyInfo = _asyncToGenerator(
+      /*#__PURE__*/
+      regeneratorRuntime.mark(function _callee3(rawKey, email) {
+        var expectEncrypted,
+            date,
+            keys,
+            algoInfo,
+            obj,
+            encryptCheck,
+            _args3 = arguments;
+        return regeneratorRuntime.wrap(function _callee3$(_context3) {
+          while (1) {
+            switch (_context3.prev = _context3.next) {
+              case 0:
+                expectEncrypted = _args3.length > 2 && _args3[2] !== undefined ? _args3[2] : true;
+                date = _args3.length > 3 && _args3[3] !== undefined ? _args3[3] : serverTime();
+                _context3.next = 4;
+                return getKeys(rawKey);
 
-                        case 10:
-                            _context3.t4 = _context3.sent;
-                            _context3.t5 = algoInfo.bits || null;
-                            _context3.t6 = algoInfo.curve || null;
-                            _context3.t7 = keys[0].getCreationTime();
-                            _context3.t8 = openpgpjs.enums.publicKey[algoInfo.algorithm];
-                            _context3.t9 = algoInfo.algorithm;
-                            _context3.next = 18;
-                            return keys[0].getExpirationTime('encrypt_sign').catch(function () {
-                                return null;
-                            });
+              case 4:
+                keys = _context3.sent;
+                algoInfo = keys[0].getAlgorithmInfo();
+                _context3.t0 = keys[0].primaryKey.version;
+                _context3.t1 = keys[0].toPublic().armor();
+                _context3.t2 = keys[0].getFingerprint();
+                _context3.t3 = keys[0].getUserIds();
+                _context3.next = 12;
+                return primaryUser(keys[0], date);
 
-                        case 18:
-                            _context3.t10 = _context3.sent;
-                            _context3.t11 = packetInfo;
-                            _context3.next = 22;
-                            return keys[0].getEncryptionKey(undefined, date);
+              case 12:
+                _context3.t4 = _context3.sent;
+                _context3.t5 = algoInfo.bits || null;
+                _context3.t6 = algoInfo.curve || null;
+                _context3.t7 = keys[0].getCreationTime();
+                _context3.t8 = openpgpjs.enums.publicKey[algoInfo.algorithm];
+                _context3.t9 = algoInfo.algorithm;
+                _context3.next = 20;
+                return keys[0].getExpirationTime('encrypt_sign').catch(function () {
+                  return null;
+                });
 
-                        case 22:
-                            _context3.t12 = _context3.sent;
-                            _context3.t13 = keys[0];
-                            _context3.next = 26;
-                            return (0, _context3.t11)(_context3.t12, _context3.t13);
+              case 20:
+                _context3.t10 = _context3.sent;
+                _context3.t11 = packetInfo;
+                _context3.next = 24;
+                return keys[0].getEncryptionKey(undefined, date);
 
-                        case 26:
-                            _context3.t14 = _context3.sent;
-                            _context3.t15 = packetInfo;
-                            _context3.next = 30;
-                            return keys[0].getSigningKey(undefined, date);
+              case 24:
+                _context3.t12 = _context3.sent;
+                _context3.t13 = keys[0];
+                _context3.next = 28;
+                return (0, _context3.t11)(_context3.t12, _context3.t13);
 
-                        case 30:
-                            _context3.t16 = _context3.sent;
-                            _context3.t17 = keys[0];
-                            _context3.next = 34;
-                            return (0, _context3.t15)(_context3.t16, _context3.t17);
+              case 28:
+                _context3.t14 = _context3.sent;
+                _context3.t15 = packetInfo;
+                _context3.next = 32;
+                return keys[0].getSigningKey(undefined, date);
 
-                        case 34:
-                            _context3.t18 = _context3.sent;
-                            _context3.t19 = keys[0].isDecrypted();
-                            _context3.t20 = keys[0].revocationSignatures;
-                            obj = {
-                                version: _context3.t0,
-                                publicKeyArmored: _context3.t1,
-                                fingerprint: _context3.t2,
-                                userIds: _context3.t3,
-                                user: _context3.t4,
-                                bitSize: _context3.t5,
-                                curve: _context3.t6,
-                                created: _context3.t7,
-                                algorithm: _context3.t8,
-                                algorithmName: _context3.t9,
-                                expires: _context3.t10,
-                                encrypt: _context3.t14,
-                                sign: _context3.t18,
-                                decrypted: _context3.t19,
-                                revocationSignatures: _context3.t20,
-                                validationError: null
-                            };
+              case 32:
+                _context3.t16 = _context3.sent;
+                _context3.t17 = keys[0];
+                _context3.next = 36;
+                return (0, _context3.t15)(_context3.t16, _context3.t17);
 
+              case 36:
+                _context3.t18 = _context3.sent;
+                _context3.t19 = keys[0].isDecrypted();
+                _context3.t20 = keys[0].revocationSignatures;
+                obj = {
+                  version: _context3.t0,
+                  publicKeyArmored: _context3.t1,
+                  fingerprint: _context3.t2,
+                  userIds: _context3.t3,
+                  user: _context3.t4,
+                  bitSize: _context3.t5,
+                  curve: _context3.t6,
+                  created: _context3.t7,
+                  algorithm: _context3.t8,
+                  algorithmName: _context3.t9,
+                  expires: _context3.t10,
+                  encrypt: _context3.t14,
+                  sign: _context3.t18,
+                  decrypted: _context3.t19,
+                  revocationSignatures: _context3.t20,
+                  validationError: null
+                };
 
-                            try {
-                                keyCheck(obj, email, expectEncrypted);
-                            } catch (err) {
-                                obj.validationError = err.message;
-                            }
-
-                            encryptCheck = obj.encrypt ? openpgpjs.encrypt({ data: 'test message', publicKeys: keys, date: date }) : Promise.resolve();
-                            _context3.next = 42;
-                            return encryptCheck;
-
-                        case 42:
-                            return _context3.abrupt('return', obj);
-
-                        case 43:
-                        case 'end':
-                            return _context3.stop();
-                    }
+                try {
+                  keyCheck(obj, email, expectEncrypted);
+                } catch (err) {
+                  obj.validationError = err.message;
                 }
-            }, _callee3, this);
-        }));
 
-        function keyInfo(_x5, _x6) {
-            return _ref3.apply(this, arguments);
-        }
+                encryptCheck = obj.encrypt ? openpgpjs.encrypt({
+                  data: 'test message',
+                  publicKeys: keys,
+                  date: date
+                }) : Promise.resolve();
+                _context3.next = 44;
+                return encryptCheck;
 
-        return keyInfo;
-    })();
+              case 44:
+                return _context3.abrupt("return", obj);
+
+              case 45:
+              case "end":
+                return _context3.stop();
+            }
+          }
+        }, _callee3, this);
+      }));
+      return _keyInfo.apply(this, arguments);
+    }
 
     /* eslint-disable camelcase */
-
-    var config = { debug: true };
+    var config = {
+      debug: true
+    };
     var concatArrays = openpgpjs.util.concatUint8Array;
     var encode_utf8 = encodeUtf8;
     var decode_utf8 = decodeUtf8;
@@ -3841,7 +3912,7 @@ var pmcrypto = (function (exports) {
         binaryStringToArray: binaryStringToArray,
         concatArrays: concatArrays,
         stripArmor: stripArmor,
-        keyInfo: info,
+        keyInfo: keyInfo,
         keyCheck: keyCheck,
         getFingerprint: getFingerprint,
         getMatchingKey: getMatchingKey,
@@ -3849,6 +3920,7 @@ var pmcrypto = (function (exports) {
     });
 
     /* START.BROWSER_ONLY */
+
     window.pmcrypto = pmcrypto;
 
     exports.default = pmcrypto;
@@ -3894,7 +3966,7 @@ var pmcrypto = (function (exports) {
     exports.binaryStringToArray = binaryStringToArray;
     exports.concatArrays = concatArrays;
     exports.stripArmor = stripArmor;
-    exports.keyInfo = info;
+    exports.keyInfo = keyInfo;
     exports.keyCheck = keyCheck;
     exports.getFingerprint = getFingerprint;
     exports.getMatchingKey = getMatchingKey;
