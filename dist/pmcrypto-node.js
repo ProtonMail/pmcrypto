@@ -19,8 +19,7 @@ var MAX_ENC_HEADER_LENGTH = 1024;
 /* START.NODE_ONLY */
 global.btoa = require('btoa');
 global.atob = require('atob');
-global.Promise = require('es6-promise').Promise;
-global.openpgp = require('openpgp');
+var openpgp = require('openpgp');
 /* END.NODE_ONLY */
 
 openpgp.config.integrity_protect = true;
