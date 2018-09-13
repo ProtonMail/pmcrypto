@@ -6,7 +6,7 @@
   "module": "lib/pmcrypto.js",
   "browser": "dist/pmcrypto-browser.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha --ui tdd",
     "build": "rollup -c",
     "lint": "eslint $(find lib -type f -name '*.js')  --quiet"
   },
@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "babel-core": "^6.26.3",
+    "babel-polyfill": "^6.0.16",
     "babel-plugin-external-helpers": "^6.22.0",
     "babel-plugin-istanbul": "^4.1.4",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
@@ -41,6 +42,7 @@
     "eslint-plugin-import": "^2.9.0",
     "rollup": "^0.63.4",
     "rollup-plugin-babel": "^3.0.7",
-    "rollup-plugin-strip-code": "^0.2.6"
+    "rollup-plugin-strip-code": "^0.2.6",
+    "mocha": "^3.4.2"
   }
 }

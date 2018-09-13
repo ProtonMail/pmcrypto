@@ -16,7 +16,9 @@ export default [
                 start_comment: 'START.NODE_ONLY',
                 end_comment: 'END.NODE_ONLY'
             }),
-            babel()
+            babel({
+                plugins: ['external-helpers']
+            })
         ]
     },
     {

@@ -2,5 +2,5 @@
   "presets": [["es2015", {
       "modules": false
   }], "stage-0"],
-  "plugins": ["transform-regenerator", "external-helpers"]
+  "plugins": ["transform-regenerator"]
 }

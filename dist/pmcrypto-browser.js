@@ -15,10 +15,6 @@ var pmcrypto = (function (exports) {
 
     var MAX_ENC_HEADER_LENGTH = 1024;
 
-    /* eslint-disable global-require */
-    openpgp.config.integrity_protect = true;
-    openpgp.config.use_native = true;
-
     /* START.BROWSER_ONLY */
     /**
      * @link https://github.com/vibornoff/asmcrypto.js/issues/121
@@ -31,6 +27,10 @@ var pmcrypto = (function (exports) {
 
     openpgp.initWorker({ path: 'openpgp.worker.min.js', n: hardwareConcurrency });
     /* END.BROWSER_ONLY */
+
+    openpgp.config.integrity_protect = true;
+    openpgp.config.use_native = true;
+
     var openpgpjs = openpgp;
 
     // Load window.performance in the browser, perf_hooks in node, and fall back on Date
@@ -384,9 +384,8 @@ var pmcrypto = (function (exports) {
             return message;
         } else if (Uint8Array.prototype.isPrototypeOf(message)) {
             return openpgpjs.message.read(message);
-        } else {
-            return openpgpjs.message.readArmored(message.trim());
         }
+        return openpgpjs.message.readArmored(message.trim());
     }
 
     function getSignature(signature) {
@@ -400,21 +399,18 @@ var pmcrypto = (function (exports) {
     }
 
     function getCleartextMessage(message) {
-
         if (openpgpjs.cleartext.CleartextMessage.prototype.isPrototypeOf(message)) {
             return message;
-        } else {
-            return new openpgpjs.cleartext.CleartextMessage(message);
         }
+        return new openpgpjs.cleartext.CleartextMessage(message);
     }
 
     function createMessage(source) {
 
         if (Uint8Array.prototype.isPrototypeOf(source)) {
             return openpgpjs.message.fromBinary(source);
-        } else {
-            return openpgpjs.message.fromText(source);
         }
+        return openpgpjs.message.fromText(source);
     }
 
     function signMessage(options) {
@@ -511,10 +507,20 @@ var pmcrypto = (function (exports) {
                                 }
                                 acc.signatures = acc.signatures.concat(result.signature);
                                 return acc;
-                            }, { data: data, verified: verified, filename: filename, signatures: signatures }));
+                            }, {
+                                data: data,
+                                verified: verified,
+                                filename: filename,
+                                signatures: signatures
+                            }));
 
                         case 12:
-                            return _context.abrupt('return', { data: data, verified: verified, filename: filename, signatures: signatures });
+                            return _context.abrupt('return', {
+                                data: data,
+                                verified: verified,
+                                filename: filename,
+                                signatures: signatures
+                            });
 
                         case 13:
                         case 'end':
@@ -3491,7 +3497,7 @@ var pmcrypto = (function (exports) {
             throw new Error('Key is less than 1024 bits');
         }
 
-        if (isFinite(info.expires)) {
+        if (Number.isFinite(info.expires)) {
             throw new Error('Key will expire');
         }
 
@@ -3499,7 +3505,7 @@ var pmcrypto = (function (exports) {
             throw new Error('Key cannot be used for encryption');
         }
 
-        if (isFinite(info.encrypt.expires)) {
+        if (Number.isFinite(info.encrypt.expires)) {
             throw new Error('Key will expire');
         }
 
@@ -3511,7 +3517,7 @@ var pmcrypto = (function (exports) {
             throw new Error('Key cannot be used for signing');
         }
 
-        if (isFinite(info.sign.expires)) {
+        if (Number.isFinite(info.sign.expires)) {
             throw new Error('Key will expire');
         }
 
@@ -3545,79 +3551,52 @@ var pmcrypto = (function (exports) {
 
     var _this$1 = undefined;
 
-    var packetInfo = function () {
-        var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(packet, key) {
-            var i;
+    var createPacketInfo = function () {
+        var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(packet, subKey) {
             return regeneratorRuntime.wrap(function _callee$(_context) {
                 while (1) {
                     switch (_context.prev = _context.next) {
                         case 0:
-                            if (packet) {
-                                _context.next = 2;
-                                break;
-                            }
-
-                            return _context.abrupt('return', null);
-
-                        case 2:
-                            if (!key.subKeys) {
-                                _context.next = 14;
-                                break;
-                            }
-
-                            i = 0;
-
-                        case 4:
-                            if (!(i < key.subKeys.length)) {
-                                _context.next = 14;
-                                break;
-                            }
-
-                            if (!(packet === key.subKeys[i].subKey)) {
-                                _context.next = 11;
-                                break;
-                            }
-
                             _context.t0 = openpgpjs.enums.publicKey[packet.algorithm];
-                            _context.next = 9;
-                            return key.subKeys[i].getExpirationTime('encrypt_sign');
+                            _context.next = 3;
+                            return subKey.getExpirationTime('encrypt_sign');
 
-                        case 9:
+                        case 3:
                             _context.t1 = _context.sent;
                             return _context.abrupt('return', {
                                 algorithm: _context.t0,
                                 expires: _context.t1
                             });
 
-                        case 11:
-                            i++;
-                            _context.next = 4;
-                            break;
-
-                        case 14:
-                            _context.t2 = openpgpjs.enums.publicKey[packet.algorithm];
-                            _context.next = 17;
-                            return key.getExpirationTime('encrypt_sign');
-
-                        case 17:
-                            _context.t3 = _context.sent;
-                            return _context.abrupt('return', {
-                                algorithm: _context.t2,
-                                expires: _context.t3
-                            });
-
-                        case 19:
+                        case 5:
                         case 'end':
                             return _context.stop();
                     }
                 }
-            }, _callee, _this$1);
+            }, _callee, this);
         }));
 
-        return function packetInfo(_x, _x2) {
+        return function createPacketInfo(_x, _x2) {
             return _ref.apply(this, arguments);
         };
     }();
+
+    var packetInfo = function packetInfo(packet, key) {
+        if (!packet) {
+            return null;
+        }
+
+        if (key.subKeys) {
+            for (var i = 0; i < key.subKeys.length; i++) {
+                var subKey = key.subKeys[i];
+                if (packet === key.subKeys[i].subKey) {
+                    return createPacketInfo(packet, subKey);
+                }
+            }
+        }
+
+        return createPacketInfo(packet, key);
+    };
 
     var primaryUser = function () {
         var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(key, date) {
