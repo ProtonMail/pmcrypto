@@ -3041,7 +3041,7 @@ var pmcrypto = (function (exports) {
                             return _context.abrupt('return', { subdata: data, verified: 0 });
 
                         case 8:
-                            _ref4 = /boundary\s*=\s*([^;]*)\s*;/gi.exec(contentType) || [], _ref5 = slicedToArray(_ref4, 2), rawboundary = _ref5[1];
+                            _ref4 = /boundary\s*=\s*([^;]*)\s*(;|$)/gi.exec(contentType) || [], _ref5 = slicedToArray(_ref4, 2), rawboundary = _ref5[1];
 
                             if (rawboundary) {
                                 _context.next = 11;
