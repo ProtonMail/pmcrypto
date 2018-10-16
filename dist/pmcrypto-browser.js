@@ -199,7 +199,6 @@ var pmcrypto = (function (exports) {
         var email = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
         var passphrase = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '';
 
-
         if (passphrase.length === 0) {
             return Promise.reject(new Error('Missing private key passcode'));
         }
@@ -223,7 +222,6 @@ var pmcrypto = (function (exports) {
     function getKeys() {
         var rawKeys = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
 
-
         var keys = rawKeys instanceof Uint8Array ? openpgpjs.key.read(rawKeys) : openpgpjs.key.readArmored(rawKeys);
 
         if (keys === undefined) {
@@ -240,11 +238,33 @@ var pmcrypto = (function (exports) {
         return keys.keys;
     }
 
-    function isExpiredKey(key) {
-        return key.getExpirationTime('encrypt_sign').then(function (expirationTime) {
-            return !(key.getCreationTime() <= +serverTime() && +serverTime() < expirationTime) || key.revocationSignatures.length > 0;
-        });
-    }
+    var isExpiredKey = function () {
+        var _ref = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(key) {
+            var time, timeServer;
+            return regeneratorRuntime.wrap(function _callee$(_context) {
+                while (1) {
+                    switch (_context.prev = _context.next) {
+                        case 0:
+                            _context.next = 2;
+                            return key.getExpirationTime('encrypt_sign');
+
+                        case 2:
+                            time = _context.sent;
+                            timeServer = +serverTime();
+                            return _context.abrupt('return', !(key.getCreationTime() <= timeServer && timeServer < time) || key.revocationSignatures.length > 0);
+
+                        case 5:
+                        case 'end':
+                            return _context.stop();
+                    }
+                }
+            }, _callee, this);
+        }));
+
+        return function isExpiredKey(_x4) {
+            return _ref.apply(this, arguments);
+        };
+    }();
 
     function compressKey(armoredKey) {
         var _getKeys = getKeys(armoredKey),
@@ -253,8 +273,8 @@ var pmcrypto = (function (exports) {
 
         var users = k.users;
 
-        users.forEach(function (_ref) {
-            var otherCertifications = _ref.otherCertifications;
+        users.forEach(function (_ref2) {
+            var otherCertifications = _ref2.otherCertifications;
             return otherCertifications.length = 0;
         });
         return k.armor();
@@ -264,6 +284,12 @@ var pmcrypto = (function (exports) {
         return key.getFingerprint();
     }
 
+    /**
+     * Gets the key matching the signature
+     * @param {Signature} signature
+     * @param {Array<Key>} keys An array of keys
+     * @return key
+     */
     function getMatchingKey(signature, keys) {
         var keyring = new openpgpjs.Keyring({
             loadPublic: function loadPublic() {
@@ -276,12 +302,16 @@ var pmcrypto = (function (exports) {
             storePrivate: function storePrivate() {}
         });
 
-        // eslint-disable-next-line new-cap
-        var keyid = openpgpjs.util.Uint8Array_to_hex(binaryStringToArray(signature.keyid.toHex()));
+        var keyids = signature.packets.map(function (_ref3) {
+            var issuerKeyId = _ref3.issuerKeyId;
+            return issuerKeyId.toHex();
+        });
 
-        var _ref2 = keyring.getKeysForId(keyid, true) || [null],
-            _ref3 = slicedToArray(_ref2, 1),
-            key = _ref3[0];
+        var _keyids$map$flatten$f = keyids.map(function (keyid) {
+            return keyring.getKeysForId(keyid, true) || [null];
+        }).flatten().filter(Boolean),
+            _keyids$map$flatten$f2 = slicedToArray(_keyids$map$flatten$f, 1),
+            key = _keyids$map$flatten$f2[0];
 
         return key;
     }
@@ -295,9 +325,7 @@ var pmcrypto = (function (exports) {
     }
 
     function decryptPrivateKey(privKey, privKeyPassCode) {
-
         return Promise.resolve().then(function () {
-
             if (privKey === undefined || privKey === '') {
                 return Promise.reject(new Error('Missing private key'));
             }
@@ -316,12 +344,9 @@ var pmcrypto = (function (exports) {
     }
 
     function decryptSessionKey(options) {
-
         return Promise.resolve().then(function () {
-
             try {
                 return openpgpjs.decryptSessionKeys(options).then(function (result) {
-
                     if (result.length > 1) {
                         return Promise.reject(new Error('Multiple decrypted session keys found'));
                     }
@@ -341,9 +366,7 @@ var pmcrypto = (function (exports) {
     }
 
     function encryptPrivateKey(inputKey, privKeyPassCode) {
-
         return Promise.resolve(cloneKey(inputKey)).then(function (privKey) {
-
             if (Object.prototype.toString.call(privKeyPassCode) !== '[object String]' || privKeyPassCode === '') {
                 return Promise.reject(new Error('Missing private key passcode'));
             }
@@ -379,7 +402,6 @@ var pmcrypto = (function (exports) {
 
 
     function getMessage(message) {
-
         if (openpgpjs.message.Message.prototype.isPrototypeOf(message)) {
             return message;
         } else if (Uint8Array.prototype.isPrototypeOf(message)) {
@@ -389,7 +411,6 @@ var pmcrypto = (function (exports) {
     }
 
     function getSignature(signature) {
-
         if (openpgpjs.signature.Signature.prototype.isPrototypeOf(signature)) {
             return signature;
         } else if (Uint8Array.prototype.isPrototypeOf(signature)) {
@@ -406,7 +427,6 @@ var pmcrypto = (function (exports) {
     }
 
     function createMessage(source) {
-
         if (Uint8Array.prototype.isPrototypeOf(source)) {
             return openpgpjs.message.fromBinary(source);
         }
@@ -555,7 +575,6 @@ var pmcrypto = (function (exports) {
     }
 
     function splitMessage(message) {
-
         var msg = getMessage(message);
 
         var keyFilter = function keyFilter(packet) {
@@ -3084,7 +3103,10 @@ var pmcrypto = (function (exports) {
                             body = parts[1];
                             _context.next = 28;
                             return verifyMessage({
-                                message: getCleartextMessage(body), publicKeys: publicKeys, date: date, signature: signature
+                                message: getCleartextMessage(body),
+                                publicKeys: publicKeys,
+                                date: date,
+                                signature: signature
                             });
 
                         case 28:
@@ -3215,7 +3237,11 @@ var pmcrypto = (function (exports) {
                             }
 
                             return _context3.abrupt('return', {
-                                body: html, attachments: attachments, verified: verified, encryptedSubject: encryptedSubject, mimetype: 'text/html'
+                                body: html,
+                                attachments: attachments,
+                                verified: verified,
+                                encryptedSubject: encryptedSubject,
+                                mimetype: 'text/html'
                             });
 
                         case 10:
@@ -3225,7 +3251,11 @@ var pmcrypto = (function (exports) {
                             }
 
                             return _context3.abrupt('return', {
-                                body: text, attachments: attachments, verified: verified, encryptedSubject: encryptedSubject, mimetype: 'text/plain'
+                                body: text,
+                                attachments: attachments,
+                                verified: verified,
+                                encryptedSubject: encryptedSubject,
+                                mimetype: 'text/plain'
                             });
 
                         case 12:
@@ -3235,7 +3265,9 @@ var pmcrypto = (function (exports) {
                             }
 
                             return _context3.abrupt('return', {
-                                attachments: attachments, verified: verified, encryptedSubject: encryptedSubject
+                                attachments: attachments,
+                                verified: verified,
+                                encryptedSubject: encryptedSubject
                             });
 
                         case 14:
@@ -3325,7 +3357,6 @@ var pmcrypto = (function (exports) {
         options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
         return Promise.resolve().then(function () {
-
             try {
                 return openpgpjs.decrypt(options).then(function (result) {
                     return handleVerificationResult(result, publicKeys, options.date);
@@ -3336,7 +3367,10 @@ var pmcrypto = (function (exports) {
                         signatures = _ref.signatures;
 
                     return {
-                        data: data, filename: filename, verified: verified, signatures: signatures
+                        data: data,
+                        filename: filename,
+                        verified: verified,
+                        signatures: signatures
                     };
                 }).catch(function (err) {
                     console.error(err);
@@ -3354,9 +3388,7 @@ var pmcrypto = (function (exports) {
     // Backwards-compatible decrypt message function
     // 'message' option must be a string!
     function decryptMessageLegacy(options) {
-
         return Promise.resolve().then(function () {
-
             if (options.date === undefined || !(options.date instanceof Date)) {
                 throw new Error('Missing message time');
             }
@@ -3381,7 +3413,6 @@ var pmcrypto = (function (exports) {
                 var data = _ref2.data;
                 return decodeUtf8Base64(data);
             }).then(binaryStringToArray).then(function (randomKey) {
-
                 if (randomKey.length === 0) {
                     return Promise.reject(new Error('Random key is empty'));
                 }
@@ -3466,7 +3497,7 @@ var pmcrypto = (function (exports) {
 
     function encryptMessage(options) {
         if (typeof options.data === 'string') {
-            options.data = options.data.replace(/[ \t]*$/mg, '');
+            options.data = options.data.replace(/[ \t]*$/gm, '');
         }
         options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
         options.compression = options.compression ? openpgpjs.enums.compression.zlib : undefined;
@@ -3474,7 +3505,6 @@ var pmcrypto = (function (exports) {
     }
 
     function keyCheck(info, email, expectEncrypted) {
-
         if (info.decrypted && expectEncrypted) {
             throw new Error('Expected encrypted key but got decrypted key');
         }
