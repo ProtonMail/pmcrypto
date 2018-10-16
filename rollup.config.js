@@ -32,8 +32,7 @@ export default [
             stripCode({
                 start_comment: 'START.BROWSER_ONLY',
                 end_comment: 'END.BROWSER_ONLY'
-            }),
-            babel()
+            })
         ]
     }
 ];
