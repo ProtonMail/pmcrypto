@@ -123,6 +123,8 @@ function getMaxConcurrency() {
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
+function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+
 // returns promise for generated RSA public and encrypted private keys
 var generateKey = function generateKey(options) {
     options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
@@ -135,7 +137,6 @@ var generateSessionKey = function generateSessionKey(algorithm) {
 function reformatKey(privKey) {
     var email = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
     var passphrase = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '';
-
 
     if (passphrase.length === 0) {
         return Promise.reject(new Error('Missing private key passcode'));
@@ -160,7 +161,6 @@ function reformatKey(privKey) {
 function getKeys() {
     var rawKeys = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
 
-
     var keys = rawKeys instanceof Uint8Array ? openpgpjs.key.read(rawKeys) : openpgpjs.key.readArmored(rawKeys);
 
     if (keys === undefined) {
@@ -177,11 +177,33 @@ function getKeys() {
     return keys.keys;
 }
 
-function isExpiredKey(key) {
-    return key.getExpirationTime('encrypt_sign').then(function (expirationTime) {
-        return !(key.getCreationTime() <= +serverTime() && +serverTime() < expirationTime) || key.revocationSignatures.length > 0;
-    });
-}
+var isExpiredKey = function () {
+    var _ref = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(key) {
+        var time, timeServer;
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+            while (1) {
+                switch (_context.prev = _context.next) {
+                    case 0:
+                        _context.next = 2;
+                        return key.getExpirationTime('encrypt_sign');
+
+                    case 2:
+                        time = _context.sent;
+                        timeServer = +serverTime();
+                        return _context.abrupt('return', !(key.getCreationTime() <= timeServer && timeServer < time) || key.revocationSignatures.length > 0);
+
+                    case 5:
+                    case 'end':
+                        return _context.stop();
+                }
+            }
+        }, _callee, this);
+    }));
+
+    return function isExpiredKey(_x4) {
+        return _ref.apply(this, arguments);
+    };
+}();
 
 function compressKey(armoredKey) {
     var _getKeys = getKeys(armoredKey),
@@ -190,8 +212,8 @@ function compressKey(armoredKey) {
 
     var users = k.users;
 
-    users.forEach(function (_ref) {
-        var otherCertifications = _ref.otherCertifications;
+    users.forEach(function (_ref2) {
+        var otherCertifications = _ref2.otherCertifications;
         return otherCertifications.length = 0;
     });
     return k.armor();
@@ -201,6 +223,12 @@ function getFingerprint(key) {
     return key.getFingerprint();
 }
 
+/**
+ * Gets the key matching the signature
+ * @param {Signature} signature
+ * @param {Array<Key>} keys An array of keys
+ * @return key
+ */
 function getMatchingKey(signature, keys) {
     var keyring = new openpgpjs.Keyring({
         loadPublic: function loadPublic() {
@@ -213,12 +241,16 @@ function getMatchingKey(signature, keys) {
         storePrivate: function storePrivate() {}
     });
 
-    // eslint-disable-next-line new-cap
-    var keyid = openpgpjs.util.Uint8Array_to_hex(binaryStringToArray(signature.keyid.toHex()));
+    var keyids = signature.packets.map(function (_ref3) {
+        var issuerKeyId = _ref3.issuerKeyId;
+        return issuerKeyId.toHex();
+    });
 
-    var _ref2 = keyring.getKeysForId(keyid, true) || [null],
-        _ref3 = _slicedToArray(_ref2, 1),
-        key = _ref3[0];
+    var _keyids$map$flatten$f = keyids.map(function (keyid) {
+        return keyring.getKeysForId(keyid, true) || [null];
+    }).flatten().filter(Boolean),
+        _keyids$map$flatten$f2 = _slicedToArray(_keyids$map$flatten$f, 1),
+        key = _keyids$map$flatten$f2[0];
 
     return key;
 }
@@ -232,9 +264,7 @@ function cloneKey(inputKey) {
 }
 
 function decryptPrivateKey(privKey, privKeyPassCode) {
-
     return Promise.resolve().then(function () {
-
         if (privKey === undefined || privKey === '') {
             return Promise.reject(new Error('Missing private key'));
         }
@@ -253,12 +283,9 @@ function decryptPrivateKey(privKey, privKeyPassCode) {
 }
 
 function decryptSessionKey(options) {
-
     return Promise.resolve().then(function () {
-
         try {
             return openpgpjs.decryptSessionKeys(options).then(function (result) {
-
                 if (result.length > 1) {
                     return Promise.reject(new Error('Multiple decrypted session keys found'));
                 }
@@ -278,9 +305,7 @@ function decryptSessionKey(options) {
 }
 
 function encryptPrivateKey(inputKey, privKeyPassCode) {
-
     return Promise.resolve(cloneKey(inputKey)).then(function (privKey) {
-
         if (Object.prototype.toString.call(privKeyPassCode) !== '[object String]' || privKeyPassCode === '') {
             return Promise.reject(new Error('Missing private key passcode'));
         }
@@ -307,7 +332,7 @@ var encryptSessionKey = function encryptSessionKey(opt) {
     return openpgpjs.encryptSessionKey(opt);
 };
 
-function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+function _asyncToGenerator$1(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
 
 var NOT_SIGNED = VERIFICATION_STATUS.NOT_SIGNED,
     SIGNED_AND_VALID = VERIFICATION_STATUS.SIGNED_AND_VALID,
@@ -316,7 +341,6 @@ var CANONICAL_TEXT = SIGNATURE_TYPES.CANONICAL_TEXT;
 
 
 function getMessage(message) {
-
     if (openpgpjs.message.Message.prototype.isPrototypeOf(message)) {
         return message;
     } else if (Uint8Array.prototype.isPrototypeOf(message)) {
@@ -326,7 +350,6 @@ function getMessage(message) {
 }
 
 function getSignature(signature) {
-
     if (openpgpjs.signature.Signature.prototype.isPrototypeOf(signature)) {
         return signature;
     } else if (Uint8Array.prototype.isPrototypeOf(signature)) {
@@ -343,7 +366,6 @@ function getCleartextMessage(message) {
 }
 
 function createMessage(source) {
-
     if (Uint8Array.prototype.isPrototypeOf(source)) {
         return openpgpjs.message.fromBinary(source);
     }
@@ -370,7 +392,7 @@ function isCanonicalTextSignature(_ref) {
 }
 
 var handleVerificationResult = function () {
-    var _ref3 = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(_ref4, publicKeys, date) {
+    var _ref3 = _asyncToGenerator$1( /*#__PURE__*/regeneratorRuntime.mark(function _callee(_ref4, publicKeys, date) {
         var data = _ref4.data,
             _ref4$filename = _ref4.filename,
             filename = _ref4$filename === undefined ? 'msg.txt' : _ref4$filename,
@@ -492,7 +514,6 @@ function verifyMessage(options) {
 }
 
 function splitMessage(message) {
-
     var msg = getMessage(message);
 
     var keyFilter = function keyFilter(packet) {
@@ -2937,7 +2958,7 @@ var _this = undefined;
 
 var _slicedToArray$1 = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-function _asyncToGenerator$1(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+function _asyncToGenerator$2(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
 
 /**
  * Parse a mail into an object format, splitting, headers, html, text/plain and attachments. The result is defined
@@ -2955,7 +2976,7 @@ var parseMail = function parseMail(data) {
 };
 
 var verifySignature = function () {
-    var _ref = _asyncToGenerator$1( /*#__PURE__*/regeneratorRuntime.mark(function _callee(_ref2, data) {
+    var _ref = _asyncToGenerator$2( /*#__PURE__*/regeneratorRuntime.mark(function _callee(_ref2, data) {
         var publicKeys = _ref2.publicKeys,
             date = _ref2.date;
 
@@ -3025,7 +3046,10 @@ var verifySignature = function () {
                         body = parts[1];
                         _context.next = 28;
                         return verifyMessage({
-                            message: getCleartextMessage(body), publicKeys: publicKeys, date: date, signature: signature
+                            message: getCleartextMessage(body),
+                            publicKeys: publicKeys,
+                            date: date,
+                            signature: signature
                         });
 
                     case 28:
@@ -3059,7 +3083,7 @@ var verifySignature = function () {
  * @returns {Promise.<*>}
  */
 var parse = function () {
-    var _ref8 = _asyncToGenerator$1( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(_ref9) {
+    var _ref8 = _asyncToGenerator$2( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(_ref9) {
         var _ref9$headerFilename = _ref9.headerFilename,
             headerFilename = _ref9$headerFilename === undefined ? 'Encrypted Headers.txt' : _ref9$headerFilename,
             _ref9$sender = _ref9.sender,
@@ -3083,7 +3107,7 @@ var parse = function () {
                         _data$attachments = data.attachments, attachments = _data$attachments === undefined ? [] : _data$attachments, _data$text = data.text, text = _data$text === undefined ? '' : _data$text, _data$html = data.html, html = _data$html === undefined ? '' : _data$html, _data$subject = data.subject, mimeSubject = _data$subject === undefined ? false : _data$subject;
                         _context3.next = 6;
                         return Promise.all(attachments.map(function () {
-                            var _ref10 = _asyncToGenerator$1( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(att) {
+                            var _ref10 = _asyncToGenerator$2( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(att) {
                                 var _ref11, headers, from;
 
                                 return regeneratorRuntime.wrap(function _callee2$(_context2) {
@@ -3156,7 +3180,11 @@ var parse = function () {
                         }
 
                         return _context3.abrupt('return', {
-                            body: html, attachments: attachments, verified: verified, encryptedSubject: encryptedSubject, mimetype: 'text/html'
+                            body: html,
+                            attachments: attachments,
+                            verified: verified,
+                            encryptedSubject: encryptedSubject,
+                            mimetype: 'text/html'
                         });
 
                     case 10:
@@ -3166,7 +3194,11 @@ var parse = function () {
                         }
 
                         return _context3.abrupt('return', {
-                            body: text, attachments: attachments, verified: verified, encryptedSubject: encryptedSubject, mimetype: 'text/plain'
+                            body: text,
+                            attachments: attachments,
+                            verified: verified,
+                            encryptedSubject: encryptedSubject,
+                            mimetype: 'text/plain'
                         });
 
                     case 12:
@@ -3176,7 +3208,9 @@ var parse = function () {
                         }
 
                         return _context3.abrupt('return', {
-                            attachments: attachments, verified: verified, encryptedSubject: encryptedSubject
+                            attachments: attachments,
+                            verified: verified,
+                            encryptedSubject: encryptedSubject
                         });
 
                     case 14:
@@ -3202,7 +3236,7 @@ var parse = function () {
  * @return {Promise<*>}
  */
 var processMIME = (function () {
-    var _ref12 = _asyncToGenerator$1( /*#__PURE__*/regeneratorRuntime.mark(function _callee4(options, data) {
+    var _ref12 = _asyncToGenerator$2( /*#__PURE__*/regeneratorRuntime.mark(function _callee4(options, data) {
         var _ref13, subdata, verified;
 
         return regeneratorRuntime.wrap(function _callee4$(_context4) {
@@ -3259,7 +3293,7 @@ function getEncRandomKeyFromEmailPM(EmailPM) {
     return '';
 }
 
-function _asyncToGenerator$2(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+function _asyncToGenerator$3(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
 
 function decryptMessage(options) {
     var _options$publicKeys = options.publicKeys,
@@ -3268,7 +3302,6 @@ function decryptMessage(options) {
     options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
     return Promise.resolve().then(function () {
-
         try {
             return openpgpjs.decrypt(options).then(function (result) {
                 return handleVerificationResult(result, publicKeys, options.date);
@@ -3279,7 +3312,10 @@ function decryptMessage(options) {
                     signatures = _ref.signatures;
 
                 return {
-                    data: data, filename: filename, verified: verified, signatures: signatures
+                    data: data,
+                    filename: filename,
+                    verified: verified,
+                    signatures: signatures
                 };
             }).catch(function (err) {
                 console.error(err);
@@ -3297,9 +3333,7 @@ function decryptMessage(options) {
 // Backwards-compatible decrypt message function
 // 'message' option must be a string!
 function decryptMessageLegacy(options) {
-
     return Promise.resolve().then(function () {
-
         if (options.date === undefined || !(options.date instanceof Date)) {
             throw new Error('Missing message time');
         }
@@ -3324,7 +3358,6 @@ function decryptMessageLegacy(options) {
             var data = _ref2.data;
             return decodeUtf8Base64(data);
         }).then(binaryStringToArray).then(function (randomKey) {
-
             if (randomKey.length === 0) {
                 return Promise.reject(new Error('Random key is empty'));
             }
@@ -3353,7 +3386,7 @@ function decryptMessageLegacy(options) {
  * @return {Promise<{getBody: (function(): Promise<{body, mimetype}>), getAttachments: (function(): Promise<any>), getEncryptedSubject: (function(): Promise<any>), verify: (function(): Promise<any>), stop: stop}>}
  */
 var decryptMIMEMessage = function () {
-    var _ref3 = _asyncToGenerator$2( /*#__PURE__*/regeneratorRuntime.mark(function _callee(options) {
+    var _ref3 = _asyncToGenerator$3( /*#__PURE__*/regeneratorRuntime.mark(function _callee(options) {
         var _ref4, rawData, embeddedVerified, _ref5, body, mimetype, pgpVerified, attachments, encryptedSubject, verified;
 
         return regeneratorRuntime.wrap(function _callee$(_context) {
@@ -3409,7 +3442,7 @@ var decryptMIMEMessage = function () {
 
 function encryptMessage(options) {
     if (typeof options.data === 'string') {
-        options.data = options.data.replace(/[ \t]*$/mg, '');
+        options.data = options.data.replace(/[ \t]*$/gm, '');
     }
     options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
     options.compression = options.compression ? openpgpjs.enums.compression.zlib : undefined;
@@ -3417,7 +3450,6 @@ function encryptMessage(options) {
 }
 
 function keyCheck(info, email, expectEncrypted) {
-
     if (info.decrypted && expectEncrypted) {
         throw new Error('Expected encrypted key but got decrypted key');
     }
@@ -3495,7 +3527,7 @@ function keyCheck(info, email, expectEncrypted) {
 var _this$1 = undefined;
 
 var createPacketInfo = function () {
-    var _ref = _asyncToGenerator$3( /*#__PURE__*/regeneratorRuntime.mark(function _callee(packet, subKey) {
+    var _ref = _asyncToGenerator$4( /*#__PURE__*/regeneratorRuntime.mark(function _callee(packet, subKey) {
         return regeneratorRuntime.wrap(function _callee$(_context) {
             while (1) {
                 switch (_context.prev = _context.next) {
@@ -3524,7 +3556,7 @@ var createPacketInfo = function () {
     };
 }();
 
-function _asyncToGenerator$3(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+function _asyncToGenerator$4(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
 
 var packetInfo = function packetInfo(packet, key) {
     if (!packet) {
@@ -3544,7 +3576,7 @@ var packetInfo = function packetInfo(packet, key) {
 };
 
 var primaryUser = function () {
-    var _ref2 = _asyncToGenerator$3( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(key, date) {
+    var _ref2 = _asyncToGenerator$4( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(key, date) {
         var primary, cert;
         return regeneratorRuntime.wrap(function _callee2$(_context2) {
             while (1) {
@@ -3602,7 +3634,7 @@ var primaryUser = function () {
 }();
 
 var info = (function () {
-    var _ref3 = _asyncToGenerator$3( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(rawKey, email) {
+    var _ref3 = _asyncToGenerator$4( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(rawKey, email) {
         var expectEncrypted = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
         var date = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : serverTime();
         var keys, algoInfo, obj, encryptCheck;
