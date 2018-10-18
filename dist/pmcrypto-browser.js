@@ -3673,6 +3673,12 @@ var pmcrypto = (function (exports) {
         return createPacketInfo(packet, key);
     };
 
+    var getSubkeysFingerprints = function getSubkeysFingerprints(key) {
+        return key.subKeys ? key.subKeys.map(function (subkey) {
+            return subkey.getFingerprint();
+        }) : [];
+    };
+
     var primaryUser = function () {
         var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(key, date) {
             var primary, cert;
@@ -3749,50 +3755,51 @@ var pmcrypto = (function (exports) {
                             _context3.t0 = keys[0].primaryKey.version;
                             _context3.t1 = keys[0].toPublic().armor();
                             _context3.t2 = keys[0].getFingerprint();
-                            _context3.t3 = keys[0].getUserIds();
-                            _context3.next = 10;
+                            _context3.t3 = getSubkeysFingerprints(keys[0]);
+                            _context3.t4 = keys[0].getUserIds();
+                            _context3.next = 11;
                             return primaryUser(keys[0], date);
 
-                        case 10:
-                            _context3.t4 = _context3.sent;
-                            _context3.t5 = algoInfo.bits || null;
-                            _context3.t6 = algoInfo.curve || null;
-                            _context3.t7 = keys[0].getCreationTime();
-                            _context3.t8 = openpgpjs.enums.publicKey[algoInfo.algorithm];
-                            _context3.t9 = algoInfo.algorithm;
-                            _context3.next = 18;
+                        case 11:
+                            _context3.t5 = _context3.sent;
+                            _context3.t6 = algoInfo.bits || null;
+                            _context3.t7 = algoInfo.curve || null;
+                            _context3.t8 = keys[0].getCreationTime();
+                            _context3.t9 = openpgpjs.enums.publicKey[algoInfo.algorithm];
+                            _context3.t10 = algoInfo.algorithm;
+                            _context3.next = 19;
                             return keys[0].getExpirationTime('encrypt_sign').catch(function () {
                                 return null;
                             });
 
-                        case 18:
-                            _context3.t10 = _context3.sent;
-                            _context3.t11 = packetInfo;
-                            _context3.next = 22;
+                        case 19:
+                            _context3.t11 = _context3.sent;
+                            _context3.t12 = packetInfo;
+                            _context3.next = 23;
                             return keys[0].getEncryptionKey(undefined, date);
 
-                        case 22:
-                            _context3.t12 = _context3.sent;
-                            _context3.t13 = keys[0];
-                            _context3.next = 26;
-                            return (0, _context3.t11)(_context3.t12, _context3.t13);
+                        case 23:
+                            _context3.t13 = _context3.sent;
+                            _context3.t14 = keys[0];
+                            _context3.next = 27;
+                            return (0, _context3.t12)(_context3.t13, _context3.t14);
 
-                        case 26:
-                            _context3.t14 = _context3.sent;
-                            _context3.t15 = packetInfo;
-                            _context3.next = 30;
+                        case 27:
+                            _context3.t15 = _context3.sent;
+                            _context3.t16 = packetInfo;
+                            _context3.next = 31;
                             return keys[0].getSigningKey(undefined, date);
 
-                        case 30:
-                            _context3.t16 = _context3.sent;
-                            _context3.t17 = keys[0];
-                            _context3.next = 34;
-                            return (0, _context3.t15)(_context3.t16, _context3.t17);
+                        case 31:
+                            _context3.t17 = _context3.sent;
+                            _context3.t18 = keys[0];
+                            _context3.next = 35;
+                            return (0, _context3.t16)(_context3.t17, _context3.t18);
 
-                        case 34:
-                            _context3.t18 = _context3.sent;
-                            _context3.t19 = keys[0].isDecrypted();
-                            _context3.t20 = keys[0].revocationSignatures;
+                        case 35:
+                            _context3.t19 = _context3.sent;
+                            _context3.t20 = keys[0].isDecrypted();
+                            _context3.t21 = keys[0].revocationSignatures;
                             obj = {
                                 version: _context3.t0,
                                 publicKeyArmored: _context3.t1,

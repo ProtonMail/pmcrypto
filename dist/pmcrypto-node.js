@@ -26723,6 +26723,10 @@ const packetInfo = (packet, key) => {
     return createPacketInfo(packet, key);
 };
 
+const getSubkeysFingerprints = (key) => {
+    return key.subKeys ? key.subKeys.map((subkey) => subkey.getFingerprint()) : [];
+};
+
 const primaryUser = async (key, date) => {
     const primary = await key.getPrimaryUser(date);
 
@@ -26756,6 +26760,7 @@ async function keyInfo(rawKey, email, expectEncrypted = true, date = serverTime(
         version: keys[0].primaryKey.version,
         publicKeyArmored: keys[0].toPublic().armor(),
         fingerprint: keys[0].getFingerprint(),
+        subKeysFingerprints: getSubkeysFingerprints(keys[0]),
         userIds: keys[0].getUserIds(),
         user: await primaryUser(keys[0], date),
         bitSize: algoInfo.bits || null,
