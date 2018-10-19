@@ -26723,8 +26723,8 @@ const packetInfo = (packet, key) => {
     return createPacketInfo(packet, key);
 };
 
-const getSubkeysFingerprints = (key) => {
-    return key.subKeys ? key.subKeys.map((subkey) => subkey.getFingerprint()) : [];
+const getSubkeysFingerprints = ({ subKeys = [] } = {}) => {
+    return subKeys.map((subkey) => subkey.getFingerprint());
 };
 
 const primaryUser = async (key, date) => {

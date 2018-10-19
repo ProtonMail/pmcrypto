@@ -3673,14 +3673,18 @@ var pmcrypto = (function (exports) {
         return createPacketInfo(packet, key);
     };
 
-    var getSubkeysFingerprints = function getSubkeysFingerprints(key) {
-        return key.subKeys ? key.subKeys.map(function (subkey) {
+    var getSubkeysFingerprints = function getSubkeysFingerprints() {
+        var _ref2 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+            _ref2$subKeys = _ref2.subKeys,
+            subKeys = _ref2$subKeys === undefined ? [] : _ref2$subKeys;
+
+        return subKeys.map(function (subkey) {
             return subkey.getFingerprint();
-        }) : [];
+        });
     };
 
     var primaryUser = function () {
-        var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(key, date) {
+        var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(key, date) {
             var primary, cert;
             return regeneratorRuntime.wrap(function _callee2$(_context2) {
                 while (1) {
@@ -3732,13 +3736,13 @@ var pmcrypto = (function (exports) {
             }, _callee2, _this$1);
         }));
 
-        return function primaryUser(_x3, _x4) {
-            return _ref2.apply(this, arguments);
+        return function primaryUser(_x4, _x5) {
+            return _ref3.apply(this, arguments);
         };
     }();
 
     var info = (function () {
-        var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(rawKey, email) {
+        var _ref4 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(rawKey, email) {
             var expectEncrypted = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
             var date = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : serverTime();
             var keys, algoInfo, obj, encryptCheck;
@@ -3848,8 +3852,8 @@ var pmcrypto = (function (exports) {
             }, _callee3, this);
         }));
 
-        function keyInfo(_x5, _x6) {
-            return _ref3.apply(this, arguments);
+        function keyInfo(_x6, _x7) {
+            return _ref4.apply(this, arguments);
         }
 
         return keyInfo;
