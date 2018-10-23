@@ -3809,18 +3809,19 @@ var pmcrypto = (function (exports) {
                                 version: _context3.t0,
                                 publicKeyArmored: _context3.t1,
                                 fingerprint: _context3.t2,
-                                userIds: _context3.t3,
-                                user: _context3.t4,
-                                bitSize: _context3.t5,
-                                curve: _context3.t6,
-                                created: _context3.t7,
-                                algorithm: _context3.t8,
-                                algorithmName: _context3.t9,
-                                expires: _context3.t10,
-                                encrypt: _context3.t14,
-                                sign: _context3.t18,
-                                decrypted: _context3.t19,
-                                revocationSignatures: _context3.t20,
+                                fingerprints: _context3.t3,
+                                userIds: _context3.t4,
+                                user: _context3.t5,
+                                bitSize: _context3.t6,
+                                curve: _context3.t7,
+                                created: _context3.t8,
+                                algorithm: _context3.t9,
+                                algorithmName: _context3.t10,
+                                expires: _context3.t11,
+                                encrypt: _context3.t15,
+                                sign: _context3.t19,
+                                decrypted: _context3.t20,
+                                revocationSignatures: _context3.t21,
                                 validationError: null,
                                 dateError: null
                             };
@@ -3839,13 +3840,13 @@ var pmcrypto = (function (exports) {
                             }
 
                             encryptCheck = obj.encrypt ? openpgpjs.encrypt({ data: 'test message', publicKeys: keys, date: date }) : Promise.resolve();
-                            _context3.next = 44;
+                            _context3.next = 45;
                             return encryptCheck;
 
-                        case 44:
+                        case 45:
                             return _context3.abrupt('return', obj);
 
-                        case 45:
+                        case 46:
                         case 'end':
                             return _context3.stop();
                     }
