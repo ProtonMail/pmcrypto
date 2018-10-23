@@ -3597,27 +3597,27 @@ var pmcrypto = (function (exports) {
         var date = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : serverTime();
 
         var keys = [key].concat(toConsumableArray(key.subKeys));
-        if (!keys.every(function (_ref3) {
+        if (keys.some(function (_ref3) {
             var keyPacket = _ref3.keyPacket;
-            return keyPacket.created < date;
+            return keyPacket.created > date;
         })) {
             throw new Error('The sub key key packets are created with illegal times');
         }
-        if (!key.users.every(function (_ref4) {
+        if (key.users.some(function (_ref4) {
             var selfCertifications = _ref4.selfCertifications;
-            return selfCertifications.every(function (_ref5) {
+            return selfCertifications.some(function (_ref5) {
                 var created = _ref5.created;
-                return created < date;
+                return created > date;
             });
         })) {
             throw new Error('The self certifications are created with illegal times');
         }
-        if (!keys.every(function (_ref6) {
+        if (keys.some(function (_ref6) {
             var _ref6$bindingSignatur = _ref6.bindingSignatures,
                 bindingSignatures = _ref6$bindingSignatur === undefined ? [] : _ref6$bindingSignatur;
-            return bindingSignatures.every(function (_ref7) {
+            return bindingSignatures.some(function (_ref7) {
                 var created = _ref7.created;
-                return created < date;
+                return created > date;
             });
         })) {
             throw new Error('The sub key binding signatures are created with illegal times');
