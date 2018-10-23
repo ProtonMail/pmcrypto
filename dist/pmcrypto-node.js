@@ -26760,7 +26760,7 @@ async function keyInfo(rawKey, email, expectEncrypted = true, date = serverTime(
     const obj = {
         version: keys[0].primaryKey.version,
         publicKeyArmored: keys[0].toPublic().armor(),
-        fingerprint: mainFingerprint, //FIXME: deprecated, use fingerprints instead
+        fingerprint: mainFingerprint, // FIXME: deprecated, use fingerprints instead
         fingerprints: [mainFingerprint, ...getSubkeysFingerprints(keys[0])],
         userIds: keys[0].getUserIds(),
         user: await primaryUser(keys[0], date),
