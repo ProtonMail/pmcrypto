@@ -3673,8 +3673,18 @@ var pmcrypto = (function (exports) {
         return createPacketInfo(packet, key);
     };
 
+    var getSubkeysFingerprints = function getSubkeysFingerprints() {
+        var _ref2 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+            _ref2$subKeys = _ref2.subKeys,
+            subKeys = _ref2$subKeys === undefined ? [] : _ref2$subKeys;
+
+        return subKeys.map(function (subkey) {
+            return subkey.getFingerprint();
+        });
+    };
+
     var primaryUser = function () {
-        var _ref2 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(key, date) {
+        var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee2(key, date) {
             var primary, cert;
             return regeneratorRuntime.wrap(function _callee2$(_context2) {
                 while (1) {
@@ -3726,16 +3736,16 @@ var pmcrypto = (function (exports) {
             }, _callee2, _this$1);
         }));
 
-        return function primaryUser(_x3, _x4) {
-            return _ref2.apply(this, arguments);
+        return function primaryUser(_x4, _x5) {
+            return _ref3.apply(this, arguments);
         };
     }();
 
     var info = (function () {
-        var _ref3 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(rawKey, email) {
+        var _ref4 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(rawKey, email) {
             var expectEncrypted = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
             var date = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : serverTime();
-            var keys, algoInfo, obj, encryptCheck;
+            var keys, algoInfo, mainFingerprint, obj, encryptCheck;
             return regeneratorRuntime.wrap(function _callee3$(_context3) {
                 while (1) {
                     switch (_context3.prev = _context3.next) {
@@ -3746,69 +3756,72 @@ var pmcrypto = (function (exports) {
                         case 2:
                             keys = _context3.sent;
                             algoInfo = keys[0].getAlgorithmInfo();
+                            mainFingerprint = keys[0].getFingerprint();
                             _context3.t0 = keys[0].primaryKey.version;
                             _context3.t1 = keys[0].toPublic().armor();
-                            _context3.t2 = keys[0].getFingerprint();
-                            _context3.t3 = keys[0].getUserIds();
-                            _context3.next = 10;
+                            _context3.t2 = mainFingerprint;
+                            _context3.t3 = [mainFingerprint].concat(toConsumableArray(getSubkeysFingerprints(keys[0])));
+                            _context3.t4 = keys[0].getUserIds();
+                            _context3.next = 12;
                             return primaryUser(keys[0], date);
 
-                        case 10:
-                            _context3.t4 = _context3.sent;
-                            _context3.t5 = algoInfo.bits || null;
-                            _context3.t6 = algoInfo.curve || null;
-                            _context3.t7 = keys[0].getCreationTime();
-                            _context3.t8 = openpgpjs.enums.publicKey[algoInfo.algorithm];
-                            _context3.t9 = algoInfo.algorithm;
-                            _context3.next = 18;
+                        case 12:
+                            _context3.t5 = _context3.sent;
+                            _context3.t6 = algoInfo.bits || null;
+                            _context3.t7 = algoInfo.curve || null;
+                            _context3.t8 = keys[0].getCreationTime();
+                            _context3.t9 = openpgpjs.enums.publicKey[algoInfo.algorithm];
+                            _context3.t10 = algoInfo.algorithm;
+                            _context3.next = 20;
                             return keys[0].getExpirationTime('encrypt_sign').catch(function () {
                                 return null;
                             });
 
-                        case 18:
-                            _context3.t10 = _context3.sent;
-                            _context3.t11 = packetInfo;
-                            _context3.next = 22;
+                        case 20:
+                            _context3.t11 = _context3.sent;
+                            _context3.t12 = packetInfo;
+                            _context3.next = 24;
                             return keys[0].getEncryptionKey(undefined, date);
 
-                        case 22:
-                            _context3.t12 = _context3.sent;
-                            _context3.t13 = keys[0];
-                            _context3.next = 26;
-                            return (0, _context3.t11)(_context3.t12, _context3.t13);
+                        case 24:
+                            _context3.t13 = _context3.sent;
+                            _context3.t14 = keys[0];
+                            _context3.next = 28;
+                            return (0, _context3.t12)(_context3.t13, _context3.t14);
 
-                        case 26:
-                            _context3.t14 = _context3.sent;
-                            _context3.t15 = packetInfo;
-                            _context3.next = 30;
+                        case 28:
+                            _context3.t15 = _context3.sent;
+                            _context3.t16 = packetInfo;
+                            _context3.next = 32;
                             return keys[0].getSigningKey(undefined, date);
 
-                        case 30:
-                            _context3.t16 = _context3.sent;
-                            _context3.t17 = keys[0];
-                            _context3.next = 34;
-                            return (0, _context3.t15)(_context3.t16, _context3.t17);
+                        case 32:
+                            _context3.t17 = _context3.sent;
+                            _context3.t18 = keys[0];
+                            _context3.next = 36;
+                            return (0, _context3.t16)(_context3.t17, _context3.t18);
 
-                        case 34:
-                            _context3.t18 = _context3.sent;
-                            _context3.t19 = keys[0].isDecrypted();
-                            _context3.t20 = keys[0].revocationSignatures;
+                        case 36:
+                            _context3.t19 = _context3.sent;
+                            _context3.t20 = keys[0].isDecrypted();
+                            _context3.t21 = keys[0].revocationSignatures;
                             obj = {
                                 version: _context3.t0,
                                 publicKeyArmored: _context3.t1,
                                 fingerprint: _context3.t2,
-                                userIds: _context3.t3,
-                                user: _context3.t4,
-                                bitSize: _context3.t5,
-                                curve: _context3.t6,
-                                created: _context3.t7,
-                                algorithm: _context3.t8,
-                                algorithmName: _context3.t9,
-                                expires: _context3.t10,
-                                encrypt: _context3.t14,
-                                sign: _context3.t18,
-                                decrypted: _context3.t19,
-                                revocationSignatures: _context3.t20,
+                                fingerprints: _context3.t3,
+                                userIds: _context3.t4,
+                                user: _context3.t5,
+                                bitSize: _context3.t6,
+                                curve: _context3.t7,
+                                created: _context3.t8,
+                                algorithm: _context3.t9,
+                                algorithmName: _context3.t10,
+                                expires: _context3.t11,
+                                encrypt: _context3.t15,
+                                sign: _context3.t19,
+                                decrypted: _context3.t20,
+                                revocationSignatures: _context3.t21,
                                 validationError: null,
                                 dateError: null
                             };
@@ -3827,13 +3840,13 @@ var pmcrypto = (function (exports) {
                             }
 
                             encryptCheck = obj.encrypt ? openpgpjs.encrypt({ data: 'test message', publicKeys: keys, date: date }) : Promise.resolve();
-                            _context3.next = 43;
+                            _context3.next = 45;
                             return encryptCheck;
 
-                        case 43:
+                        case 45:
                             return _context3.abrupt('return', obj);
 
-                        case 44:
+                        case 46:
                         case 'end':
                             return _context3.stop();
                     }
@@ -3841,8 +3854,8 @@ var pmcrypto = (function (exports) {
             }, _callee3, this);
         }));
 
-        function keyInfo(_x5, _x6) {
-            return _ref3.apply(this, arguments);
+        function keyInfo(_x6, _x7) {
+            return _ref4.apply(this, arguments);
         }
 
         return keyInfo;
