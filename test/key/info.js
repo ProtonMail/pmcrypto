@@ -30,7 +30,47 @@ JLdxTBJgqQoLePyHnb4LEPZItOUOMiHRBLUV8PSj/dxLEmYlmbPFOTnE62izRX4Q
 -----END PGP PUBLIC KEY BLOCK-----`;
 
     test('expiration test', async () => {
-        const { expires } = await pmcrypto.keyInfo(publickey);
+        const { expires, dateError } = await pmcrypto.keyInfo(publickey);
         assert.ok(expires.getTime() === new Date('2023-09-11T12:37:02.000Z').getTime());
+        assert.strictEqual(dateError, null);
+    });
+
+    const creationkey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: OpenPGP.js v3.0.5
+Comment: https://openpgpjs.org
+
+xsBNBFgsrPkBCAC4NTH8ew1ASUtqVRA3j+aolI5lMAmAER18fBIfwjd/IbtC
+XzYbi/+arYyIMzUXU3OZUTwifxV3PBu1FCq1ZxVvZyH2ZoliP5fwx39bv3sI
+Oo1ijtxUKgVXmu+o4N5y3dhAjO9UYFza5Wq8TjmNdPhHp/PEd1+qMK8W3cxm
+8Ly7du9zv3nQ1B5M5/uGoo4FyQxKdh4wX6lJnAjYI0g/kfj/zfzaPyjiRurB
+wuXrRYVcliUQy3OP/fera5VJOhGzb6/Kycth0dgBsMPsn8gx8VOHPiHDcXlv
+vwp6drbCXujReU+hZgPda/eqhafjQDbCAfs5ZJD/B4/6SF8IMQ+Z9gjVABEB
+AAHNNSJzaGFudGFyYW1AcHJvdG9ubWFpbC5jb20iIDxzaGFudGFyYW1AcHJv
+dG9ubWFpbC5jb20+wsB1BBABCAApBQJcaFwkBgsJBwgDAgkQbolVqMpNxdsE
+FQgKAgMWAgECGQECGwMCHgEAACzfB/9t+McxCVvVqUQblF1phnV8mKC9uPcU
+5yPEu07lRoJw3D3qusK25iDVwLGNS3Mx2G2ugHx6I/ik60LPDrOXgH44k90b
+LnyUIUGUFX61Rzn/Un637dw1o2+kOfQzN4SYce/rwPvF1efAnZiwSoVhy+Ks
+oV0MHA8QeP4woMhL6y014tJDrqHGXIk6KTMLp+CR/5gBlHaVihVIZsTgLj01
+y2J6NykjPVPy5CGFju457jaWcsxpaO308fQGUB5hhelJvKzUt9zpDL0Dyr2O
+sFVnKhDts5EoVE13Yp4BrZslvXR7PZqoaMNOXr8uSIWt6khe06aPH8cSBtCu
+MtsgAlmN08vxzsBNBFgsrPkBCADxmOuZvx1fMLxYr/08a/b3dZfncP1fA1PH
+66mkUo9kE5Zr5UOqqbbFaCQbuc54nE4pvAJgR6EaynrnzjfbX75/v0ElEhZq
+cAWEXgM+A+WwPD3KTpAcMDXd42lPkq1lHH7ExN4UsYfrqSF7T7GVMZpo30wC
+IOYBBbYAZUCiDmSjeLTE1iLx14G6GMxniL+3TvUWUSF5waabouzV6vYlBlok
+lby0vw7gyvexkPOQgG/u4lmsvNYRGl3UcVbecu2yS94RhBm/TG5kA+eaa8mc
+jBZsMZ2GcfDfMZZLrP/5KwjLJ9OTrV9yDM0D6F6sAVlBF4l0MyOXl8ov/Qc/
+bsdDA+J9ABEBAAHCwF8EGAEIABMFAlxoXCoJEG6JVajKTcXbAhsMAADltAf/
+TbsN49vres/68RKkg3C4wihCTzSujrFYOxeKJOZALynTvMTwpjKmYik7zaJT
++25WxK0P3IknYKpsUFlDtIBluvdz4McZLEH0ymNwsi3hsnEG3l2W18JdKdzl
+RLfkk/sT5Ay2LtjvPUmynkGvI3LFRkkqiA4buDiFOV/pqdV6RGIXEOcyMyPJ
+hufD30wViByeDdxpJsFOlVnw7D02WDNUHomhN2m8ogLJyFbfrG8/c54VmX6O
+J5Tj5Die5J5mSWCHbi9O0TBBgCysDxAr7blqK2xBO85q+Kp0809lPiS97iDq
+uokpJQHZjIvfQ5/9tx1946Tvo0RX0A26JfOO+J68XA==
+=MPBF
+-----END PGP PUBLIC KEY BLOCK-----`;
+
+    test('creation test', async () => {
+        const { dateError } = await pmcrypto.keyInfo(creationkey);
+        assert.strictEqual(dateError, 'The self certifications are created with illegal times');
     });
 });

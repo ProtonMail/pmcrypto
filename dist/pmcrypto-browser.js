@@ -186,6 +186,16 @@ var pmcrypto = (function (exports) {
       };
     }();
 
+    var toConsumableArray = function (arr) {
+      if (Array.isArray(arr)) {
+        for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) arr2[i] = arr[i];
+
+        return arr2;
+      } else {
+        return Array.from(arr);
+      }
+    };
+
     // returns promise for generated RSA public and encrypted private keys
     var generateKey = function generateKey(options) {
         options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
@@ -3580,6 +3590,40 @@ var pmcrypto = (function (exports) {
         return info;
     }
 
+    function dateChecks(_ref) {
+        var _ref2 = slicedToArray(_ref, 1),
+            key = _ref2[0];
+
+        var date = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : serverTime();
+
+        var keys = [key].concat(toConsumableArray(key.subKeys));
+        if (!keys.every(function (_ref3) {
+            var keyPacket = _ref3.keyPacket;
+            return keyPacket.created < date;
+        })) {
+            throw new Error('The sub key key packets are created with illegal times');
+        }
+        if (!key.users.every(function (_ref4) {
+            var selfCertifications = _ref4.selfCertifications;
+            return selfCertifications.every(function (_ref5) {
+                var created = _ref5.created;
+                return created < date;
+            });
+        })) {
+            throw new Error('The self certifications are created with illegal times');
+        }
+        if (!keys.every(function (_ref6) {
+            var _ref6$bindingSignatur = _ref6.bindingSignatures,
+                bindingSignatures = _ref6$bindingSignatur === undefined ? [] : _ref6$bindingSignatur;
+            return bindingSignatures.every(function (_ref7) {
+                var created = _ref7.created;
+                return created < date;
+            });
+        })) {
+            throw new Error('The sub key binding signatures are created with illegal times');
+        }
+    }
+
     var _this$1 = undefined;
 
     var createPacketInfo = function () {
@@ -3765,7 +3809,8 @@ var pmcrypto = (function (exports) {
                                 sign: _context3.t18,
                                 decrypted: _context3.t19,
                                 revocationSignatures: _context3.t20,
-                                validationError: null
+                                validationError: null,
+                                dateError: null
                             };
 
 
@@ -3775,14 +3820,20 @@ var pmcrypto = (function (exports) {
                                 obj.validationError = err.message;
                             }
 
+                            try {
+                                dateChecks(keys);
+                            } catch (err) {
+                                obj.dateError = err.message;
+                            }
+
                             encryptCheck = obj.encrypt ? openpgpjs.encrypt({ data: 'test message', publicKeys: keys, date: date }) : Promise.resolve();
-                            _context3.next = 42;
+                            _context3.next = 43;
                             return encryptCheck;
 
-                        case 42:
+                        case 43:
                             return _context3.abrupt('return', obj);
 
-                        case 43:
+                        case 44:
                         case 'end':
                             return _context3.stop();
                     }
