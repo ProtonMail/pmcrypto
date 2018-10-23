@@ -26686,6 +26686,19 @@ function keyCheck(info, email, expectEncrypted) {
     return info;
 }
 
+function dateChecks([ key ], date = serverTime()) {
+    const keys = [ key, ...key.subKeys ];
+    if (keys.some(({ keyPacket }) => keyPacket.created > date)) {
+        throw new Error('The sub key key packets are created with illegal times');
+    }
+    if (key.users.some(({ selfCertifications }) => selfCertifications.some(({ created }) => created > date))) {
+        throw new Error('The self certifications are created with illegal times');
+    }
+    if (keys.some(({ bindingSignatures = [] }) => bindingSignatures.some(({ created }) => created > date))) {
+        throw new Error('The sub key binding signatures are created with illegal times');
+    }
+}
+
 async function createPacketInfo(packet, subKey) {
     return {
         algorithm: openpgpjs.enums.publicKey[packet.algorithm],
@@ -26755,13 +26768,20 @@ async function keyInfo(rawKey, email, expectEncrypted = true, date = serverTime(
         sign: await packetInfo(await keys[0].getSigningKey(undefined, date), keys[0]),
         decrypted: keys[0].isDecrypted(), // null if public key
         revocationSignatures: keys[0].revocationSignatures,
-        validationError: null
+        validationError: null,
+        dateError: null
     };
 
     try {
         keyCheck(obj, email, expectEncrypted);
     } catch (err) {
         obj.validationError = err.message;
+    }
+
+    try {
+        dateChecks(keys);
+    } catch (err) {
+        obj.dateError = err.message;
     }
 
     const encryptCheck = obj.encrypt
