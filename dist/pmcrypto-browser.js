@@ -3745,7 +3745,7 @@ var pmcrypto = (function (exports) {
         var _ref4 = asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee3(rawKey, email) {
             var expectEncrypted = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
             var date = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : serverTime();
-            var keys, algoInfo, obj, encryptCheck;
+            var keys, algoInfo, mainFingerprint, obj, encryptCheck;
             return regeneratorRuntime.wrap(function _callee3$(_context3) {
                 while (1) {
                     switch (_context3.prev = _context3.next) {
@@ -3756,51 +3756,52 @@ var pmcrypto = (function (exports) {
                         case 2:
                             keys = _context3.sent;
                             algoInfo = keys[0].getAlgorithmInfo();
+                            mainFingerprint = keys[0].getFingerprint();
                             _context3.t0 = keys[0].primaryKey.version;
                             _context3.t1 = keys[0].toPublic().armor();
-                            _context3.t2 = keys[0].getFingerprint();
-                            _context3.t3 = getSubkeysFingerprints(keys[0]);
+                            _context3.t2 = mainFingerprint;
+                            _context3.t3 = [mainFingerprint].concat(toConsumableArray(getSubkeysFingerprints(keys[0])));
                             _context3.t4 = keys[0].getUserIds();
-                            _context3.next = 11;
+                            _context3.next = 12;
                             return primaryUser(keys[0], date);
 
-                        case 11:
+                        case 12:
                             _context3.t5 = _context3.sent;
                             _context3.t6 = algoInfo.bits || null;
                             _context3.t7 = algoInfo.curve || null;
                             _context3.t8 = keys[0].getCreationTime();
                             _context3.t9 = openpgpjs.enums.publicKey[algoInfo.algorithm];
                             _context3.t10 = algoInfo.algorithm;
-                            _context3.next = 19;
+                            _context3.next = 20;
                             return keys[0].getExpirationTime('encrypt_sign').catch(function () {
                                 return null;
                             });
 
-                        case 19:
+                        case 20:
                             _context3.t11 = _context3.sent;
                             _context3.t12 = packetInfo;
-                            _context3.next = 23;
+                            _context3.next = 24;
                             return keys[0].getEncryptionKey(undefined, date);
 
-                        case 23:
+                        case 24:
                             _context3.t13 = _context3.sent;
                             _context3.t14 = keys[0];
-                            _context3.next = 27;
+                            _context3.next = 28;
                             return (0, _context3.t12)(_context3.t13, _context3.t14);
 
-                        case 27:
+                        case 28:
                             _context3.t15 = _context3.sent;
                             _context3.t16 = packetInfo;
-                            _context3.next = 31;
+                            _context3.next = 32;
                             return keys[0].getSigningKey(undefined, date);
 
-                        case 31:
+                        case 32:
                             _context3.t17 = _context3.sent;
                             _context3.t18 = keys[0];
-                            _context3.next = 35;
+                            _context3.next = 36;
                             return (0, _context3.t16)(_context3.t17, _context3.t18);
 
-                        case 35:
+                        case 36:
                             _context3.t19 = _context3.sent;
                             _context3.t20 = keys[0].isDecrypted();
                             _context3.t21 = keys[0].revocationSignatures;
@@ -3838,13 +3839,13 @@ var pmcrypto = (function (exports) {
                             }
 
                             encryptCheck = obj.encrypt ? openpgpjs.encrypt({ data: 'test message', publicKeys: keys, date: date }) : Promise.resolve();
-                            _context3.next = 43;
+                            _context3.next = 44;
                             return encryptCheck;
 
-                        case 43:
+                        case 44:
                             return _context3.abrupt('return', obj);
 
-                        case 44:
+                        case 45:
                         case 'end':
                             return _context3.stop();
                     }
