@@ -307,6 +307,10 @@ function createMessage(source) {
 }
 
 function signMessage(options) {
+    if (typeof options.data === 'string') {
+        options.message = createMessage(options.data);
+    }
+
     options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
     return openpgpjs.sign(options).catch((err) => {
@@ -33837,11 +33841,13 @@ async function decryptMIMEMessage(options) {
 }
 
 function encryptMessage(options) {
-    if (typeof options.message === 'string') {
-        options.message = options.message.replace(/[ \t]*$/gm, '');
+    if (typeof options.data === 'string') {
+        options.message = createMessage(options.data.replace(/[ \t]*$/gm, ''));
     }
+
     options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
     options.compression = options.compression ? openpgpjs.enums.compression.zlib : undefined;
+
     return openpgpjs.encrypt(options);
 }
 
@@ -34025,7 +34031,7 @@ async function keyInfo(rawKey, email, expectEncrypted = true, date = serverTime(
     }
 
     const encryptCheck = obj.encrypt
-        ? openpgpjs.encrypt({ message: 'test message', publicKeys: keys, date })
+        ? openpgpjs.encrypt({ message: createMessage('test message'), publicKeys: keys, date })
         : Promise.resolve();
     await encryptCheck;
 

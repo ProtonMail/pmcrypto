@@ -592,6 +592,10 @@ var pmcrypto = (function(exports) {
     }
 
     function signMessage(options) {
+        if (typeof options.data === 'string') {
+            options.message = createMessage(options.data);
+        }
+
         options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
         return openpgpjs.sign(options).catch(function(err) {
@@ -30629,11 +30633,13 @@ var pmcrypto = (function(exports) {
     })();
 
     function encryptMessage(options) {
-        if (typeof options.message === 'string') {
-            options.message = options.message.replace(/[ \t]*$/gm, '');
+        if (typeof options.data === 'string') {
+            options.message = createMessage(options.data.replace(/[ \t]*$/gm, ''));
         }
+
         options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
         options.compression = options.compression ? openpgpjs.enums.compression.zlib : undefined;
+
         return openpgpjs.encrypt(options);
     }
 
@@ -30987,7 +30993,11 @@ var pmcrypto = (function(exports) {
                                     }
 
                                     encryptCheck = obj.encrypt
-                                        ? openpgpjs.encrypt({ message: 'test message', publicKeys: keys, date: date })
+                                        ? openpgpjs.encrypt({
+                                              message: createMessage('test message'),
+                                              publicKeys: keys,
+                                              date: date
+                                          })
                                         : Promise.resolve();
                                     _context3.next = 45;
                                     return encryptCheck;
