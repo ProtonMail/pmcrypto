@@ -308,6 +308,8 @@ function createMessage(source) {
 
 function signMessage(options) {
     if (typeof options.data === 'string') {
+        options.message = getCleartextMessage(options.data);
+    } else if (Uint8Array.prototype.isPrototypeOf(options.data)) {
         options.message = createMessage(options.data);
     }
 
@@ -33843,6 +33845,8 @@ async function decryptMIMEMessage(options) {
 function encryptMessage(options) {
     if (typeof options.data === 'string') {
         options.message = createMessage(options.data.replace(/[ \t]*$/gm, ''));
+    } else if (Uint8Array.prototype.isPrototypeOf(options.data)) {
+        options.message = createMessage(options.data);
     }
 
     options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
