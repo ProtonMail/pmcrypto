@@ -30,6 +30,7 @@ var pmcrypto = (function(exports) {
 
     openpgp.config.integrity_protect = true;
     openpgp.config.use_native = true;
+    openpgp.config.s2k_iteration_count_byte = 96;
 
     var openpgpjs = openpgp;
 
@@ -595,7 +596,9 @@ var pmcrypto = (function(exports) {
     function signMessage(options) {
         if (typeof options.data === 'string') {
             options.message = getCleartextMessage(options.data);
-        } else if (Uint8Array.prototype.isPrototypeOf(options.data)) {
+        }
+
+        if (Uint8Array.prototype.isPrototypeOf(options.data)) {
             options.message = createMessage(options.data);
         }
 
@@ -30635,10 +30638,14 @@ var pmcrypto = (function(exports) {
         };
     })();
 
+    /* eslint-disable no-prototype-builtins */
+
     function encryptMessage(options) {
         if (typeof options.data === 'string') {
             options.message = createMessage(options.data.replace(/[ \t]*$/gm, ''));
-        } else if (Uint8Array.prototype.isPrototypeOf(options.data)) {
+        }
+
+        if (Uint8Array.prototype.isPrototypeOf(options.data)) {
             options.message = createMessage(options.data);
         }
 
