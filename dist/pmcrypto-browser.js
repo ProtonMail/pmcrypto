@@ -426,7 +426,7 @@ var pmcrypto = (function(exports) {
                                         }
 
                                         return acc;
-                                    }, null);
+                                    }, undefined);
                                     return _context4.abrupt('return', key);
 
                                 case 6:

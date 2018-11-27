@@ -199,7 +199,7 @@ async function getMatchingKey(signature, keys) {
         }
 
         return acc;
-    }, null);
+    }, undefined);
 
     return key;
 }
