@@ -188,10 +188,17 @@ async function getMatchingKey(signature, keys) {
     await keyring.load();
 
     const keyids = signature.packets.map(({ issuerKeyId }) => issuerKeyId.toHex());
-    const [key = null] = keyids
-        .map((keyid) => keyring.getKeysForId(keyid, true) || [])
-        .flatten()
-        .filter(Boolean);
+    const key = keyids.reduce((acc, keyid) => {
+        if (!acc) {
+            const keys = keyring.getKeysForId(keyid, true);
+
+            if (Array.isArray(keys) && keys.length) {
+                return keys[0];
+            }
+        }
+
+        return acc;
+    }, null);
 
     return key;
 }

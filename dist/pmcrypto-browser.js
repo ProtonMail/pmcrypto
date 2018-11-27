@@ -391,8 +391,7 @@ var pmcrypto = (function(exports) {
     var getMatchingKey = (function() {
         var _ref7 = asyncToGenerator(
             /*#__PURE__*/ regeneratorRuntime.mark(function _callee4(signature, keys) {
-                var keyring, keyids, _keyids$map$flatten$f, _keyids$map$flatten$f2, _keyids$map$flatten$f3, key;
-
+                var keyring, keyids, key;
                 return regeneratorRuntime.wrap(
                     function _callee4$(_context4) {
                         while (1) {
@@ -416,15 +415,17 @@ var pmcrypto = (function(exports) {
                                         var issuerKeyId = _ref8.issuerKeyId;
                                         return issuerKeyId.toHex();
                                     });
-                                    (_keyids$map$flatten$f = keyids
-                                        .map(function(keyid) {
-                                            return keyring.getKeysForId(keyid, true) || [];
-                                        })
-                                        .flatten()
-                                        .filter(Boolean)),
-                                        (_keyids$map$flatten$f2 = slicedToArray(_keyids$map$flatten$f, 1)),
-                                        (_keyids$map$flatten$f3 = _keyids$map$flatten$f2[0]),
-                                        (key = _keyids$map$flatten$f3 === undefined ? null : _keyids$map$flatten$f3);
+                                    key = keyids.reduce(function(acc, keyid) {
+                                        if (!acc) {
+                                            var _keys = keyring.getKeysForId(keyid, true);
+
+                                            if (Array.isArray(_keys) && _keys.length) {
+                                                return _keys[0];
+                                            }
+                                        }
+
+                                        return acc;
+                                    }, null);
                                     return _context4.abrupt('return', key);
 
                                 case 6:
