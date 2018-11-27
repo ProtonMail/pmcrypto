@@ -1,6 +1,6 @@
 {
   "name": "pmcrypto",
-  "version": "3.3.6",
+  "version": "4.0.0",
   "description": "",
   "main": "dist/pmcrypto-node.js",
   "module": "lib/pmcrypto.js",
@@ -36,7 +36,7 @@
     "atob": "*",
     "btoa": "*",
     "emailjs-mime-parser": "^2.0.5",
-    "openpgp": "github:KAYLukas/openpgpjs.git#v3.1.3"
+    "openpgp": "github:openpgpjs/openpgpjs.git#v4.2.1"
   },
   "devDependencies": {
     "babel-core": "^6.26.3",
