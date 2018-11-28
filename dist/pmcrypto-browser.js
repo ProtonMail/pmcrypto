@@ -586,11 +586,11 @@ var pmcrypto = (function(exports) {
         return new openpgpjs.cleartext.CleartextMessage(message);
     }
 
-    function createMessage(source) {
+    function createMessage(source, filename) {
         if (Uint8Array.prototype.isPrototypeOf(source)) {
-            return openpgpjs.message.fromBinary(source);
+            return openpgpjs.message.fromBinary(source, filename);
         }
-        return openpgpjs.message.fromText(source);
+        return openpgpjs.message.fromText(source, filename);
     }
 
     function signMessage(options) {
@@ -30642,11 +30642,11 @@ var pmcrypto = (function(exports) {
 
     function encryptMessage(options) {
         if (typeof options.data === 'string') {
-            options.message = createMessage(options.data.replace(/[ \t]*$/gm, ''));
+            options.message = createMessage(options.data.replace(/[ \t]*$/gm, ''), options.filename);
         }
 
         if (Uint8Array.prototype.isPrototypeOf(options.data)) {
-            options.message = createMessage(options.data);
+            options.message = createMessage(options.data, options.filename);
         }
 
         options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
