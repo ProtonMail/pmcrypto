@@ -2,20 +2,6 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-const VERIFICATION_STATUS = {
-    NOT_SIGNED: 0,
-    SIGNED_AND_VALID: 1,
-    SIGNED_AND_INVALID: 2
-};
-
-const SIGNATURE_TYPES = {
-    BINARY: 0,
-    CANONICAL_TEXT: 1
-};
-const TIME_OFFSET = 200; // ms
-
-const MAX_ENC_HEADER_LENGTH = 1024;
-
 /* START.NODE_ONLY */
 global.btoa = require('btoa');
 global.atob = require('atob');
@@ -27,30 +13,6 @@ openpgp.config.use_native = true;
 openpgp.config.s2k_iteration_count_byte = 96;
 
 const openpgpjs = openpgp;
-
-// Load window.performance in the browser, perf_hooks in node, and fall back on Date
-const getPerformance = () => {
-    /* START.NODE_ONLY */
-    try {
-        if (typeof require === 'undefined') {
-            return;
-        }
-        // eslint-disable-next-line global-require
-        const result = require('perf_hooks');
-        if (result && result.performance) {
-            return result.performance;
-        }
-    } catch (e) {
-        // no-op
-    }
-    /* END.NODE_ONLY */
-    if (window && window.performance) {
-        return window.performance;
-    }
-    return Date;
-};
-
-const performance = getPerformance();
 
 const noop = () => {};
 const ifDefined = (cb = noop) => (input) => {
@@ -78,29 +40,13 @@ function stripArmor(input) {
 }
 
 let lastServerTime = null;
-let clientTime = null;
 
 function serverTime() {
-    if (lastServerTime !== null) {
-        const timeDiff = performance.now() - clientTime;
-        /*
-         * From the performance.now docs:
-         * The timestamp is not actually high-resolution.
-         * To mitigate security threats such as Spectre, browsers currently round the result to varying degrees.
-         * (Firefox started rounding to 2 milliseconds in Firefox 59.)
-         * Some browsers may also slightly randomize the timestamp.
-         * The precision may improve again in future releases;
-         * browser developers are still investigating these timing attacks and how best to mitigate them.
-         */
-        const safeTimeDiff = timeDiff < TIME_OFFSET ? 0 : timeDiff - TIME_OFFSET;
-        return new Date(+lastServerTime + safeTimeDiff);
-    }
-    return new Date();
+    return lastServerTime || new Date();
 }
 
 function updateServerTime(serverDate) {
     lastServerTime = serverDate;
-    clientTime = performance.now();
 }
 
 function getMaxConcurrency() {
@@ -276,6 +222,19 @@ function encryptPrivateKey(inputKey, privKeyPassCode) {
 }
 
 const encryptSessionKey = (opt) => openpgpjs.encryptSessionKey(opt);
+
+const VERIFICATION_STATUS = {
+    NOT_SIGNED: 0,
+    SIGNED_AND_VALID: 1,
+    SIGNED_AND_INVALID: 2
+};
+
+const SIGNATURE_TYPES = {
+    BINARY: 0,
+    CANONICAL_TEXT: 1
+};
+
+const MAX_ENC_HEADER_LENGTH = 1024;
 
 /* eslint-disable no-prototype-builtins */
 

@@ -1,20 +1,6 @@
 var pmcrypto = (function(exports) {
     'use strict';
 
-    var VERIFICATION_STATUS = {
-        NOT_SIGNED: 0,
-        SIGNED_AND_VALID: 1,
-        SIGNED_AND_INVALID: 2
-    };
-
-    var SIGNATURE_TYPES = {
-        BINARY: 0,
-        CANONICAL_TEXT: 1
-    };
-    var TIME_OFFSET = 200; // ms
-
-    var MAX_ENC_HEADER_LENGTH = 1024;
-
     /* START.BROWSER_ONLY */
     /**
      * @link https://github.com/vibornoff/asmcrypto.js/issues/121
@@ -33,16 +19,6 @@ var pmcrypto = (function(exports) {
     openpgp.config.s2k_iteration_count_byte = 96;
 
     var openpgpjs = openpgp;
-
-    // Load window.performance in the browser, perf_hooks in node, and fall back on Date
-    var getPerformance = function getPerformance() {
-        if (window && window.performance) {
-            return window.performance;
-        }
-        return Date;
-    };
-
-    var performance = getPerformance();
 
     var noop = function noop() {};
     var ifDefined = function ifDefined() {
@@ -81,29 +57,13 @@ var pmcrypto = (function(exports) {
     }
 
     var lastServerTime = null;
-    var clientTime = null;
 
     function serverTime() {
-        if (lastServerTime !== null) {
-            var timeDiff = performance.now() - clientTime;
-            /*
-             * From the performance.now docs:
-             * The timestamp is not actually high-resolution.
-             * To mitigate security threats such as Spectre, browsers currently round the result to varying degrees.
-             * (Firefox started rounding to 2 milliseconds in Firefox 59.)
-             * Some browsers may also slightly randomize the timestamp.
-             * The precision may improve again in future releases;
-             * browser developers are still investigating these timing attacks and how best to mitigate them.
-             */
-            var safeTimeDiff = timeDiff < TIME_OFFSET ? 0 : timeDiff - TIME_OFFSET;
-            return new Date(+lastServerTime + safeTimeDiff);
-        }
-        return new Date();
+        return lastServerTime || new Date();
     }
 
     function updateServerTime(serverDate) {
         lastServerTime = serverDate;
-        clientTime = performance.now();
     }
 
     function getMaxConcurrency() {
@@ -553,6 +513,19 @@ var pmcrypto = (function(exports) {
     var encryptSessionKey = function encryptSessionKey(opt) {
         return openpgpjs.encryptSessionKey(opt);
     };
+
+    var VERIFICATION_STATUS = {
+        NOT_SIGNED: 0,
+        SIGNED_AND_VALID: 1,
+        SIGNED_AND_INVALID: 2
+    };
+
+    var SIGNATURE_TYPES = {
+        BINARY: 0,
+        CANONICAL_TEXT: 1
+    };
+
+    var MAX_ENC_HEADER_LENGTH = 1024;
 
     /* eslint-disable no-prototype-builtins */
 
