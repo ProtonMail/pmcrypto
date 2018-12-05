@@ -961,34 +961,66 @@ var pmcrypto = (function(exports) {
                                     };
 
                                     splitPackets = function splitPackets(packetList) {
-                                        var packets = [];
-                                        for (var i = 0; i < packetList.length; i++) {
-                                            var newList = new openpgpjs.packet.List();
-                                            newList.push(packetList[i]);
-                                            packets.push(newList.write());
-                                        }
-                                        return packets;
+                                        return Promise.all(
+                                            packetList.map(function(pack) {
+                                                var newList = new openpgpjs.packet.List();
+                                                newList.push(pack);
+                                                var data = newList.write();
+
+                                                if (Uint8Array.prototype.isPrototypeOf(data)) {
+                                                    return Promise.resolve(data);
+                                                }
+
+                                                return openpgp.stream.readToEnd(data);
+                                            })
+                                        );
                                     };
 
-                                    asymmetric = splitPackets(
+                                    _context4.next = 7;
+                                    return splitPackets(
                                         msg.packets.filterByTag(openpgpjs.enums.packet.publicKeyEncryptedSessionKey)
                                     );
-                                    signature = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.signature));
-                                    symmetric = splitPackets(
+
+                                case 7:
+                                    asymmetric = _context4.sent;
+                                    _context4.next = 10;
+                                    return splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.signature));
+
+                                case 10:
+                                    signature = _context4.sent;
+                                    _context4.next = 13;
+                                    return splitPackets(
                                         msg.packets.filterByTag(openpgpjs.enums.packet.symEncryptedSessionKey)
                                     );
-                                    compressed = splitPackets(
-                                        msg.packets.filterByTag(openpgpjs.enums.packet.compressed)
-                                    );
-                                    literal = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.literal));
-                                    encrypted = splitPackets(
+
+                                case 13:
+                                    symmetric = _context4.sent;
+                                    _context4.next = 16;
+                                    return splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.compressed));
+
+                                case 16:
+                                    compressed = _context4.sent;
+                                    _context4.next = 19;
+                                    return splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.literal));
+
+                                case 19:
+                                    literal = _context4.sent;
+                                    _context4.next = 22;
+                                    return splitPackets(
                                         msg.packets.filterByTag(
                                             openpgpjs.enums.packet.symmetricallyEncrypted,
                                             openpgpjs.enums.packet.symEncryptedIntegrityProtected,
                                             openpgpjs.enums.packet.symEncryptedAEADProtected
                                         )
                                     );
-                                    other = splitPackets(msg.packets.filter(keyFilter));
+
+                                case 22:
+                                    encrypted = _context4.sent;
+                                    _context4.next = 25;
+                                    return splitPackets(msg.packets.filter(keyFilter));
+
+                                case 25:
+                                    other = _context4.sent;
                                     return _context4.abrupt('return', {
                                         asymmetric: asymmetric,
                                         signature: signature,
@@ -999,7 +1031,7 @@ var pmcrypto = (function(exports) {
                                         other: other
                                     });
 
-                                case 13:
+                                case 27:
                                 case 'end':
                                     return _context4.stop();
                             }
@@ -1013,6 +1045,44 @@ var pmcrypto = (function(exports) {
 
         return function splitMessage(_x6) {
             return _ref13.apply(this, arguments);
+        };
+    })();
+
+    /**
+     *  Prepare message body
+     * @param {String} value
+     * @return {Promise<String>}
+     */
+    var armorBytes = (function() {
+        var _ref14 = asyncToGenerator(
+            /*#__PURE__*/ regeneratorRuntime.mark(function _callee5(value) {
+                var bodyMessage;
+                return regeneratorRuntime.wrap(
+                    function _callee5$(_context5) {
+                        while (1) {
+                            switch ((_context5.prev = _context5.next)) {
+                                case 0:
+                                    _context5.next = 2;
+                                    return getMessage(value);
+
+                                case 2:
+                                    bodyMessage = _context5.sent;
+                                    return _context5.abrupt('return', openpgp.stream.readToEnd(bodyMessage.armor()));
+
+                                case 4:
+                                case 'end':
+                                    return _context5.stop();
+                            }
+                        }
+                    },
+                    _callee5,
+                    this
+                );
+            })
+        );
+
+        return function armorBytes(_x7) {
+            return _ref14.apply(this, arguments);
         };
     })();
 
@@ -31303,6 +31373,7 @@ var pmcrypto = (function(exports) {
         verifyMessage: verifyMessage,
         getCleartextMessage: getCleartextMessage,
         createMessage: createMessage,
+        armorBytes: armorBytes,
         encryptMessage: encryptMessage,
         decryptMessage: decryptMessage,
         decryptMIMEMessage: decryptMIMEMessage,
@@ -31356,6 +31427,7 @@ var pmcrypto = (function(exports) {
     exports.verifyMessage = verifyMessage;
     exports.getCleartextMessage = getCleartextMessage;
     exports.createMessage = createMessage;
+    exports.armorBytes = armorBytes;
     exports.encryptMessage = encryptMessage;
     exports.decryptMessage = decryptMessage;
     exports.decryptMIMEMessage = decryptMIMEMessage;

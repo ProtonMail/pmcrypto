@@ -5,14 +5,14 @@ Object.defineProperty(exports, '__esModule', { value: true });
 /* START.NODE_ONLY */
 global.btoa = require('btoa');
 global.atob = require('atob');
-const openpgp = require('openpgp');
+const openpgp$1 = require('openpgp');
 /* END.NODE_ONLY */
 
-openpgp.config.integrity_protect = true;
-openpgp.config.use_native = true;
-openpgp.config.s2k_iteration_count_byte = 96;
+openpgp$1.config.integrity_protect = true;
+openpgp$1.config.use_native = true;
+openpgp$1.config.s2k_iteration_count_byte = 96;
 
-const openpgpjs = openpgp;
+const openpgpjs = openpgp$1;
 
 const noop = () => {};
 const ifDefined = (cb = noop) => (input) => {
@@ -392,28 +392,34 @@ async function splitMessage(message) {
     };
 
     const splitPackets = (packetList) => {
-        const packets = [];
-        for (let i = 0; i < packetList.length; i++) {
-            const newList = new openpgpjs.packet.List();
-            newList.push(packetList[i]);
-            packets.push(newList.write());
-        }
-        return packets;
+        return Promise.all(
+            packetList.map((pack) => {
+                const newList = new openpgpjs.packet.List();
+                newList.push(pack);
+                const data = newList.write();
+
+                if (Uint8Array.prototype.isPrototypeOf(data)) {
+                    return Promise.resolve(data);
+                }
+
+                return openpgp.stream.readToEnd(data);
+            })
+        );
     };
 
-    const asymmetric = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.publicKeyEncryptedSessionKey));
-    const signature = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.signature));
-    const symmetric = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.symEncryptedSessionKey));
-    const compressed = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.compressed));
-    const literal = splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.literal));
-    const encrypted = splitPackets(
+    const asymmetric = await splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.publicKeyEncryptedSessionKey));
+    const signature = await splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.signature));
+    const symmetric = await splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.symEncryptedSessionKey));
+    const compressed = await splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.compressed));
+    const literal = await splitPackets(msg.packets.filterByTag(openpgpjs.enums.packet.literal));
+    const encrypted = await splitPackets(
         msg.packets.filterByTag(
             openpgpjs.enums.packet.symmetricallyEncrypted,
             openpgpjs.enums.packet.symEncryptedIntegrityProtected,
             openpgpjs.enums.packet.symEncryptedAEADProtected
         )
     );
-    const other = splitPackets(msg.packets.filter(keyFilter));
+    const other = await splitPackets(msg.packets.filter(keyFilter));
 
     return {
         asymmetric,
@@ -424,6 +430,16 @@ async function splitMessage(message) {
         encrypted,
         other
     };
+}
+
+/**
+ *  Prepare message body
+ * @param {String} value
+ * @return {Promise<String>}
+ */
+async function armorBytes(value) {
+    const bodyMessage = await getMessage(value);
+    return openpgp.stream.readToEnd(bodyMessage.armor());
 }
 
 /* eslint-disable */
@@ -34037,6 +34053,7 @@ var pmcrypto = /*#__PURE__*/ Object.freeze({
     verifyMessage: verifyMessage,
     getCleartextMessage: getCleartextMessage,
     createMessage: createMessage,
+    armorBytes: armorBytes,
     encryptMessage: encryptMessage,
     decryptMessage: decryptMessage,
     decryptMIMEMessage: decryptMIMEMessage,
@@ -34087,6 +34104,7 @@ exports.splitMessage = splitMessage;
 exports.verifyMessage = verifyMessage;
 exports.getCleartextMessage = getCleartextMessage;
 exports.createMessage = createMessage;
+exports.armorBytes = armorBytes;
 exports.encryptMessage = encryptMessage;
 exports.decryptMessage = decryptMessage;
 exports.decryptMIMEMessage = decryptMIMEMessage;
