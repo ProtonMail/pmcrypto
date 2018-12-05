@@ -1,6 +1,6 @@
 {
   "name": "pmcrypto",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "",
   "main": "dist/pmcrypto-node.js",
   "module": "lib/pmcrypto.js",
