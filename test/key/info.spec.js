@@ -1,8 +1,10 @@
-const pmcrypto = require('../..');
-const assert = require('assert');
+import test from 'ava';
+import { init } from '../helper';
+import * as pmcrypto from '../../lib/pmcrypto';
 
-suite('pmcrypto', () => {
-    const publickey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+init();
+
+const publickey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mI0EW5kE2gEEAN3QcfWzMQCniICMlLJg3LgHtobUyQbv+PO1wPbBTdTo5XddwMVO
 ef2QN+MNy4UXmRtjUoaWEvHzYQ1a8t10fUI0IyIjc2LhQDm2Wye6xXLrTxV0rWyp
@@ -29,13 +31,13 @@ JLdxTBJgqQoLePyHnb4LEPZItOUOMiHRBLUV8PSj/dxLEmYlmbPFOTnE62izRX4Q
 =dM0r
 -----END PGP PUBLIC KEY BLOCK-----`;
 
-    test('expiration test', async () => {
-        const { expires, dateError } = await pmcrypto.keyInfo(publickey);
-        assert.ok(expires.getTime() === new Date('2023-09-11T12:37:02.000Z').getTime());
-        assert.strictEqual(dateError, null);
-    });
+test('expiration test', async (t) => {
+    const { expires, dateError } = await pmcrypto.keyInfo(publickey);
+    t.is(expires.getTime(), new Date('2023-09-11T12:37:02.000Z').getTime());
+    t.is(dateError, null);
+});
 
-    const creationkey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+const creationkey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: OpenPGP.js v3.0.5
 Comment: https://openpgpjs.org
 
@@ -69,8 +71,7 @@ uokpJQHZjIvfQ5/9tx1946Tvo0RX0A26JfOO+J68XA==
 =MPBF
 -----END PGP PUBLIC KEY BLOCK-----`;
 
-    test('creation test', async () => {
-        const { dateError } = await pmcrypto.keyInfo(creationkey);
-        assert.strictEqual(dateError, 'The self certifications are created with illegal times');
-    });
+test('creation test', async (t) => {
+    const { dateError } = await pmcrypto.keyInfo(creationkey);
+    t.is(dateError, 'The self certifications are created with illegal times');
 });

@@ -2,15 +2,12 @@
   "extends": "airbnb-base",
   "env": {
     "browser": true,
-    "node": true,
-    "commonjs": true
+    "node": true
   },
   "globals": {
-      "openpgp": true,
-      "asmCrypto": true
+      "openpgp": true
   },
   "rules": {
-
     "object-shorthand": ["error", "always", { "avoidExplicitReturnArrows": true }],
     "arrow-parens": ["error", "always"],
     "comma-dangle": ["error", "never"],
@@ -48,6 +45,7 @@
     "import/namespace": 2,
     "import/default": 2,
     "import/export": 2,
+    "import/prefer-default-export": "off",
     "operator-linebreak": "off",
     "implicit-arrow-linebreak": "off",
     "no-restricted-globals": ["error", "event"]
