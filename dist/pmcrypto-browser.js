@@ -30,8 +30,12 @@ var pmcrypto = (function(exports) {
         };
     };
 
-    var encodeUtf8 = ifDefined(openpgpjs.util.encode_utf8);
-    var decodeUtf8 = ifDefined(openpgpjs.util.decode_utf8);
+    var encodeUtf8 = ifDefined(function(input) {
+        return unescape(encodeURIComponent(input));
+    });
+    var decodeUtf8 = ifDefined(function(input) {
+        return decodeURIComponent(escape(input));
+    });
     var encodeBase64 = ifDefined(function(input) {
         return btoa(input).trim();
     });
@@ -443,22 +447,72 @@ var pmcrypto = (function(exports) {
     })();
 
     function decryptPrivateKey(privKey, privKeyPassCode) {
-        return Promise.resolve().then(function() {
-            if (privKey === undefined || privKey === '') {
-                return Promise.reject(new Error('Missing private key'));
-            }
-            if (privKeyPassCode === undefined || privKeyPassCode === '') {
-                return Promise.reject(new Error('Missing private key passcode'));
-            }
+        var _this = this;
 
-            var keys = getKeys(privKey);
-            return keys[0].decrypt(privKeyPassCode).then(function(success) {
-                if (!success) {
-                    throw new Error('Private key decryption failed');
-                }
-                return keys[0];
-            });
-        });
+        return Promise.resolve().then(
+            asyncToGenerator(
+                /*#__PURE__*/ regeneratorRuntime.mark(function _callee() {
+                    var keys, success;
+                    return regeneratorRuntime.wrap(
+                        function _callee$(_context) {
+                            while (1) {
+                                switch ((_context.prev = _context.next)) {
+                                    case 0:
+                                        if (!(privKey === undefined || privKey === '')) {
+                                            _context.next = 2;
+                                            break;
+                                        }
+
+                                        return _context.abrupt(
+                                            'return',
+                                            Promise.reject(new Error('Missing private key'))
+                                        );
+
+                                    case 2:
+                                        if (!(privKeyPassCode === undefined || privKeyPassCode === '')) {
+                                            _context.next = 4;
+                                            break;
+                                        }
+
+                                        return _context.abrupt(
+                                            'return',
+                                            Promise.reject(new Error('Missing private key passcode'))
+                                        );
+
+                                    case 4:
+                                        _context.next = 6;
+                                        return getKeys(privKey);
+
+                                    case 6:
+                                        keys = _context.sent;
+                                        _context.next = 9;
+                                        return keys[0].decrypt(privKeyPassCode);
+
+                                    case 9:
+                                        success = _context.sent;
+
+                                        if (success) {
+                                            _context.next = 12;
+                                            break;
+                                        }
+
+                                        throw new Error('Private key decryption failed');
+
+                                    case 12:
+                                        return _context.abrupt('return', keys[0]);
+
+                                    case 13:
+                                    case 'end':
+                                        return _context.stop();
+                                }
+                            }
+                        },
+                        _callee,
+                        _this
+                    );
+                })
+            )
+        );
     }
 
     function decryptSessionKey(options) {

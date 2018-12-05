@@ -21,8 +21,8 @@ const ifDefined = (cb = noop) => (input) => {
     }
 };
 
-const encodeUtf8 = ifDefined(openpgpjs.util.encode_utf8);
-const decodeUtf8 = ifDefined(openpgpjs.util.decode_utf8);
+const encodeUtf8 = ifDefined((input) => unescape(encodeURIComponent(input)));
+const decodeUtf8 = ifDefined((input) => decodeURIComponent(escape(input)));
 const encodeBase64 = ifDefined((input) => btoa(input).trim());
 const decodeBase64 = ifDefined((input) => atob(input.trim()));
 const encodeUtf8Base64 = ifDefined((input) => encodeBase64(encodeUtf8(input)));
@@ -156,21 +156,23 @@ async function cloneKey(inputKey) {
 }
 
 function decryptPrivateKey(privKey, privKeyPassCode) {
-    return Promise.resolve().then(() => {
+    return Promise.resolve().then(async () => {
         if (privKey === undefined || privKey === '') {
             return Promise.reject(new Error('Missing private key'));
         }
+
         if (privKeyPassCode === undefined || privKeyPassCode === '') {
             return Promise.reject(new Error('Missing private key passcode'));
         }
 
-        const keys = getKeys(privKey);
-        return keys[0].decrypt(privKeyPassCode).then((success) => {
-            if (!success) {
-                throw new Error('Private key decryption failed');
-            }
-            return keys[0];
-        });
+        const keys = await getKeys(privKey);
+        const success = await keys[0].decrypt(privKeyPassCode);
+
+        if (!success) {
+            throw new Error('Private key decryption failed');
+        }
+
+        return keys[0];
     });
 }
 
