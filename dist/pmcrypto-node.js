@@ -155,50 +155,41 @@ async function cloneKey(inputKey) {
     return key;
 }
 
-function decryptPrivateKey(privKey, privKeyPassCode) {
-    return Promise.resolve().then(async () => {
-        if (privKey === undefined || privKey === '') {
-            return Promise.reject(new Error('Missing private key'));
-        }
+async function decryptPrivateKey(privKey, privKeyPassCode) {
+    if (privKey === undefined || privKey === '') {
+        return Promise.reject(new Error('Missing private key'));
+    }
 
-        if (privKeyPassCode === undefined || privKeyPassCode === '') {
-            return Promise.reject(new Error('Missing private key passcode'));
-        }
+    if (privKeyPassCode === undefined || privKeyPassCode === '') {
+        return Promise.reject(new Error('Missing private key passcode'));
+    }
 
-        const keys = await getKeys(privKey);
-        const success = await keys[0].decrypt(privKeyPassCode);
+    const keys = await getKeys(privKey);
+    const success = await keys[0].decrypt(privKeyPassCode);
 
-        if (!success) {
-            throw new Error('Private key decryption failed');
-        }
+    if (!success) {
+        throw new Error('Private key decryption failed');
+    }
 
-        return keys[0];
-    });
+    return keys[0];
 }
 
-function decryptSessionKey(options) {
-    return Promise.resolve().then(() => {
-        try {
-            return openpgpjs
-                .decryptSessionKeys(options)
-                .then((result) => {
-                    if (result.length > 1) {
-                        return Promise.reject(new Error('Multiple decrypted session keys found'));
-                    }
+async function decryptSessionKey(options) {
+    try {
+        const result = await openpgpjs.decryptSessionKeys(options);
 
-                    return result[0];
-                })
-                .catch((err) => {
-                    console.error(err);
-                    return Promise.reject(err);
-                });
-        } catch (err) {
-            if (err.message === 'CFB decrypt: invalid key' && options.passwords && options.passwords.length) {
-                return Promise.reject(new Error('Incorrect message password'));
-            }
-            return Promise.reject(err);
+        if (result.length > 1) {
+            return Promise.reject(new Error('Multiple decrypted session keys found'));
         }
-    });
+
+        return result[0];
+    } catch (err) {
+        if (err.message === 'CFB decrypt: invalid key' && options.passwords && options.passwords.length) {
+            return Promise.reject(new Error('Incorrect message password'));
+        }
+
+        return Promise.reject(err);
+    }
 }
 
 function encryptPrivateKey(inputKey, privKeyPassCode) {
@@ -243,7 +234,11 @@ const MAX_ENC_HEADER_LENGTH = 1024;
 const { NOT_SIGNED, SIGNED_AND_VALID, SIGNED_AND_INVALID } = VERIFICATION_STATUS;
 const { CANONICAL_TEXT } = SIGNATURE_TYPES;
 
-function getMessage(message) {
+/**
+ * Prepare message
+ * @param {Promise<Object>} message
+ */
+async function getMessage(message) {
     if (openpgpjs.message.Message.prototype.isPrototypeOf(message)) {
         return message;
     } else if (Uint8Array.prototype.isPrototypeOf(message)) {
@@ -252,7 +247,11 @@ function getMessage(message) {
     return openpgpjs.message.readArmored(message.trim());
 }
 
-function getSignature(signature) {
+/**
+ * Prepare signature
+ * @param {Promise<Object>} message
+ */
+async function getSignature(signature) {
     if (openpgpjs.signature.Signature.prototype.isPrototypeOf(signature)) {
         return signature;
     } else if (Uint8Array.prototype.isPrototypeOf(signature)) {
@@ -33571,7 +33570,7 @@ const verifySignature = async ({ publicKeys, date }, data) => {
     }
     const sigData = sigAttachment.content.toString();
 
-    const signature = getSignature(sigData);
+    const signature = await getSignature(sigData);
     const body = parts[1];
 
     const { data: subdata, verified } = await verifyMessage({
@@ -33705,88 +33704,76 @@ function getEncRandomKeyFromEmailPM(EmailPM) {
     return '';
 }
 
-function decryptMessage(options) {
+async function decryptMessage(options) {
     const { publicKeys = [] } = options;
     options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
-    return Promise.resolve().then(() => {
-        try {
-            return openpgpjs
-                .decrypt(options)
-                .then((result) => handleVerificationResult(result, publicKeys, options.date))
-                .then(({ data, filename, verified, signatures }) => {
-                    return {
-                        data,
-                        filename,
-                        verified,
-                        signatures
-                    };
-                })
-                .catch((err) => {
-                    console.error(err);
-                    return Promise.reject(err);
-                });
-        } catch (err) {
-            if (err.message === 'CFB decrypt: invalid key' && options.passwords && options.passwords.length) {
-                return Promise.reject(new Error('Incorrect message password')); // Bad password, reject without Error object
-            }
-            return Promise.reject(err);
+    try {
+        const result = await openpgpjs.decrypt(options);
+        const { data, filename, verified, signatures } = await handleVerificationResult(
+            result,
+            publicKeys,
+            options.date
+        );
+
+        return {
+            data,
+            filename,
+            verified,
+            signatures
+        };
+    } catch (err) {
+        if (err.message === 'CFB decrypt: invalid key' && options.passwords && options.passwords.length) {
+            return Promise.reject(new Error('Incorrect message password')); // Bad password, reject without Error object
         }
-    });
+        return Promise.reject(err);
+    }
 }
 
 // Backwards-compatible decrypt message function
 // 'message' option must be a string!
-function decryptMessageLegacy(options) {
-    return Promise.resolve().then(() => {
-        if (options.date === undefined || !(options.date instanceof Date)) {
-            throw new Error('Missing message time');
-        }
+async function decryptMessageLegacy(options) {
+    if (options.date === undefined || !(options.date instanceof Date)) {
+        throw new Error('Missing message time');
+    }
 
-        let oldEncMessage = getEncMessageFromEmailPM(options.message);
-        const oldEncRandomKey = getEncRandomKeyFromEmailPM(options.message);
+    let oldEncMessage = getEncMessageFromEmailPM(options.message);
+    const oldEncRandomKey = getEncRandomKeyFromEmailPM(options.message);
 
-        // OpenPGP
-        if (oldEncMessage === '' || oldEncRandomKey === '') {
-            // Convert message string to object
-            options.message = getMessage(options.message);
-            return decryptMessage(options);
-        }
+    // OpenPGP
+    if (oldEncMessage === '' || oldEncRandomKey === '') {
+        // Convert message string to object
+        options.message = await getMessage(options.message);
+        return decryptMessage(options);
+    }
 
-        // Old message encryption format
-        const oldOptions = {
-            privateKeys: options.privateKeys,
-            message: getMessage(oldEncRandomKey)
-        };
+    // Old message encryption format
+    const oldOptions = {
+        privateKeys: options.privateKeys,
+        message: await getMessage(oldEncRandomKey)
+    };
 
-        return decryptMessage(oldOptions)
-            .then(({ data }) => decodeUtf8Base64(data))
-            .then(binaryStringToArray)
-            .then((randomKey) => {
-                if (randomKey.length === 0) {
-                    return Promise.reject(new Error('Random key is empty'));
-                }
+    const { data } = await decryptMessage(oldOptions);
+    const randomKey = binaryStringToArray(decodeUtf8Base64(data));
 
-                oldEncMessage = binaryStringToArray(decodeUtf8Base64(oldEncMessage));
+    if (randomKey.length === 0) {
+        return Promise.reject(new Error('Random key is empty'));
+    }
 
-                let data;
-                try {
-                    // cutoff time for enabling multilanguage support
-                    if (+options.date > 1399086120000) {
-                        data = decodeUtf8Base64(
-                            arrayToBinaryString(openpgpjs.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true))
-                        );
-                    } else {
-                        data = arrayToBinaryString(
-                            openpgpjs.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true)
-                        );
-                    }
-                } catch (err) {
-                    return Promise.reject(err);
-                }
-                return { data, signature: 0 };
-            });
-    });
+    oldEncMessage = binaryStringToArray(decodeUtf8Base64(oldEncMessage));
+
+    const params = { signature: 0 };
+
+    // cutoff time for enabling multilanguage support
+    if (+options.date > 1399086120000) {
+        params.data = decodeUtf8Base64(
+            arrayToBinaryString(openpgpjs.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true))
+        );
+    } else {
+        params.data = arrayToBinaryString(openpgpjs.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true));
+    }
+
+    return params;
 }
 
 /**

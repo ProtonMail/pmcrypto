@@ -446,99 +446,141 @@ var pmcrypto = (function(exports) {
         };
     })();
 
-    function decryptPrivateKey(privKey, privKeyPassCode) {
-        var _this = this;
+    var decryptPrivateKey = (function() {
+        var _ref = asyncToGenerator(
+            /*#__PURE__*/ regeneratorRuntime.mark(function _callee(privKey, privKeyPassCode) {
+                var keys, success;
+                return regeneratorRuntime.wrap(
+                    function _callee$(_context) {
+                        while (1) {
+                            switch ((_context.prev = _context.next)) {
+                                case 0:
+                                    if (!(privKey === undefined || privKey === '')) {
+                                        _context.next = 2;
+                                        break;
+                                    }
 
-        return Promise.resolve().then(
-            asyncToGenerator(
-                /*#__PURE__*/ regeneratorRuntime.mark(function _callee() {
-                    var keys, success;
-                    return regeneratorRuntime.wrap(
-                        function _callee$(_context) {
-                            while (1) {
-                                switch ((_context.prev = _context.next)) {
-                                    case 0:
-                                        if (!(privKey === undefined || privKey === '')) {
-                                            _context.next = 2;
-                                            break;
-                                        }
+                                    return _context.abrupt('return', Promise.reject(new Error('Missing private key')));
 
-                                        return _context.abrupt(
-                                            'return',
-                                            Promise.reject(new Error('Missing private key'))
-                                        );
+                                case 2:
+                                    if (!(privKeyPassCode === undefined || privKeyPassCode === '')) {
+                                        _context.next = 4;
+                                        break;
+                                    }
 
-                                    case 2:
-                                        if (!(privKeyPassCode === undefined || privKeyPassCode === '')) {
-                                            _context.next = 4;
-                                            break;
-                                        }
+                                    return _context.abrupt(
+                                        'return',
+                                        Promise.reject(new Error('Missing private key passcode'))
+                                    );
 
-                                        return _context.abrupt(
-                                            'return',
-                                            Promise.reject(new Error('Missing private key passcode'))
-                                        );
+                                case 4:
+                                    _context.next = 6;
+                                    return getKeys(privKey);
 
-                                    case 4:
-                                        _context.next = 6;
-                                        return getKeys(privKey);
+                                case 6:
+                                    keys = _context.sent;
+                                    _context.next = 9;
+                                    return keys[0].decrypt(privKeyPassCode);
 
-                                    case 6:
-                                        keys = _context.sent;
-                                        _context.next = 9;
-                                        return keys[0].decrypt(privKeyPassCode);
+                                case 9:
+                                    success = _context.sent;
 
-                                    case 9:
-                                        success = _context.sent;
+                                    if (success) {
+                                        _context.next = 12;
+                                        break;
+                                    }
 
-                                        if (success) {
-                                            _context.next = 12;
-                                            break;
-                                        }
+                                    throw new Error('Private key decryption failed');
 
-                                        throw new Error('Private key decryption failed');
+                                case 12:
+                                    return _context.abrupt('return', keys[0]);
 
-                                    case 12:
-                                        return _context.abrupt('return', keys[0]);
-
-                                    case 13:
-                                    case 'end':
-                                        return _context.stop();
-                                }
+                                case 13:
+                                case 'end':
+                                    return _context.stop();
                             }
-                        },
-                        _callee,
-                        _this
-                    );
-                })
-            )
-        );
-    }
-
-    function decryptSessionKey(options) {
-        return Promise.resolve().then(function() {
-            try {
-                return openpgpjs
-                    .decryptSessionKeys(options)
-                    .then(function(result) {
-                        if (result.length > 1) {
-                            return Promise.reject(new Error('Multiple decrypted session keys found'));
                         }
+                    },
+                    _callee,
+                    this
+                );
+            })
+        );
 
-                        return result[0];
-                    })
-                    .catch(function(err) {
-                        console.error(err);
-                        return Promise.reject(err);
-                    });
-            } catch (err) {
-                if (err.message === 'CFB decrypt: invalid key' && options.passwords && options.passwords.length) {
-                    return Promise.reject(new Error('Incorrect message password'));
-                }
-                return Promise.reject(err);
-            }
-        });
-    }
+        return function decryptPrivateKey(_x, _x2) {
+            return _ref.apply(this, arguments);
+        };
+    })();
+
+    var decryptSessionKey = (function() {
+        var _ref2 = asyncToGenerator(
+            /*#__PURE__*/ regeneratorRuntime.mark(function _callee2(options) {
+                var result;
+                return regeneratorRuntime.wrap(
+                    function _callee2$(_context2) {
+                        while (1) {
+                            switch ((_context2.prev = _context2.next)) {
+                                case 0:
+                                    _context2.prev = 0;
+                                    _context2.next = 3;
+                                    return openpgpjs.decryptSessionKeys(options);
+
+                                case 3:
+                                    result = _context2.sent;
+
+                                    if (!(result.length > 1)) {
+                                        _context2.next = 6;
+                                        break;
+                                    }
+
+                                    return _context2.abrupt(
+                                        'return',
+                                        Promise.reject(new Error('Multiple decrypted session keys found'))
+                                    );
+
+                                case 6:
+                                    return _context2.abrupt('return', result[0]);
+
+                                case 9:
+                                    _context2.prev = 9;
+                                    _context2.t0 = _context2['catch'](0);
+
+                                    if (
+                                        !(
+                                            _context2.t0.message === 'CFB decrypt: invalid key' &&
+                                            options.passwords &&
+                                            options.passwords.length
+                                        )
+                                    ) {
+                                        _context2.next = 13;
+                                        break;
+                                    }
+
+                                    return _context2.abrupt(
+                                        'return',
+                                        Promise.reject(new Error('Incorrect message password'))
+                                    );
+
+                                case 13:
+                                    return _context2.abrupt('return', Promise.reject(_context2.t0));
+
+                                case 14:
+                                case 'end':
+                                    return _context2.stop();
+                            }
+                        }
+                    },
+                    _callee2,
+                    this,
+                    [[0, 9]]
+                );
+            })
+        );
+
+        return function decryptSessionKey(_x3) {
+            return _ref2.apply(this, arguments);
+        };
+    })();
 
     function encryptPrivateKey(inputKey, privKeyPassCode) {
         return Promise.resolve(cloneKey(inputKey)).then(function(privKey) {
@@ -588,23 +630,103 @@ var pmcrypto = (function(exports) {
         SIGNED_AND_INVALID = VERIFICATION_STATUS.SIGNED_AND_INVALID;
     var CANONICAL_TEXT = SIGNATURE_TYPES.CANONICAL_TEXT;
 
-    function getMessage(message) {
-        if (openpgpjs.message.Message.prototype.isPrototypeOf(message)) {
-            return message;
-        } else if (Uint8Array.prototype.isPrototypeOf(message)) {
-            return openpgpjs.message.read(message);
-        }
-        return openpgpjs.message.readArmored(message.trim());
-    }
+    /**
+     * Prepare message
+     * @param {Promise<Object>} message
+     */
 
-    function getSignature(signature) {
-        if (openpgpjs.signature.Signature.prototype.isPrototypeOf(signature)) {
-            return signature;
-        } else if (Uint8Array.prototype.isPrototypeOf(signature)) {
-            return openpgpjs.signature.read(signature);
-        }
-        return openpgpjs.signature.readArmored(signature.trim());
-    }
+    var getMessage = (function() {
+        var _ref = asyncToGenerator(
+            /*#__PURE__*/ regeneratorRuntime.mark(function _callee(message) {
+                return regeneratorRuntime.wrap(
+                    function _callee$(_context) {
+                        while (1) {
+                            switch ((_context.prev = _context.next)) {
+                                case 0:
+                                    if (!openpgpjs.message.Message.prototype.isPrototypeOf(message)) {
+                                        _context.next = 4;
+                                        break;
+                                    }
+
+                                    return _context.abrupt('return', message);
+
+                                case 4:
+                                    if (!Uint8Array.prototype.isPrototypeOf(message)) {
+                                        _context.next = 6;
+                                        break;
+                                    }
+
+                                    return _context.abrupt('return', openpgpjs.message.read(message));
+
+                                case 6:
+                                    return _context.abrupt('return', openpgpjs.message.readArmored(message.trim()));
+
+                                case 7:
+                                case 'end':
+                                    return _context.stop();
+                            }
+                        }
+                    },
+                    _callee,
+                    this
+                );
+            })
+        );
+
+        return function getMessage(_x) {
+            return _ref.apply(this, arguments);
+        };
+    })();
+
+    /**
+     * Prepare signature
+     * @param {Promise<Object>} message
+     */
+    var getSignature = (function() {
+        var _ref2 = asyncToGenerator(
+            /*#__PURE__*/ regeneratorRuntime.mark(function _callee2(signature) {
+                return regeneratorRuntime.wrap(
+                    function _callee2$(_context2) {
+                        while (1) {
+                            switch ((_context2.prev = _context2.next)) {
+                                case 0:
+                                    if (!openpgpjs.signature.Signature.prototype.isPrototypeOf(signature)) {
+                                        _context2.next = 4;
+                                        break;
+                                    }
+
+                                    return _context2.abrupt('return', signature);
+
+                                case 4:
+                                    if (!Uint8Array.prototype.isPrototypeOf(signature)) {
+                                        _context2.next = 6;
+                                        break;
+                                    }
+
+                                    return _context2.abrupt('return', openpgpjs.signature.read(signature));
+
+                                case 6:
+                                    return _context2.abrupt(
+                                        'return',
+                                        openpgpjs.signature.readArmored(signature.trim())
+                                    );
+
+                                case 7:
+                                case 'end':
+                                    return _context2.stop();
+                            }
+                        }
+                    },
+                    _callee2,
+                    this
+                );
+            })
+        );
+
+        return function getSignature(_x2) {
+            return _ref2.apply(this, arguments);
+        };
+    })();
 
     function getCleartextMessage(message) {
         if (openpgpjs.cleartext.CleartextMessage.prototype.isPrototypeOf(message)) {
@@ -637,23 +759,23 @@ var pmcrypto = (function(exports) {
         });
     }
 
-    function isCanonicalTextSignature(_ref) {
-        var packets = _ref.packets;
+    function isCanonicalTextSignature(_ref3) {
+        var packets = _ref3.packets;
 
-        return Object.values(packets).some(function(_ref2) {
-            var _ref2$signatureType = _ref2.signatureType,
-                signatureType = _ref2$signatureType === undefined ? false : _ref2$signatureType;
+        return Object.values(packets).some(function(_ref4) {
+            var _ref4$signatureType = _ref4.signatureType,
+                signatureType = _ref4$signatureType === undefined ? false : _ref4$signatureType;
             return signatureType === CANONICAL_TEXT;
         });
     }
 
     var handleVerificationResult = (function() {
-        var _ref3 = asyncToGenerator(
-            /*#__PURE__*/ regeneratorRuntime.mark(function _callee(_ref4, publicKeys, date) {
-                var data = _ref4.data,
-                    _ref4$filename = _ref4.filename,
-                    filename = _ref4$filename === undefined ? 'msg.txt' : _ref4$filename,
-                    sigs = _ref4.signatures;
+        var _ref5 = asyncToGenerator(
+            /*#__PURE__*/ regeneratorRuntime.mark(function _callee3(_ref6, publicKeys, date) {
+                var data = _ref6.data,
+                    _ref6$filename = _ref6.filename,
+                    filename = _ref6$filename === undefined ? 'msg.txt' : _ref6$filename,
+                    sigs = _ref6.signatures;
                 var verified,
                     signatures,
                     i,
@@ -663,9 +785,9 @@ var pmcrypto = (function(exports) {
                     verificationPromises,
                     verificationResults;
                 return regeneratorRuntime.wrap(
-                    function _callee$(_context) {
+                    function _callee3$(_context3) {
                         while (1) {
-                            switch ((_context.prev = _context.next)) {
+                            switch ((_context3.prev = _context3.next)) {
                                 case 0:
                                     verified = NOT_SIGNED;
                                     signatures = [];
@@ -683,18 +805,18 @@ var pmcrypto = (function(exports) {
                                     }
 
                                     if (!(verified === SIGNED_AND_INVALID)) {
-                                        _context.next = 12;
+                                        _context3.next = 12;
                                         break;
                                     }
 
                                     // enter extended text mode: some mail clients change spaces into nonbreaking spaces, we'll try to verify by normalizing this too.
                                     verifiableSigs = sigs
-                                        .filter(function(_ref5) {
-                                            var valid = _ref5.valid;
+                                        .filter(function(_ref7) {
+                                            var valid = _ref7.valid;
                                             return valid !== null;
                                         })
-                                        .map(function(_ref6) {
-                                            var signature = _ref6.signature;
+                                        .map(function(_ref8) {
+                                            var signature = _ref8.signature;
                                             return signature;
                                         })
                                         .filter(isCanonicalTextSignature);
@@ -708,13 +830,13 @@ var pmcrypto = (function(exports) {
                                                 signature: signature,
                                                 date: date
                                             })
-                                            .then(function(_ref7) {
-                                                var data = _ref7.data,
-                                                    signatures = _ref7.signatures;
+                                            .then(function(_ref9) {
+                                                var data = _ref9.data,
+                                                    signatures = _ref9.signatures;
                                                 return {
                                                     data: data,
-                                                    signatures: signatures.map(function(_ref8) {
-                                                        var signature = _ref8.signature;
+                                                    signatures: signatures.map(function(_ref10) {
+                                                        var signature = _ref10.signature;
                                                         return signature;
                                                     }),
                                                     verified: signatures[0].valid
@@ -723,16 +845,16 @@ var pmcrypto = (function(exports) {
                                                 };
                                             });
                                     });
-                                    _context.next = 10;
+                                    _context3.next = 10;
                                     return Promise.all(verificationPromises);
 
                                 case 10:
-                                    verificationResults = _context.sent;
-                                    return _context.abrupt(
+                                    verificationResults = _context3.sent;
+                                    return _context3.abrupt(
                                         'return',
                                         verificationResults
-                                            .filter(function(_ref9) {
-                                                var verified = _ref9.verified;
+                                            .filter(function(_ref11) {
+                                                var verified = _ref11.verified;
                                                 return verified === SIGNED_AND_VALID;
                                             })
                                             .reduceRight(
@@ -754,7 +876,7 @@ var pmcrypto = (function(exports) {
                                     );
 
                                 case 12:
-                                    return _context.abrupt('return', {
+                                    return _context3.abrupt('return', {
                                         data: data,
                                         verified: verified,
                                         filename: filename,
@@ -763,18 +885,18 @@ var pmcrypto = (function(exports) {
 
                                 case 13:
                                 case 'end':
-                                    return _context.stop();
+                                    return _context3.stop();
                             }
                         }
                     },
-                    _callee,
+                    _callee3,
                     this
                 );
             })
         );
 
-        return function handleVerificationResult(_x, _x2, _x3) {
-            return _ref3.apply(this, arguments);
+        return function handleVerificationResult(_x3, _x4, _x5) {
+            return _ref5.apply(this, arguments);
         };
     })();
 
@@ -789,10 +911,10 @@ var pmcrypto = (function(exports) {
             .then(function(result) {
                 return handleVerificationResult(result, publicKeys, options.date);
             })
-            .then(function(_ref10) {
-                var data = _ref10.data,
-                    verified = _ref10.verified,
-                    signatures = _ref10.signatures;
+            .then(function(_ref12) {
+                var data = _ref12.data,
+                    verified = _ref12.verified,
+                    signatures = _ref12.signatures;
                 return { data: data, verified: verified, signatures: signatures };
             })
             .catch(function(err) {
@@ -802,8 +924,8 @@ var pmcrypto = (function(exports) {
     }
 
     var splitMessage = (function() {
-        var _ref11 = asyncToGenerator(
-            /*#__PURE__*/ regeneratorRuntime.mark(function _callee2(message) {
+        var _ref13 = asyncToGenerator(
+            /*#__PURE__*/ regeneratorRuntime.mark(function _callee4(message) {
                 var msg,
                     keyFilter,
                     splitPackets,
@@ -815,15 +937,15 @@ var pmcrypto = (function(exports) {
                     encrypted,
                     other;
                 return regeneratorRuntime.wrap(
-                    function _callee2$(_context2) {
+                    function _callee4$(_context4) {
                         while (1) {
-                            switch ((_context2.prev = _context2.next)) {
+                            switch ((_context4.prev = _context4.next)) {
                                 case 0:
-                                    _context2.next = 2;
+                                    _context4.next = 2;
                                     return getMessage(message);
 
                                 case 2:
-                                    msg = _context2.sent;
+                                    msg = _context4.sent;
 
                                     keyFilter = function keyFilter(packet) {
                                         return (
@@ -867,7 +989,7 @@ var pmcrypto = (function(exports) {
                                         )
                                     );
                                     other = splitPackets(msg.packets.filter(keyFilter));
-                                    return _context2.abrupt('return', {
+                                    return _context4.abrupt('return', {
                                         asymmetric: asymmetric,
                                         signature: signature,
                                         symmetric: symmetric,
@@ -879,18 +1001,18 @@ var pmcrypto = (function(exports) {
 
                                 case 13:
                                 case 'end':
-                                    return _context2.stop();
+                                    return _context4.stop();
                             }
                         }
                     },
-                    _callee2,
+                    _callee4,
                     this
                 );
             })
         );
 
-        return function splitMessage(_x4) {
-            return _ref11.apply(this, arguments);
+        return function splitMessage(_x6) {
+            return _ref13.apply(this, arguments);
         };
     })();
 
@@ -30165,9 +30287,13 @@ var pmcrypto = (function(exports) {
 
                                 case 23:
                                     sigData = sigAttachment.content.toString();
-                                    signature = getSignature(sigData);
+                                    _context.next = 26;
+                                    return getSignature(sigData);
+
+                                case 26:
+                                    signature = _context.sent;
                                     body = parts[1];
-                                    _context.next = 28;
+                                    _context.next = 30;
                                     return verifyMessage({
                                         message: getCleartextMessage(body),
                                         publicKeys: publicKeys,
@@ -30175,13 +30301,13 @@ var pmcrypto = (function(exports) {
                                         signature: signature
                                     });
 
-                                case 28:
+                                case 30:
                                     _ref7 = _context.sent;
                                     subdata = _ref7.data;
                                     verified = _ref7.verified;
                                     return _context.abrupt('return', { subdata: subdata, verified: verified });
 
-                                case 32:
+                                case 34:
                                 case 'end':
                                     return _context.stop();
                             }
@@ -30487,103 +30613,184 @@ var pmcrypto = (function(exports) {
         return '';
     }
 
-    function decryptMessage(options) {
-        var _options$publicKeys = options.publicKeys,
-            publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys;
+    var decryptMessage = (function() {
+        var _ref = asyncToGenerator(
+            /*#__PURE__*/ regeneratorRuntime.mark(function _callee(options) {
+                var _options$publicKeys, publicKeys, result, _ref2, data, filename, verified, signatures;
 
-        options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
+                return regeneratorRuntime.wrap(
+                    function _callee$(_context) {
+                        while (1) {
+                            switch ((_context.prev = _context.next)) {
+                                case 0:
+                                    (_options$publicKeys = options.publicKeys),
+                                        (publicKeys = _options$publicKeys === undefined ? [] : _options$publicKeys);
 
-        return Promise.resolve().then(function() {
-            try {
-                return openpgpjs
-                    .decrypt(options)
-                    .then(function(result) {
-                        return handleVerificationResult(result, publicKeys, options.date);
-                    })
-                    .then(function(_ref) {
-                        var data = _ref.data,
-                            filename = _ref.filename,
-                            verified = _ref.verified,
-                            signatures = _ref.signatures;
+                                    options.date = typeof options.date === 'undefined' ? serverTime() : options.date;
 
-                        return {
-                            data: data,
-                            filename: filename,
-                            verified: verified,
-                            signatures: signatures
-                        };
-                    })
-                    .catch(function(err) {
-                        console.error(err);
-                        return Promise.reject(err);
-                    });
-            } catch (err) {
-                if (err.message === 'CFB decrypt: invalid key' && options.passwords && options.passwords.length) {
-                    return Promise.reject(new Error('Incorrect message password')); // Bad password, reject without Error object
-                }
-                return Promise.reject(err);
-            }
-        });
-    }
+                                    _context.prev = 2;
+                                    _context.next = 5;
+                                    return openpgpjs.decrypt(options);
+
+                                case 5:
+                                    result = _context.sent;
+                                    _context.next = 8;
+                                    return handleVerificationResult(result, publicKeys, options.date);
+
+                                case 8:
+                                    _ref2 = _context.sent;
+                                    data = _ref2.data;
+                                    filename = _ref2.filename;
+                                    verified = _ref2.verified;
+                                    signatures = _ref2.signatures;
+                                    return _context.abrupt('return', {
+                                        data: data,
+                                        filename: filename,
+                                        verified: verified,
+                                        signatures: signatures
+                                    });
+
+                                case 16:
+                                    _context.prev = 16;
+                                    _context.t0 = _context['catch'](2);
+
+                                    if (
+                                        !(
+                                            _context.t0.message === 'CFB decrypt: invalid key' &&
+                                            options.passwords &&
+                                            options.passwords.length
+                                        )
+                                    ) {
+                                        _context.next = 20;
+                                        break;
+                                    }
+
+                                    return _context.abrupt(
+                                        'return',
+                                        Promise.reject(new Error('Incorrect message password'))
+                                    );
+
+                                case 20:
+                                    return _context.abrupt('return', Promise.reject(_context.t0));
+
+                                case 21:
+                                case 'end':
+                                    return _context.stop();
+                            }
+                        }
+                    },
+                    _callee,
+                    this,
+                    [[2, 16]]
+                );
+            })
+        );
+
+        return function decryptMessage(_x) {
+            return _ref.apply(this, arguments);
+        };
+    })();
 
     // Backwards-compatible decrypt message function
     // 'message' option must be a string!
-    function decryptMessageLegacy(options) {
-        return Promise.resolve().then(function() {
-            if (options.date === undefined || !(options.date instanceof Date)) {
-                throw new Error('Missing message time');
-            }
+    var decryptMessageLegacy = (function() {
+        var _ref3 = asyncToGenerator(
+            /*#__PURE__*/ regeneratorRuntime.mark(function _callee2(options) {
+                var oldEncMessage, oldEncRandomKey, oldOptions, _ref4, data, randomKey, params;
 
-            var oldEncMessage = getEncMessageFromEmailPM(options.message);
-            var oldEncRandomKey = getEncRandomKeyFromEmailPM(options.message);
+                return regeneratorRuntime.wrap(
+                    function _callee2$(_context2) {
+                        while (1) {
+                            switch ((_context2.prev = _context2.next)) {
+                                case 0:
+                                    if (!(options.date === undefined || !(options.date instanceof Date))) {
+                                        _context2.next = 2;
+                                        break;
+                                    }
 
-            // OpenPGP
-            if (oldEncMessage === '' || oldEncRandomKey === '') {
-                // Convert message string to object
-                options.message = getMessage(options.message);
-                return decryptMessage(options);
-            }
+                                    throw new Error('Missing message time');
 
-            // Old message encryption format
-            var oldOptions = {
-                privateKeys: options.privateKeys,
-                message: getMessage(oldEncRandomKey)
-            };
+                                case 2:
+                                    oldEncMessage = getEncMessageFromEmailPM(options.message);
+                                    oldEncRandomKey = getEncRandomKeyFromEmailPM(options.message);
 
-            return decryptMessage(oldOptions)
-                .then(function(_ref2) {
-                    var data = _ref2.data;
-                    return decodeUtf8Base64(data);
-                })
-                .then(binaryStringToArray)
-                .then(function(randomKey) {
-                    if (randomKey.length === 0) {
-                        return Promise.reject(new Error('Random key is empty'));
-                    }
+                                    // OpenPGP
 
-                    oldEncMessage = binaryStringToArray(decodeUtf8Base64(oldEncMessage));
+                                    if (!(oldEncMessage === '' || oldEncRandomKey === '')) {
+                                        _context2.next = 9;
+                                        break;
+                                    }
 
-                    var data = void 0;
-                    try {
-                        // cutoff time for enabling multilanguage support
-                        if (+options.date > 1399086120000) {
-                            data = decodeUtf8Base64(
-                                arrayToBinaryString(
-                                    openpgpjs.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true)
-                                )
-                            );
-                        } else {
-                            data = arrayToBinaryString(
-                                openpgpjs.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true)
-                            );
+                                    _context2.next = 7;
+                                    return getMessage(options.message);
+
+                                case 7:
+                                    options.message = _context2.sent;
+                                    return _context2.abrupt('return', decryptMessage(options));
+
+                                case 9:
+                                    _context2.t0 = options.privateKeys;
+                                    _context2.next = 12;
+                                    return getMessage(oldEncRandomKey);
+
+                                case 12:
+                                    _context2.t1 = _context2.sent;
+                                    oldOptions = {
+                                        privateKeys: _context2.t0,
+                                        message: _context2.t1
+                                    };
+                                    _context2.next = 16;
+                                    return decryptMessage(oldOptions);
+
+                                case 16:
+                                    _ref4 = _context2.sent;
+                                    data = _ref4.data;
+                                    randomKey = binaryStringToArray(decodeUtf8Base64(data));
+
+                                    if (!(randomKey.length === 0)) {
+                                        _context2.next = 21;
+                                        break;
+                                    }
+
+                                    return _context2.abrupt('return', Promise.reject(new Error('Random key is empty')));
+
+                                case 21:
+                                    oldEncMessage = binaryStringToArray(decodeUtf8Base64(oldEncMessage));
+
+                                    params = { signature: 0 };
+
+                                    // cutoff time for enabling multilanguage support
+
+                                    if (+options.date > 1399086120000) {
+                                        params.data = decodeUtf8Base64(
+                                            arrayToBinaryString(
+                                                openpgpjs.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true)
+                                            )
+                                        );
+                                    } else {
+                                        params.data = arrayToBinaryString(
+                                            openpgpjs.crypto.cfb.decrypt('aes256', randomKey, oldEncMessage, true)
+                                        );
+                                    }
+
+                                    return _context2.abrupt('return', params);
+
+                                case 25:
+                                case 'end':
+                                    return _context2.stop();
+                            }
                         }
-                    } catch (err) {
-                        return Promise.reject(err);
-                    }
-                    return { data: data, signature: 0 };
-                });
-        });
-    }
+                    },
+                    _callee2,
+                    this
+                );
+            })
+        );
+
+        return function decryptMessageLegacy(_x2) {
+            return _ref3.apply(this, arguments);
+        };
+    })();
 
     /**
      * Decrypts the mime message and parses the body and attachments in the right structure.
@@ -30591,12 +30798,12 @@ var pmcrypto = (function(exports) {
      * @return {Promise<{getBody: (function(): Promise<{body, mimetype}>), getAttachments: (function(): Promise<any>), getEncryptedSubject: (function(): Promise<any>), verify: (function(): Promise<any>), stop: stop}>}
      */
     var decryptMIMEMessage = (function() {
-        var _ref3 = asyncToGenerator(
-            /*#__PURE__*/ regeneratorRuntime.mark(function _callee(options) {
-                var _ref4,
+        var _ref5 = asyncToGenerator(
+            /*#__PURE__*/ regeneratorRuntime.mark(function _callee3(options) {
+                var _ref6,
                     rawData,
                     embeddedVerified,
-                    _ref5,
+                    _ref7,
                     body,
                     mimetype,
                     pgpVerified,
@@ -30605,32 +30812,32 @@ var pmcrypto = (function(exports) {
                     verified;
 
                 return regeneratorRuntime.wrap(
-                    function _callee$(_context) {
+                    function _callee3$(_context3) {
                         while (1) {
-                            switch ((_context.prev = _context.next)) {
+                            switch ((_context3.prev = _context3.next)) {
                                 case 0:
-                                    _context.next = 2;
+                                    _context3.next = 2;
                                     return decryptMessageLegacy(options);
 
                                 case 2:
-                                    _ref4 = _context.sent;
-                                    rawData = _ref4.data;
-                                    embeddedVerified = _ref4.verified;
-                                    _context.next = 7;
+                                    _ref6 = _context3.sent;
+                                    rawData = _ref6.data;
+                                    embeddedVerified = _ref6.verified;
+                                    _context3.next = 7;
                                     return processMIME(options, rawData);
 
                                 case 7:
-                                    _ref5 = _context.sent;
-                                    body = _ref5.body;
-                                    mimetype = _ref5.mimetype;
-                                    pgpVerified = _ref5.verified;
-                                    attachments = _ref5.attachments;
-                                    encryptedSubject = _ref5.encryptedSubject;
+                                    _ref7 = _context3.sent;
+                                    body = _ref7.body;
+                                    mimetype = _ref7.mimetype;
+                                    pgpVerified = _ref7.verified;
+                                    attachments = _ref7.attachments;
+                                    encryptedSubject = _ref7.encryptedSubject;
                                     verified =
                                         embeddedVerified === VERIFICATION_STATUS.NOT_SIGNED
                                             ? pgpVerified
                                             : embeddedVerified;
-                                    return _context.abrupt('return', {
+                                    return _context3.abrupt('return', {
                                         getBody: function getBody() {
                                             return Promise.resolve(
                                                 body ? { body: body, mimetype: mimetype } : undefined
@@ -30650,18 +30857,18 @@ var pmcrypto = (function(exports) {
 
                                 case 15:
                                 case 'end':
-                                    return _context.stop();
+                                    return _context3.stop();
                             }
                         }
                     },
-                    _callee,
+                    _callee3,
                     this
                 );
             })
         );
 
-        return function decryptMIMEMessage(_x) {
-            return _ref3.apply(this, arguments);
+        return function decryptMIMEMessage(_x3) {
+            return _ref5.apply(this, arguments);
         };
     })();
 
