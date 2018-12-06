@@ -736,10 +736,12 @@ var pmcrypto = (function(exports) {
     }
 
     function createMessage(source, filename) {
+        var date = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : serverTime();
+
         if (Uint8Array.prototype.isPrototypeOf(source)) {
-            return openpgpjs.message.fromBinary(source, filename);
+            return openpgpjs.message.fromBinary(source, filename, date);
         }
-        return openpgpjs.message.fromText(source, filename);
+        return openpgpjs.message.fromText(source, filename, date);
     }
 
     function signMessage(options) {
@@ -895,7 +897,7 @@ var pmcrypto = (function(exports) {
             })
         );
 
-        return function handleVerificationResult(_x3, _x4, _x5) {
+        return function handleVerificationResult(_x4, _x5, _x6) {
             return _ref5.apply(this, arguments);
         };
     })();
@@ -1043,7 +1045,7 @@ var pmcrypto = (function(exports) {
             })
         );
 
-        return function splitMessage(_x6) {
+        return function splitMessage(_x7) {
             return _ref13.apply(this, arguments);
         };
     })();
@@ -1081,7 +1083,7 @@ var pmcrypto = (function(exports) {
             })
         );
 
-        return function armorBytes(_x7) {
+        return function armorBytes(_x8) {
             return _ref14.apply(this, arguments);
         };
     })();

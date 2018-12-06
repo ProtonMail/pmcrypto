@@ -267,11 +267,11 @@ function getCleartextMessage(message) {
     return new openpgpjs.cleartext.CleartextMessage(message);
 }
 
-function createMessage(source, filename) {
+function createMessage(source, filename, date = serverTime()) {
     if (Uint8Array.prototype.isPrototypeOf(source)) {
-        return openpgpjs.message.fromBinary(source, filename);
+        return openpgpjs.message.fromBinary(source, filename, date);
     }
-    return openpgpjs.message.fromText(source, filename);
+    return openpgpjs.message.fromText(source, filename, date);
 }
 
 function signMessage(options) {
