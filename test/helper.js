@@ -1,3 +1,1 @@
-const openpgp = require('openpgp');
-
-global.openpgp = openpgp;
+global.openpgp = require('openpgp');
