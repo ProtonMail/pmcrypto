@@ -1,5 +1,5 @@
 import test from 'ava';
-import '../helper';
+import { init } from '../helper';
 import * as pmcrypto from '../../lib/pmcrypto';
 
 const publickey = `-----BEGIN PGP PUBLIC KEY BLOCK-----

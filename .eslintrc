@@ -4,9 +4,6 @@
     "browser": true,
     "node": true
   },
-  "globals": {
-      "openpgp": true
-  },
   "rules": {
     "object-shorthand": ["error", "always", { "avoidExplicitReturnArrows": true }],
     "arrow-parens": ["error", "always"],
