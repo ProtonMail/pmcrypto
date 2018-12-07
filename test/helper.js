@@ -1,5 +1,7 @@
 import { init } from '../lib/pmcrypto';
 
-const openpgp = require('openpgp');
-
-init(openpgp);
+init({
+    openpgp: require('openpgp'),
+    atob: require('atob'),
+    btoa: require('btoa')
+});
