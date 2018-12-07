@@ -3,8 +3,10 @@
 
 # pmcrypto
 
-# V4
-openpgp is no longer installed by this library because the client needs to choose which bundle of openpgpjs to use.
+# V5
+openpgp is installed by this library as a dependency. 
+
+However it must be passed to `pmcrypto` because the client needs to choose which bundle of openpgpjs to use.
 
 Now, pmcrypto must to be initialized with openpgp, btoa and atob using the init function.
 
