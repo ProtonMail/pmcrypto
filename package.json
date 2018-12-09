@@ -45,9 +45,7 @@
     "emailjs-mime-parser": "^2.0.5"
   },
   "devDependencies": {
-    "atob": "^2.1.2",
     "ava": "1.0.0-rc.2",
-    "btoa": "^1.2.1",
     "eslint": "^4.18.1",
     "eslint-config-airbnb-base": "^12.1.0",
     "eslint-plugin-import": "^2.9.0",
