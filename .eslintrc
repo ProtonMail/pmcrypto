@@ -33,6 +33,7 @@
     "function-paren-newline": "off",
     "prefer-promise-reject-errors": "off",
     "no-console": "off",
+    "no-continue": "off",
     "object-curly-newline": "off",
     "space-before-function-paren": "off",
     "global-require": "off",
