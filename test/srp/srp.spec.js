@@ -3,8 +3,8 @@ import assert from 'assert';
 
 import '../setup';
 import * as crypto from '../../lib/crypto';
-import { randomVerifier, auth } from '../../lib/srp/srp';
-import { AUTH_RESPONSE, SERVER_MODULUS, SERVER_MODULUS_FAKE, FAKE_RANDOM } from './srp.data';
+import { getRandomSrpVerifier, getSrp, perform } from '../../lib/srp/srp';
+import { AUTH_RESPONSE, AUTH_RESPONSE_OLD, SERVER_MODULUS, SERVER_MODULUS_FAKE, FAKE_RANDOM } from './srp.data';
 
 describe('srp', () => {
     let original;
@@ -19,13 +19,7 @@ describe('srp', () => {
     });
 
     it('should generate verifier', async () => {
-        const result = await randomVerifier(
-            { Modulus: SERVER_MODULUS, ModulusID: 1 },
-            {
-                password: '123',
-                version: 4
-            }
-        );
+        const result = await getRandomSrpVerifier({ Modulus: SERVER_MODULUS, ModulusID: 1 }, { password: '123' });
         assert.deepStrictEqual(result, {
             Version: 4,
             ModulusID: 1,
@@ -36,13 +30,7 @@ describe('srp', () => {
     });
 
     it('should reject verify if it is unable to verify identity', async () => {
-        const promise = randomVerifier(
-            { Modulus: SERVER_MODULUS_FAKE, ModulusID: 1 },
-            {
-                password: 'hello',
-                version: 4
-            }
-        );
+        const promise = getRandomSrpVerifier({ Modulus: SERVER_MODULUS_FAKE, ModulusID: 1 }, { password: 'hello' });
         await assert.rejects(promise, {
             name: 'Error',
             message: 'Unable to verify server identity'
@@ -50,7 +38,7 @@ describe('srp', () => {
     });
 
     it('should generate auth parameters', async () => {
-        const result = await auth(AUTH_RESPONSE, { password: '123' }, 2);
+        const result = await getSrp(AUTH_RESPONSE, { password: '123' });
         assert.deepStrictEqual(result, {
             parameters: {
                 SRPSession: AUTH_RESPONSE.SRPSession,
@@ -66,10 +54,76 @@ describe('srp', () => {
     });
 
     it('should reject auth if it is unable to verify server', async () => {
-        const promise = auth({ Modulus: SERVER_MODULUS_FAKE }, { password: '123' }, 2);
+        const promise = getSrp({ Modulus: SERVER_MODULUS_FAKE }, { password: '123' });
         await assert.rejects(promise, {
             name: 'Error',
             message: 'Unable to verify server identity'
         });
+    });
+
+    it('should reject a request if the server proof is not correct', async () => {
+        const requestCb = async () => ({ proof: 'incorrect' });
+
+        const credentials = { password: '123' };
+        const promise = perform({ credentials, requestCb, authInfo: AUTH_RESPONSE });
+
+        await assert.rejects(promise, {
+            name: 'Error',
+            message: 'Unexpected server proof'
+        });
+    });
+
+    it('should resolve a request if the server proof is correct', async () => {
+        const credentials = { password: '123' };
+        const { expectation } = await getSrp(AUTH_RESPONSE, credentials);
+        const requestCb = async () => ({ proof: expectation, result: 'foo' });
+        const { result } = await perform({ credentials, requestCb, authInfo: AUTH_RESPONSE });
+        assert.strictEqual(result, 'foo');
+    });
+
+    it('should perform an auth request with an old auth version', async () => {
+        const credentials = { username: 'test100', password: '123' };
+
+        const requestCb = async () => {
+            return {
+                proof:
+                    'b/ldj2+DZDoU8AoROROaHmR3ACaZAyOLDd3WkbHnghiKSvKHe2LSYTEmWvyNduUkytTzN7OFVcl60t1JF364omODE3bsekCNVz/DJzeoOnN9WR4N1EwYo/LVjjnv97c2aA0JBpZvc6yNiChhiEk/C63DKs0DFuxdB8IvNxJpIePKRb73P4HODf3hNsVdBusKmWHTHYZQWrnt8NpRWcEreyZ6iQLyWskbjNXmTCtbXb/F7kWZfegriP09UxZHqkFkxiawded3wd4x4thpLz1BGZnzhr8N6Ko/0FmxVlZMucWqHYwlkUQvbLYwPBxPMv05L2nLvjMFSPK1r4cepj0CYQ=='
+            };
+        };
+
+        const { authVersion } = await perform({ credentials, requestCb, authInfo: AUTH_RESPONSE_OLD });
+        assert.strictEqual(authVersion, 2);
+    });
+
+    it('should perform an auth request with an old auth version and fall back', async () => {
+        const credentials = { username: 'test100', password: '123' };
+
+        let count = 0;
+
+        const requestCb = async () => {
+            if (!count) {
+                count++;
+                const e = new Error();
+                e.incorrect = true;
+                throw e;
+            }
+            return {
+                proof:
+                    '0jxGds6roPxUmdLIsSTdoRjlHLQTfLUgjTlyjCIR9n6siNgnlyh90hmqg/3pNAT6FBlFk/0411cEPMip4lXbSeUz+x6/GC5ZWzoZs1MZYM7gRfpyzXP3YYUok+7LWIMjuP71AHfIW1Gois3Op2o+LJEBC4/ZA7LPqhHg4RpxkTNEiy5QhI8sc/yDZsdabblaq/D/+APhJYfaG7Rol3uyJZDez5k5uu5h61woM6CQ/3zOPLgaUw5JU8FCgYkQurZoA0a0C4MsDMC8bfXUQ8cLCdygPR3pAt2ycquU3y6tN3MsMcCtm3ivRky93Vip6BI1CIZbs7aF1Ygd5KxDRgUjsA=='
+            };
+        };
+
+        const fallbackCb = ({ fallbackAuthVersion }) => {
+            return perform({
+                credentials,
+                requestCb,
+                fallbackCb,
+                authInfo: AUTH_RESPONSE_OLD,
+                fallbackAuthVersion
+            });
+        };
+
+        const { authVersion } = await fallbackCb({});
+        assert.strictEqual(authVersion, 0);
     });
 });
