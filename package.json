@@ -52,7 +52,7 @@
     "husky": "^1.1.0",
     "lint-staged": "^7.3.0",
     "mocha": "^5.2.0",
-    "openpgp": "^4.2.1",
+    "openpgp": "^4.4.2",
     "prettier": "^1.14.3"
   }
 }
