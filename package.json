@@ -6,7 +6,7 @@
   "module": "lib/pmcrypto.js",
   "scripts": {
     "test": "mocha -r esm 'test/**/*.spec.js'",
-    "lint": "eslint $(find lib -type f -name '*.js') --quiet",
+    "lint": "eslint lib test --ext .js --quiet --cache",
     "pretty": "prettier --write $(find lib -type f -name '*.js')"
   },
   "husky": {

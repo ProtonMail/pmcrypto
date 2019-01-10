@@ -11,10 +11,12 @@ describe('srp', () => {
 
     before(() => {
         original = crypto.getRandomValues;
+        // eslint-disable-next-line
         crypto.getRandomValues = (buf) => new Uint8Array(FAKE_RANDOM.slice(0, buf.length));
     });
 
     after(() => {
+        // eslint-disable-next-line
         crypto.getRandomValues = original;
     });
 
