@@ -40,6 +40,9 @@
     "emailjs-mime-parser": "^2.0.5",
     "esm": "^3.0.84"
   },
+  "engines": {
+    "node": ">=10.0.0"
+  },
   "devDependencies": {
     "eslint": "^4.18.1",
     "eslint-config-airbnb-base": "^12.1.0",
