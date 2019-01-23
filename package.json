@@ -5,8 +5,8 @@
   "main": "lib/index.js",
   "module": "lib/pmcrypto.js",
   "scripts": {
-    "test": "ava -v",
-    "lint": "eslint $(find lib -type f -name '*.js')  --quiet",
+    "test": "mocha -r esm 'test/**/*.spec.js'",
+    "lint": "eslint lib test --ext .js --quiet --cache",
     "pretty": "prettier --write $(find lib -type f -name '*.js')"
   },
   "husky": {
@@ -29,28 +29,26 @@
   "bugs": {
     "url": "https://github.com/ProtonMail/pmcrypto/issues"
   },
-  "ava": {
-    "require": [
-      "esm"
-    ],
-    "files": [
-      "test/**/*.js",
-      "!test/helper.js"
-    ]
+  "esm": {
+    "mode": "auto"
   },
   "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
   "dependencies": {
     "openpgp": "~4.4.3",
-    "esm": "^3.0.84",
-    "emailjs-mime-parser": "^2.0.5"
+    "asmcrypto.js": "^2.3.2",
+    "bcryptjs": "^2.4.3",
+    "emailjs-mime-parser": "^2.0.5",
+    "esm": "^3.0.84"
+  },
+  "engines": {
+    "node": ">=10.0.0"
   },
   "devDependencies": {
-    "ava": "1.0.0-rc.2",
     "eslint": "^4.18.1",
     "eslint-config-airbnb-base": "^12.1.0",
-    "eslint-plugin-import": "^2.9.0",
-    "husky": "^1.1.0",
+    "eslint-plugin-import": "^2.14.0",
     "lint-staged": "^7.3.0",
+    "husky": "^1.1.0",
     "mocha": "^5.2.0",
     "prettier": "^1.14.3"
   }

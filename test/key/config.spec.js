@@ -1,9 +1,13 @@
-import test from 'ava';
-import '../helper';
+import { describe, it } from 'mocha';
+import assert from 'assert';
+
+import '../setup';
 import { openpgp } from '../../lib/openpgp';
 
-test('it sets the correct configuration on openpgp', async (t) => {
-    t.is(openpgp.config.s2k_iteration_count_byte, 96);
-    t.is(openpgp.config.integrity_protect, true);
-    t.is(openpgp.config.use_native, true);
+describe('config', () => {
+    it('should set the correct configuration on openpgp', () => {
+        assert.strictEqual(openpgp.config.s2k_iteration_count_byte, 96);
+        assert.strictEqual(openpgp.config.integrity_protect, true);
+        assert.strictEqual(openpgp.config.use_native, true);
+    });
 });
