@@ -35,16 +35,6 @@ export const AUTH_RESPONSE = {
     Version: 4
 };
 
-export const AUTH_RESPONSE_OLD = {
-    Modulus: SERVER_MODULUS,
-    SRPSession: '317402af24f9b0af2120e2e0fce20309',
-    Username: 'test100',
-    ServerEphemeral:
-        '5FV4Hp7kU58P4i6KYc+f9y0wuUaRje/wwxFkrBL5KvnBjcr53952s0yM0TOH56H55RcZ1sMGuSqbyGZSj4ACoZdc0Yw1u102B38B+IOhPhhjAP2Yd+5NBXccMpmNrzjkgW78r+WAm7Fm5SvBapI8SpZiuVARYTsupoP7frBpTAjnwm5aD4gVnkv7yZ9kZ1vEdHjZzQtaJZ4GFE1iiM8eRGw9POkcvIvBt8ynJ4RWNZljCU9svsNfjEEdNPpWC+6RJtcK6dSuDZ5NxlLByzydCH78KVnFoCKGH9imLqQG+KC7BwBuCLA9JtGpsHwAe5xNiBkeZ6q431yqF/vS6ZeNxw==',
-    TwoFactor: 0,
-    Version: 0
-};
-
 export const FAKE_RANDOM = [
     75,
     49,
