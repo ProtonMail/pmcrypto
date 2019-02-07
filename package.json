@@ -40,7 +40,7 @@
   },
   "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
   "dependencies": {
-    "openpgp": "^4.4.7",
+    "openpgp": "github:openpgpjs/openpgpjs.git#accept-future-keys",
     "esm": "^3.0.84",
     "emailjs-mime-parser": "^2.0.5"
   },
