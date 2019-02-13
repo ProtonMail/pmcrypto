@@ -44,6 +44,9 @@
     "esm": "^3.0.84",
     "emailjs-mime-parser": "^2.0.5"
   },
+  "engines": {
+    "node": ">=10.15.1"
+  },
   "devDependencies": {
     "ava": "1.0.0-rc.2",
     "eslint": "^4.18.1",
