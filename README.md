@@ -3,6 +3,22 @@
 
 # pmcrypto
 
+# V6
+Added:
+
+* SHA512 hash, exposed as `SHA512`
+* MD5 hash, exposed as `unsafeMD5`
+* `arrayToHexString`
+* `createCleartextMessage`
+
+Changed:
+
+* `getCleartextMessage` now reads an armored message instead of creating one. To create one the `createCleartextMessage` should be used. This is to have consistency with the `getMessage`, `createMessage`, `getSignature` etc functions.
+
+Removed:
+
+* `getHashedPassword` not used.
+
 # V5
 openpgp is installed by this library as a dependency. 
 
