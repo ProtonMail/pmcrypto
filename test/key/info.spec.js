@@ -70,6 +70,11 @@ uokpJQHZjIvfQ5/9tx1946Tvo0RX0A26JfOO+J68XA==
 -----END PGP PUBLIC KEY BLOCK-----`;
 
 test('creation test', async (t) => {
-    const { dateError } = await pmcrypto.keyInfo(creationkey);
+    const { dateError } = await pmcrypto.keyInfo(
+        creationkey,
+        undefined,
+        undefined,
+        new Date('2019-01-01T00:00:00.000Z')
+    );
     t.is(dateError, 'The self certifications are created with illegal times');
 });
