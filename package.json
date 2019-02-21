@@ -35,6 +35,7 @@
     ],
     "files": [
       "test/**/*.js",
+      "!test/**/*.data.js",
       "!test/helper.js"
     ]
   },
