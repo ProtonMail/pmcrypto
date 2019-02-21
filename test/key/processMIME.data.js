@@ -81,3 +81,32 @@ that the message signature is not invalidated when passing
 a gateway that modifies such whitespace (like BITNET).  
 
 me`;
+
+export const extraMultipartSignedMessage = `From: Jon Smith <jon@example.com>
+To: Jon Smith <jon@example.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; boundary=bar; micalg=pgp-md5;
+protocol="application/pgp-signature"
+
+--bar
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+hello
+--bar
+
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: OpenPGP.js v4.4.6
+Comment: https://openpgpjs.org
+
+wl4EARYKAAYFAlxuurAACgkQApgazZlru7PubwEAkm2yNgMcCzv9YuW2zKEP
+eo6TtHjWxF3GASwuZ/nMv/MBAJUDDC3PDfCIGyPKk2Pzf2t2co/+dEpW3vpx
+euiL4uYD
+=97+O
+-----END PGP SIGNATURE-----
+
+--bar
+extra part
+--bar--`;

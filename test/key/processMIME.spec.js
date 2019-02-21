@@ -8,6 +8,7 @@ import {
     invalidMultipartSignedMessage,
     multipartSignedMessage,
     multipartSignedMessageBody,
+    extraMultipartSignedMessage,
     key
 } from './processMIME.data';
 
@@ -20,6 +21,17 @@ test('it can process multipart/signed mime messages and verify the signature', a
     );
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
     t.is(body, multipartSignedMessageBody);
+});
+
+test('it can process multipart/signed mime messages and verify the signature with extra parts at the end', async (t) => {
+    const { body, verified } = await processMIME(
+        {
+            publicKeys: await getKeys(key)
+        },
+        extraMultipartSignedMessage
+    );
+    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+    t.is(body, 'hello');
 });
 
 test('it does not verify invalid messages', async (t) => {
