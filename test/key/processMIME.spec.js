@@ -9,6 +9,7 @@ import {
     multipartSignedMessage,
     multipartSignedMessageBody,
     extraMultipartSignedMessage,
+    multiPartMessageWithSpecialCharacter,
     key
 } from './processMIME.data';
 
@@ -43,4 +44,15 @@ test('it does not verify invalid messages', async (t) => {
     );
     t.is(verified, VERIFICATION_STATUS.NOT_SIGNED);
     t.is(body, 'message with missing signature');
+});
+
+test('it can parse messages with special characters in the boundary', async (t) => {
+    const { verified, body } = await processMIME(
+        {
+            publicKeys: await getKeys(key)
+        },
+        multiPartMessageWithSpecialCharacter
+    );
+    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+    t.is(body, 'hello');
 });

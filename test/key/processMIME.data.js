@@ -110,3 +110,31 @@ euiL4uYD
 --bar
 extra part
 --bar--`;
+
+export const multiPartMessageWithSpecialCharacter = `From: Jon Smith <jon@example.com>
+To: Jon Smith <jon@example.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; boundary==-=pj+EhsWuSQJxx7=-=; micalg=pgp-md5;
+protocol="application/pgp-signature"
+
+--=-=pj+EhsWuSQJxx7=-=
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+hello
+--=-=pj+EhsWuSQJxx7=-=
+
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: OpenPGP.js v4.4.6
+Comment: https://openpgpjs.org
+
+wl4EARYKAAYFAlxuurAACgkQApgazZlru7PubwEAkm2yNgMcCzv9YuW2zKEP
+eo6TtHjWxF3GASwuZ/nMv/MBAJUDDC3PDfCIGyPKk2Pzf2t2co/+dEpW3vpx
+euiL4uYD
+=97+O
+-----END PGP SIGNATURE-----
+
+--=-=pj+EhsWuSQJxx7=-=
+`;
