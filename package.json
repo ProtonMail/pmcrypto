@@ -8,7 +8,8 @@
   "scripts": {
     "test": "ava -v",
     "lint": "eslint $(find lib -type f -name '*.js')  --quiet",
-    "pretty": "prettier --write $(find lib -type f -name '*.js')"
+    "pretty": "prettier --write $(find lib -type f -name '*.js')",
+    "postversion": "git push && git push --tags"
   },
   "husky": {
     "hooks": {
