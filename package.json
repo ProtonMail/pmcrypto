@@ -4,7 +4,7 @@
   "description": "",
   "main": "lib/index.js",
   "module": "lib/pmcrypto.js",
-  "side-effects": false,
+  "sideEffects": false,
   "scripts": {
     "test": "ava -v",
     "lint": "eslint $(find lib -type f -name '*.js')  --quiet",
