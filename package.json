@@ -1,6 +1,6 @@
 {
   "name": "pmcrypto",
-  "version": "6.0.8",
+  "version": "6.0.9",
   "description": "",
   "main": "lib/index.js",
   "module": "lib/pmcrypto.js",
