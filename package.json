@@ -43,7 +43,7 @@
   },
   "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
   "dependencies": {
-    "openpgp": "~4.5.0",
+    "openpgp": "~4.6.0",
     "esm": "^3.0.84",
     "emailjs-mime-parser": "^2.0.5"
   },
