@@ -43,18 +43,17 @@
   },
   "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
   "dependencies": {
-    "openpgp": "~4.6.0",
     "esm": "^3.0.84",
-    "emailjs-mime-parser": "^2.0.5"
+    "openpgp": "~4.6.0"
   },
   "engines": {
     "node": ">=10.15.1"
   },
   "devDependencies": {
     "ava": "1.0.0-rc.2",
-    "eslint": "^4.18.1",
-    "eslint-config-airbnb-base": "^12.1.0",
-    "eslint-plugin-import": "^2.9.0",
+    "eslint": "^6.3.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2",
     "husky": "^1.1.0",
     "lint-staged": "^7.3.0",
     "mocha": "^5.2.0",

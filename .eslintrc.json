@@ -1,0 +1,52 @@
+{
+    "extends": "airbnb-base",
+    "parserOptions": {
+        "ecmaVersion": 2020,
+        "sourceType": "module"
+    },
+    "globals": {
+        "window": "readonly",
+        "btoa": "readonly",
+        "atob": "readonly"
+    },
+    "env": {
+        "es6": true,
+        "node": true
+    },
+    "plugins": [
+        "import"
+    ],
+    "rules": {
+        "arrow-parens": ["error", "always"],
+        "indent": "off",
+        "comma-dangle": ["error", "never"],
+        "consistent-return": "off",
+        "object-curly-newline": "off",
+        "prefer-template": "off",
+        "no-plusplus": "off",
+        "no-continue": "off",
+        "no-bitwise": "off",
+        "no-await-in-loop": "off",
+        "no-sequences": "warn",
+        "no-param-reassign": "warn",
+        "no-return-assign": "warn",
+        "no-shadow": "off",
+        "no-unused-expressions": ["error", { "allowShortCircuit": true }],
+        "arrow-body-style": "off",
+        "space-before-function-paren": "off",
+        "operator-linebreak": "off",
+        "implicit-arrow-linebreak": "off",
+        "import/no-unresolved": ["error", {
+            "ignore": ["^react$", "ttag"]
+        }],
+        "import/prefer-default-export": "off",
+        "import/no-extraneous-dependencies": "off",
+        "max-len": ["error", {
+            "ignoreComments": true,
+            "code": 120,
+            "ignoreStrings": true,
+            "ignoreTemplateLiterals": true,
+            "ignoreRegExpLiterals": true
+        }]
+    }
+}
