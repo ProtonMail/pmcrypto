@@ -44,7 +44,7 @@
   "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
   "dependencies": {
     "esm": "^3.0.84",
-    "openpgp": "~4.6.0"
+    "openpgp": "~4.7.0"
   },
   "engines": {
     "node": ">=10.15.1"
