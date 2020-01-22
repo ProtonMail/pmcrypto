@@ -50,6 +50,7 @@
     "node": ">=10.15.1"
   },
   "devDependencies": {
+    "@types/openpgp": "^4.4.8",
     "ava": "1.0.0-rc.2",
     "eslint": "^6.3.0",
     "eslint-config-airbnb-base": "^14.0.0",
