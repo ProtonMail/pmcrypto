@@ -133,7 +133,8 @@ export function decryptMIMEMessage(
 };
 
 export interface EncryptOptionsPmcrypto extends Omit<EncryptOptions, 'message'> {
-    data: Uint8Array | string;
+    data?: Uint8Array | string;
+    message?: message.Message;
 }
 
 export function encryptMessage(options: EncryptOptionsPmcrypto): Promise<EncryptResult>;
@@ -142,13 +143,13 @@ interface SignOptionsPmcrypto extends Omit<SignOptions, 'message'> {
     data: string;
 }
 
+export function createMessage(text: string | ReadableStream<String> | message.Message, filename?: string, date?: Date, type?: any): message.Message;
+
 export function signMessage(options: SignOptionsPmcrypto): Promise<SignResult>;
 
 export function getSignature(option: string | Uint8Array | signature.Signature): Promise<signature.Signature>;
 
-export function getMessage(
-    message: message.Message | Uint8Array | string
-): message.Message | Promise<message.Message>;
+export function getMessage(message: message.Message | Uint8Array | string): Promise<message.Message>;
 
 export function splitMessage(
     message: message.Message | Uint8Array | string
