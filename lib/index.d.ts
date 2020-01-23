@@ -164,3 +164,9 @@ export function splitMessage(
 
 export function armorBytes(value: Uint8Array | string): Promise<Uint8Array | string>;
 
+export interface algorithmInfo {
+    algorithm: string;
+    rsaBits?: number;
+    bits?: number;
+    curve?: string;
+}
