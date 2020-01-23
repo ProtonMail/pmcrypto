@@ -9,7 +9,7 @@ import {
     enums,
     SignOptions,
     SignResult,
-    EncryptOptions
+    EncryptOptions,
 } from 'openpgp';
 
 export enum VERIFICATION_STATUS {
@@ -29,6 +29,8 @@ export interface SessionKey {
     data: Uint8Array;
     algorithm: string;
 }
+
+export { generateKey, reformatKey } from 'openpgp';
 
 export interface DecryptLecacyOptions extends DecryptOptions {
     messageDate?: Date;
