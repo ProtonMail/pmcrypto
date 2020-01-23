@@ -9,7 +9,7 @@ import {
     enums,
     SignOptions,
     SignResult,
-    EncryptOptions,
+    EncryptOptions, UserID,
 } from 'openpgp';
 
 export enum VERIFICATION_STATUS {
@@ -30,7 +30,16 @@ export interface SessionKey {
     algorithm: string;
 }
 
-export { generateKey, reformatKey } from 'openpgp';
+export { generateKey } from 'openpgp';
+
+export interface ReformatKeyOptions {
+    privateKey: OpenPGPKey;
+    userIds: UserID[];
+    passphrase: string;
+    keyExpirationTime?: number;
+    date?: Date;
+}
+export function reformatKey(option: ReformatKeyOptions): Promise<{ key: key.Key, privateKeyArmored: string, publicKeyArmored: string, revocationCertificate: string }>;
 
 export interface DecryptLecacyOptions extends DecryptOptions {
     messageDate?: Date;
