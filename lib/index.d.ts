@@ -68,9 +68,9 @@ export interface BinaryResult {
     }[];
 }
 
-export function encryptPrivateKey(key: OpenPGPKey, password: string): string;
+export function encryptPrivateKey(key: OpenPGPKey, password: string): Promise<string>;
 
-export function decryptPrivateKey(armoredKey: string, password: string): OpenPGPKey;
+export function decryptPrivateKey(armoredKey: string, password: string): Promise<OpenPGPKey>;
 
 export function encodeUtf8(str: string | undefined): string | undefined;
 
@@ -163,3 +163,4 @@ export function splitMessage(
 }>;
 
 export function armorBytes(value: Uint8Array | string): Promise<Uint8Array | string>;
+
