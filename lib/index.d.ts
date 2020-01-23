@@ -144,6 +144,8 @@ interface SignOptionsPmcrypto extends Omit<SignOptions, 'message'> {
 
 export function signMessage(options: SignOptionsPmcrypto): Promise<SignResult>;
 
+export function getSignature(option: string | Uint8Array | signature.Signature): Promise<signature.Signature>;
+
 export function getMessage(
     message: message.Message | Uint8Array | string
 ): message.Message | Promise<message.Message>;
