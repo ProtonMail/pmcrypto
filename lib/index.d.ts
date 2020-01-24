@@ -5,11 +5,13 @@ import {
     key,
     type,
     signature,
-    packet,
-    enums,
     SignOptions,
     SignResult,
-    EncryptOptions, UserID,
+    EncryptOptions,
+    UserID,
+    cleartext,
+    VerifyOptions,
+    VerifyResult
 } from 'openpgp';
 
 export enum VERIFICATION_STATUS {
@@ -113,7 +115,7 @@ export function decryptSessionKey(options: {
     message: message.Message;
     privateKeys?: key.Key | key.Key[];
     passwords?: string | string[];
-}): Promise<{ data: Uint8Array; algorithm: string } | undefined>;
+}): Promise<SessionKey | undefined>;
 
 interface DecryptResultPmcrypto extends DecryptResult {
     verified: VERIFICATION_STATUS;
@@ -144,6 +146,7 @@ interface SignOptionsPmcrypto extends Omit<SignOptions, 'message'> {
 }
 
 export function createMessage(text: string | ReadableStream<String> | message.Message, filename?: string, date?: Date, type?: any): message.Message;
+export function createCleartextMessage(text: string | ReadableStream<String> | cleartext.CleartextMessage, filename?: string, date?: Date, type?: any): cleartext.CleartextMessage;
 
 export function signMessage(options: SignOptionsPmcrypto): Promise<SignResult>;
 
@@ -171,3 +174,15 @@ export interface algorithmInfo {
     bits?: number;
     curve?: string;
 }
+
+export function SHA256(arg: Uint8Array): Promise<Uint8Array>
+export function SHA512(arg: Uint8Array): Promise<Uint8Array>
+
+
+export interface VerifyMessageResult extends VerifyResult {
+    verified: VERIFICATION_STATUS
+}
+export interface VerifyMessageOptions extends VerifyOptions {
+    detached?: boolean;
+}
+export function verifyMessage(options: VerifyMessageOptions): Promise<VerifyMessageResult>
