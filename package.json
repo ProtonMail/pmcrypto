@@ -2,8 +2,9 @@
   "name": "pmcrypto",
   "version": "6.2.2",
   "description": "",
-  "main": "lib/index.js",
-  "module": "lib/pmcrypto.js",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "module": "./lib/pmcrypto.js",
   "sideEffects": false,
   "scripts": {
     "test": "ava -v",
@@ -50,6 +51,7 @@
     "node": ">=10.15.1"
   },
   "devDependencies": {
+    "@types/openpgp": "^4.4.8",
     "ava": "1.0.0-rc.2",
     "eslint": "^6.3.0",
     "eslint-config-airbnb-base": "^14.0.0",
