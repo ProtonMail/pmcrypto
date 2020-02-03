@@ -41,7 +41,9 @@ export interface ReformatKeyOptions {
     keyExpirationTime?: number;
     date?: Date;
 }
-export function reformatKey(option: ReformatKeyOptions): Promise<{ key: key.Key, privateKeyArmored: string, publicKeyArmored: string, revocationCertificate: string }>;
+export function reformatKey(
+    option: ReformatKeyOptions
+): Promise<{ key: key.Key; privateKeyArmored: string; publicKeyArmored: string; revocationCertificate: string }>;
 
 export interface DecryptLecacyOptions extends DecryptOptions {
     messageDate?: Date;
@@ -53,10 +55,10 @@ export interface DecryptMimeOptions extends DecryptLecacyOptions {
 }
 
 // No reuse from OpenPGP's equivalent
-export interface EncryptResult {
-    data: string;
-    message: message.Message;
-    signature: signature.Signature;
+export interface EncryptResult<D = undefined, M = undefined, S = undefined> {
+    data: D;
+    message: M;
+    signature: S;
     sessionKey: SessionKey;
 }
 
@@ -139,14 +141,44 @@ export interface EncryptOptionsPmcrypto extends Omit<EncryptOptions, 'message'> 
     message?: message.Message;
 }
 
-export function encryptMessage(options: EncryptOptionsPmcrypto): Promise<EncryptResult>;
+export function encryptMessage(
+    options: EncryptOptionsPmcrypto & { armor?: true; detached?: false }
+): Promise<EncryptResult<string>>;
+export function encryptMessage(
+    options: EncryptOptionsPmcrypto & { armor?: true; detached: true }
+): Promise<EncryptResult<string, undefined, string>>;
+export function encryptMessage(
+    options: EncryptOptionsPmcrypto & { armor: false; detached?: false }
+): Promise<EncryptResult<undefined, message.Message, undefined>>;
+export function encryptMessage(
+    options: EncryptOptionsPmcrypto & { armor: false; detached: true }
+): Promise<EncryptResult<undefined, message.Message, signature.Signature>>;
+export function encryptMessage(
+    options: EncryptOptionsPmcrypto
+): Promise<
+    EncryptResult<
+        string | ReadableStream<String>,
+        message.Message,
+        string | ReadableStream<String> | signature.Signature
+    >
+>;
 
 interface SignOptionsPmcrypto extends Omit<SignOptions, 'message'> {
     data: string;
 }
 
-export function createMessage(text: string | ReadableStream<String> | message.Message, filename?: string, date?: Date, type?: any): message.Message;
-export function createCleartextMessage(text: string | ReadableStream<String> | cleartext.CleartextMessage, filename?: string, date?: Date, type?: any): cleartext.CleartextMessage;
+export function createMessage(
+    text: string | ReadableStream<String> | message.Message,
+    filename?: string,
+    date?: Date,
+    type?: any
+): message.Message;
+export function createCleartextMessage(
+    text: string | ReadableStream<String> | cleartext.CleartextMessage,
+    filename?: string,
+    date?: Date,
+    type?: any
+): cleartext.CleartextMessage;
 
 export function signMessage(options: SignOptionsPmcrypto): Promise<SignResult>;
 
@@ -175,14 +207,13 @@ export interface algorithmInfo {
     curve?: string;
 }
 
-export function SHA256(arg: Uint8Array): Promise<Uint8Array>
-export function SHA512(arg: Uint8Array): Promise<Uint8Array>
-
+export function SHA256(arg: Uint8Array): Promise<Uint8Array>;
+export function SHA512(arg: Uint8Array): Promise<Uint8Array>;
 
 export interface VerifyMessageResult extends VerifyResult {
-    verified: VERIFICATION_STATUS
+    verified: VERIFICATION_STATUS;
 }
 export interface VerifyMessageOptions extends VerifyOptions {
     detached?: boolean;
 }
-export function verifyMessage(options: VerifyMessageOptions): Promise<VerifyMessageResult>
+export function verifyMessage(options: VerifyMessageOptions): Promise<VerifyMessageResult>;
