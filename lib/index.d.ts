@@ -123,9 +123,15 @@ interface DecryptResultPmcrypto extends DecryptResult {
     verified: VERIFICATION_STATUS;
 }
 
-export function decryptMessage(options: DecryptOptions): DecryptResultPmcrypto;
+export function decryptMessage(
+    options: DecryptOptions & { format: 'utf8' }
+): Promise<DecryptResultPmcrypto & { data: string | ReadableStream<String> }>;
+export function decryptMessage(
+    options: DecryptOptions & { format: 'binary' }
+): Promise<DecryptResultPmcrypto & { data: Uint8Array | ReadableStream<Uint8Array> }>;
+export function decryptMessage(options: DecryptOptions): Promise<DecryptResultPmcrypto>;
 
-export function decryptMessageLegacy(options: DecryptLecacyOptions): DecryptResult;
+export function decryptMessageLegacy(options: DecryptLecacyOptions): Promise<DecryptResult>;
 
 export function decryptMIMEMessage(
     options: DecryptMimeOptions
@@ -180,6 +186,18 @@ export function createCleartextMessage(
     type?: any
 ): cleartext.CleartextMessage;
 
+export function signMessage(
+    options: SignOptionsPmcrypto & { armor?: true; detached?: false }
+): Promise<{ data: string }>;
+export function signMessage(
+    options: SignOptionsPmcrypto & { armor: false; detached?: false }
+): Promise<{ message: message.Message }>;
+export function signMessage(
+    options: SignOptionsPmcrypto & { armor?: true; detached: true }
+): Promise<{ signature: string }>;
+export function signMessage(
+    options: SignOptionsPmcrypto & { armor: false; detached: true }
+): Promise<{ signature: signature.Signature }>;
 export function signMessage(options: SignOptionsPmcrypto): Promise<SignResult>;
 
 export function getSignature(option: string | Uint8Array | signature.Signature): Promise<signature.Signature>;
