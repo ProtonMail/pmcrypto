@@ -73,18 +73,22 @@ export interface BinaryResult {
 }
 
 export function encryptPrivateKey(key: OpenPGPKey, password: string): Promise<string>;
-
 export function decryptPrivateKey(armoredKey: string, password: string): Promise<OpenPGPKey>;
 
-export function encodeUtf8(str: string | undefined): string | undefined;
+export function encodeUtf8(str: string): string;
+export function encodeUtf8(str: undefined): undefined;
 
-export function encodeBase64(str: string | undefined): string | undefined;
+export function encodeBase64(str: string): string;
+export function encodeBase64(str: undefined): undefined;
 
-export function decodeBase64(str: string | undefined): string | undefined;
+export function decodeBase64(str: string): string;
+export function decodeBase64(str: undefined): undefined;
 
-export function encodeUtf8Base64(str: string | undefined): string | undefined;
+export function encodeUtf8Base64(str: string): string;
+export function encodeUtf8Base64(str: undefined): string;
 
-export function decodeUtf8Base64(str: string | undefined): string | undefined;
+export function decodeUtf8Base64(str: string): string;
+export function decodeUtf8Base64(str: undefined): undefined;
 
 export function binaryStringToArray(str: string): Uint8Array;
 
@@ -227,6 +231,7 @@ export interface algorithmInfo {
 
 export function SHA256(arg: Uint8Array): Promise<Uint8Array>;
 export function SHA512(arg: Uint8Array): Promise<Uint8Array>;
+export function unsafeMD5(arg: Uint8Array): Promise<Uint8Array>;
 
 export interface VerifyMessageResult extends VerifyResult {
     verified: VERIFICATION_STATUS;
