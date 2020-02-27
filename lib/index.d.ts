@@ -144,6 +144,7 @@ export function decryptMIMEMessage(
     getAttachments: () => Promise<any>;
     getEncryptedSubject: () => Promise<string>;
     verify: () => Promise<number>;
+    errors: () => Promise<Error[] | undefined>
 };
 
 export interface EncryptOptionsPmcrypto extends Omit<EncryptOptions, 'message'> {
