@@ -241,3 +241,5 @@ export interface VerifyMessageOptions extends VerifyOptions {
     detached?: boolean;
 }
 export function verifyMessage(options: VerifyMessageOptions): Promise<VerifyMessageResult>;
+
+export function serverTime(): Date;
