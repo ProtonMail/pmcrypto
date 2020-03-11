@@ -12,7 +12,7 @@ test('sha256 fingerprints - v4 key', async (t) => {
     });
 });
 
-test('sha256 fingerprints - v5 key', async (t) => {
+test.serial('sha256 fingerprints - v5 key', async (t) => {
     openpgp.config.v5_keys = !openpgp.config.v5_keys;
     const { publicKeyArmored } = await pmcrypto.generateKey({ userIds: [{}], passphrase: 'test' });
     const { fingerprints, sha256Fingerprints } = await pmcrypto.keyInfo(publicKeyArmored);
