@@ -99,3 +99,31 @@ test('creation test', async (t) => {
     );
     t.is(dateError, 'The self certifications are created with illegal times');
 });
+
+test('invalid key', async (t) => {
+    const { validationError } = await pmcrypto.keyInfo(publickey);
+    t.is(validationError, 'Key is less than 2048 bits');
+});
+
+test('valid key', async (t) => {
+    const { validationError } = await pmcrypto.keyInfo(creationkey);
+    t.is(validationError, null);
+});
+
+test('newly generated RSA key', async (t) => {
+    const { publicKeyArmored } = await pmcrypto.generateKey({ userIds: [{}], passphrase: 'test' });
+    const { validationError } = await pmcrypto.keyInfo(publicKeyArmored);
+    t.is(validationError, null);
+});
+
+test('newly generated ECC key', async (t) => {
+    const { publicKeyArmored } = await pmcrypto.generateKey({ userIds: [{}], passphrase: 'test', curve: 'curve25519' });
+    const { validationError } = await pmcrypto.keyInfo(publicKeyArmored);
+    t.is(validationError, null);
+});
+
+test('newly generated ECC key: invalid curve', async (t) => {
+    const { publicKeyArmored } = await pmcrypto.generateKey({ userIds: [{}], passphrase: 'test', curve: 'secp256k1' });
+    const { validationError } = await pmcrypto.keyInfo(publicKeyArmored);
+    t.is(validationError, 'Key must use Curve25519, P-256, P-384 or P-521');
+});
