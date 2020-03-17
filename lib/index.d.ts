@@ -25,7 +25,13 @@ export enum SIGNATURE_TYPES {
     CANONICAL_TEXT = 1
 }
 
-export type OpenPGPKey = key.Key;
+// type defined in OpenPGP is not complete
+export interface OpenPGPKey extends key.Key {
+    users?: ({ userId?: { userid?: string } })[];
+}
+
+export type OpenPGPMessage = message.Message;
+export type OpenPGPSignature = signature.Signature;
 
 export interface SessionKey {
     data: Uint8Array;
@@ -45,11 +51,11 @@ export function reformatKey(
     option: ReformatKeyOptions
 ): Promise<{ key: key.Key; privateKeyArmored: string; publicKeyArmored: string; revocationCertificate: string }>;
 
-export interface DecryptLecacyOptions extends DecryptOptions {
+export interface DecryptLegacyOptions extends DecryptOptions {
     messageDate?: Date;
 }
 
-export interface DecryptMimeOptions extends DecryptLecacyOptions {
+export interface DecryptMimeOptions extends DecryptLegacyOptions {
     headerFilename?: string;
     sender?: string;
 }
@@ -123,7 +129,7 @@ export function decryptSessionKey(options: {
     passwords?: string | string[];
 }): Promise<SessionKey | undefined>;
 
-interface DecryptResultPmcrypto extends DecryptResult {
+export interface DecryptResultPmcrypto extends DecryptResult {
     verified: VERIFICATION_STATUS;
 }
 
@@ -135,7 +141,7 @@ export function decryptMessage(
 ): Promise<DecryptResultPmcrypto & { data: Uint8Array | ReadableStream<Uint8Array> }>;
 export function decryptMessage(options: DecryptOptions): Promise<DecryptResultPmcrypto>;
 
-export function decryptMessageLegacy(options: DecryptLecacyOptions): Promise<DecryptResult>;
+export function decryptMessageLegacy(options: DecryptLegacyOptions): Promise<DecryptResult>;
 
 export function decryptMIMEMessage(
     options: DecryptMimeOptions
@@ -233,6 +239,7 @@ export interface algorithmInfo {
 export function SHA256(arg: Uint8Array): Promise<Uint8Array>;
 export function SHA512(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeMD5(arg: Uint8Array): Promise<Uint8Array>;
+export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
 
 export interface VerifyMessageResult extends VerifyResult {
     verified: VERIFICATION_STATUS;
