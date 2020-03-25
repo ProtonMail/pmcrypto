@@ -27,7 +27,7 @@ export enum SIGNATURE_TYPES {
 
 // type defined in OpenPGP is not complete
 export interface OpenPGPKey extends key.Key {
-    users?: ({ userId?: { userid?: string } })[];
+    users?: { userId?: { userid?: string } }[];
 }
 
 export type OpenPGPMessage = message.Message;
@@ -141,7 +141,9 @@ export function decryptMessage(
 ): Promise<DecryptResultPmcrypto & { data: Uint8Array | ReadableStream<Uint8Array> }>;
 export function decryptMessage(options: DecryptOptions): Promise<DecryptResultPmcrypto>;
 
-export function decryptMessageLegacy(options: DecryptLegacyOptions): Promise<DecryptResult>;
+export function decryptMessageLegacy(
+    options: DecryptLegacyOptions
+): Promise<DecryptResultPmcrypto | { data: string; signature: number; error: Error[] | undefined }>;
 
 export function decryptMIMEMessage(
     options: DecryptMimeOptions
@@ -150,7 +152,7 @@ export function decryptMIMEMessage(
     getAttachments: () => Promise<any>;
     getEncryptedSubject: () => Promise<string>;
     verify: () => Promise<number>;
-    errors: () => Promise<Error[] | undefined>
+    errors: () => Promise<Error[] | undefined>;
 };
 
 export interface EncryptOptionsPmcrypto extends Omit<EncryptOptions, 'message'> {
