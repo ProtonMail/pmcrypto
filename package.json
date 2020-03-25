@@ -1,6 +1,6 @@
 {
   "name": "pmcrypto",
-  "version": "6.3.3",
+  "version": "6.3.4",
   "description": "",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
