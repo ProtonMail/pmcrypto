@@ -1,36 +1,8 @@
 import test from 'ava';
-import elliptic from 'elliptic';
 import '../helper';
 
-import { generateForwardingMaterial } from '../../lib/pmcrypto';
+import { generateForwardingMaterial, proxyTransform } from '../../lib/pmcrypto';
 import { openpgp } from '../../lib/openpgp';
-
-async function proxyTransform(ciphertext, proxyFactor, originalSubKeyId, forwardingSubKeyId) {
-    // eslint-disable-next-line new-cap
-    const curve = new elliptic.ec('curve25519');
-    const encrypted = await openpgp.message.readArmored(ciphertext.data);
-
-    encrypted.packets.forEach((packet) => {
-        if (
-            packet.tag === openpgp.enums.packet.publicKeyEncryptedSessionKey &&
-            packet.publicKeyId.equals(originalSubKeyId)
-        ) {
-            const bG = packet.encrypted[0].data;
-            const point = curve.curve.decodePoint(bG.subarray(1).reverse());
-            const bkG = new Uint8Array(
-                point
-                    .mul(proxyFactor)
-                    .getX()
-                    .toArray('be', 32)
-            );
-            const encoded = openpgp.util.concatUint8Array([new Uint8Array([0x40]), bkG.reverse()]);
-            packet.encrypted[0].data = encoded;
-            packet.publicKeyId = forwardingSubKeyId;
-        }
-    });
-
-    return encrypted.armor();
-}
 
 test('generate forwarding key', async (t) => {
     const options = { userIds: [{ name: 'Bob', email: 'info@bob.com' }], curve: 'curve25519' };
@@ -83,17 +55,21 @@ test('decryption with forwarding - v4 key', async (t) => {
         message: openpgp.message.fromText(plaintext),
         publicKeys: bobKey.toPublic()
     });
+    const ciphertextData = await openpgp.message.readArmored(ciphertext.data);
 
     const { proxyFactor, finalRecipientKey } = await generateForwardingMaterial(bobKey, [
         { name: 'Bob', email: 'info@bob.com', comment: 'Forwarded to Charlie' }
     ]);
     const charlieKey = finalRecipientKey.key;
 
-    const transformedCiphertext = await openpgp.stream.readToEnd(
-        await proxyTransform(ciphertext, proxyFactor, bobKey.subKeys[0].getKeyId(), charlieKey.subKeys[0].getKeyId())
+    const transformedCiphertext = await proxyTransform(
+        ciphertextData,
+        proxyFactor,
+        bobKey.subKeys[0].getKeyId(),
+        charlieKey.subKeys[0].getKeyId()
     );
     const decrypted = await openpgp.decrypt({
-        message: await openpgp.message.readArmored(transformedCiphertext),
+        message: transformedCiphertext,
         privateKeys: charlieKey
     });
     t.is(decrypted.data, plaintext);
@@ -117,6 +93,7 @@ test.serial('decryption with forwarding - v5 key', async (t) => {
         message: openpgp.message.fromText(plaintext),
         publicKeys: bobKey.toPublic()
     });
+    const ciphertextData = await openpgp.message.readArmored(ciphertext.data);
 
     const { proxyFactor, finalRecipientKey } = await generateForwardingMaterial(bobKey, [
         { name: 'Bob', email: 'info@bob.com', comment: 'Forwarded to Charlie' }
@@ -125,11 +102,14 @@ test.serial('decryption with forwarding - v5 key', async (t) => {
     t.is(bobKey.keyPacket.version, 5);
     t.is(charlieKey.keyPacket.version, 5);
 
-    const transformedCiphertext = await openpgp.stream.readToEnd(
-        await proxyTransform(ciphertext, proxyFactor, bobKey.subKeys[0].getKeyId(), charlieKey.subKeys[0].getKeyId())
+    const transformedCiphertext = await proxyTransform(
+        ciphertextData,
+        proxyFactor,
+        bobKey.subKeys[0].getKeyId(),
+        charlieKey.subKeys[0].getKeyId()
     );
     const decrypted = await openpgp.decrypt({
-        message: await openpgp.message.readArmored(transformedCiphertext),
+        message: transformedCiphertext,
         privateKeys: charlieKey
     });
     t.is(decrypted.data, plaintext);

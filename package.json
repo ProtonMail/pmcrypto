@@ -45,6 +45,7 @@
   "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
   "dependencies": {
     "@types/openpgp": "^4.4.12",
+    "elliptic": "^6.5.2",
     "esm": "^3.0.84",
     "openpgp": "^4.10.8"
   },
@@ -59,7 +60,6 @@
     "husky": "^1.1.0",
     "lint-staged": "^7.3.0",
     "mocha": "^5.2.0",
-    "prettier": "^1.14.3",
-    "elliptic": "^6.5.2"
+    "prettier": "^1.14.3"
   }
 }
