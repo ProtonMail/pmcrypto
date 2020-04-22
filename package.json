@@ -46,7 +46,7 @@
   "dependencies": {
     "@types/openpgp": "^4.4.8",
     "esm": "^3.0.84",
-    "openpgp": "~4.10.0"
+    "openpgp": "github:twiss/openpgpjs#986406493c7471fda03ceedef4e9c78eba0eac29"
   },
   "engines": {
     "node": ">=10.15.1"
