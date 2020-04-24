@@ -129,9 +129,19 @@ export function decryptSessionKey(options: {
     passwords?: string | string[];
 }): Promise<SessionKey | undefined>;
 
-export interface DecryptResultPmcrypto extends DecryptResult {
-    verified: VERIFICATION_STATUS;
+export interface VerifiedSignatureResult {
+    keyid: type.keyid.Keyid;
+    verified: Promise<Boolean>;
     signature: OpenPGPSignature;
+    valid: boolean;
+}
+
+export interface DecryptResultComplete extends DecryptResult {
+    signatures: VerifiedSignatureResult[];
+}
+
+export interface DecryptResultPmcrypto extends DecryptResultComplete {
+    verified: VERIFICATION_STATUS;
 }
 
 export function decryptMessage(
@@ -142,7 +152,7 @@ export function decryptMessage(
 ): Promise<DecryptResultPmcrypto & { data: Uint8Array | ReadableStream<Uint8Array> }>;
 export function decryptMessage(options: DecryptOptions): Promise<DecryptResultPmcrypto>;
 
-export function decryptMessageLegacy(options: DecryptLegacyOptions): Promise<DecryptResult>;
+export function decryptMessageLegacy(options: DecryptLegacyOptions): Promise<DecryptResultComplete>;
 
 export function decryptMIMEMessage(
     options: DecryptMimeOptions
@@ -152,7 +162,7 @@ export function decryptMIMEMessage(
     getEncryptedSubject: () => Promise<string>;
     verify: () => Promise<number>;
     errors: () => Promise<Error[] | undefined>;
-    getSignature: () => Promise<OpenPGPSignature>;
+    signatures: VerifiedSignatureResult[];
 };
 
 export interface EncryptOptionsPmcrypto extends Omit<EncryptOptions, 'message'> {
