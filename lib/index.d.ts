@@ -129,13 +129,6 @@ export function decryptSessionKey(options: {
     passwords?: string | string[];
 }): Promise<SessionKey | undefined>;
 
-export interface VerifiedSignatureResult {
-    keyid: type.keyid.Keyid;
-    verified: Promise<Boolean>;
-    signature: OpenPGPSignature;
-    valid: boolean;
-}
-
 export type DecryptResultPmcrypto = Omit<DecryptResult, 'signatures'> & {
     signatures: (OpenPGPSignature | undefined)[];
     verified: VERIFICATION_STATUS;
