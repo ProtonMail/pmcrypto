@@ -130,7 +130,7 @@ export function decryptSessionKey(options: {
 }): Promise<SessionKey | undefined>;
 
 export type DecryptResultPmcrypto = Omit<DecryptResult, 'signatures'> & {
-    signatures: (OpenPGPSignature | undefined)[];
+    signatures: (OpenPGPSignature)[];
     verified: VERIFICATION_STATUS;
 }
 
