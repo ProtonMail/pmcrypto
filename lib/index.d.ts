@@ -136,8 +136,8 @@ export interface VerifiedSignatureResult {
     valid: boolean;
 }
 
-export interface DecryptResultComplete extends DecryptResult {
-    signatures: VerifiedSignatureResult[];
+export type DecryptResultComplete = Omit<DecryptResult, 'signatures'> & {
+    signatures: (VerifiedSignatureResult | undefined)[];
 }
 
 export interface DecryptResultPmcrypto extends DecryptResultComplete {
