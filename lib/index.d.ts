@@ -129,7 +129,8 @@ export function decryptSessionKey(options: {
     passwords?: string | string[];
 }): Promise<SessionKey | undefined>;
 
-export interface DecryptResultPmcrypto extends DecryptResult {
+export type DecryptResultPmcrypto = Omit<DecryptResult, 'signatures'> & {
+    signatures: (OpenPGPSignature)[];
     verified: VERIFICATION_STATUS;
 }
 
@@ -141,7 +142,7 @@ export function decryptMessage(
 ): Promise<DecryptResultPmcrypto & { data: Uint8Array | ReadableStream<Uint8Array> }>;
 export function decryptMessage(options: DecryptOptions): Promise<DecryptResultPmcrypto>;
 
-export function decryptMessageLegacy(options: DecryptLegacyOptions): Promise<DecryptResult>;
+export function decryptMessageLegacy(options: DecryptLegacyOptions): Promise<DecryptResultPmcrypto>;
 
 export function decryptMIMEMessage(
     options: DecryptMimeOptions
@@ -151,6 +152,7 @@ export function decryptMIMEMessage(
     getEncryptedSubject: () => Promise<string>;
     verify: () => Promise<number>;
     errors: () => Promise<Error[] | undefined>;
+    signatures: OpenPGPSignature[];
 };
 
 export interface EncryptOptionsPmcrypto extends Omit<EncryptOptions, 'message'> {
@@ -169,16 +171,20 @@ export function encryptMessage(
 ): Promise<EncryptResult<undefined, message.Message, undefined>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor: false; detached: true }
-): Promise<EncryptResult<undefined, message.Message, signature.Signature>>;
+): Promise<EncryptResult<undefined, message.Message, OpenPGPSignature>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto
 ): Promise<
     EncryptResult<
         string | ReadableStream<String>,
         message.Message,
-        string | ReadableStream<String> | signature.Signature
+        string | ReadableStream<String> | OpenPGPSignature
     >
 >;
+export function getMatchingKeys(
+    signature: OpenPGPSignature,
+    publicKeys: OpenPGPKey[]
+): OpenPGPKey | undefined;
 
 interface SignOptionsPmcrypto extends Omit<SignOptions, 'message'> {
     data: string;
@@ -208,10 +214,10 @@ export function signMessage(
 ): Promise<{ signature: string }>;
 export function signMessage(
     options: SignOptionsPmcrypto & { armor: false; detached: true }
-): Promise<{ signature: signature.Signature }>;
+): Promise<{ signature: OpenPGPSignature }>;
 export function signMessage(options: SignOptionsPmcrypto): Promise<SignResult>;
 
-export function getSignature(option: string | Uint8Array | signature.Signature): Promise<signature.Signature>;
+export function getSignature(option: string | Uint8Array | OpenPGPSignature): Promise<OpenPGPSignature>;
 
 export function getMessage(message: message.Message | Uint8Array | string): Promise<message.Message>;
 
