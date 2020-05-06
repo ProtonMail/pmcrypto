@@ -181,7 +181,7 @@ export function encryptMessage(
         string | ReadableStream<String> | OpenPGPSignature
     >
 >;
-export function getMatchingKeys(
+export function getMatchingKey(
     signature: OpenPGPSignature,
     publicKeys: OpenPGPKey[]
 ): OpenPGPKey | undefined;
