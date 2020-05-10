@@ -256,3 +256,5 @@ export interface VerifyMessageOptions extends VerifyOptions {
 export function verifyMessage(options: VerifyMessageOptions): Promise<VerifyMessageResult>;
 
 export function serverTime(): Date;
+
+export function getPreferredAlgorithm(key: OpenPGPKey[], date?: Date): Promise<string>
