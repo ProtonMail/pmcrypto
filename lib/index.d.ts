@@ -187,7 +187,7 @@ export function getMatchingKey(
 ): OpenPGPKey | undefined;
 
 interface SignOptionsPmcrypto extends Omit<SignOptions, 'message'> {
-    data: string;
+    data: string | Uint8Array;
 }
 
 export function createMessage(
