@@ -110,7 +110,7 @@ export function getFingerprint(key: OpenPGPKey): string;
 
 export function isExpiredKey(key: OpenPGPKey): Promise<boolean>;
 
-export function generateSessionKey(algo: string): Uint8Array;
+export function generateSessionKey(algo: string): Promise<Uint8Array>;
 
 export function encryptSessionKey(options: {
     data: Uint8Array;
