@@ -46,7 +46,7 @@
   "dependencies": {
     "@types/openpgp": "^4.4.8",
     "esm": "^3.0.84",
-    "openpgp": "~4.10.0"
+    "openpgp": "^4.10.7"
   },
   "engines": {
     "node": ">=10.15.1"
