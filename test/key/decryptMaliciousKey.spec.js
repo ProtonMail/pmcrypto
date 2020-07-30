@@ -87,11 +87,11 @@ BVwyGMu4Utoe7o2jTBfQiSuisOU5rQk=
 test('it fails to decrypt a key with mismatching private and public key parameters', async (t) => {
     const decryptedPrivateKey = decryptPrivateKey(testPrivateKeyMalicious, 'userpass');
     const error = await t.throwsAsync(decryptedPrivateKey);
-    t.regex(error.message, /Public key parameter does not match private key parameter/);
+    t.regex(error.message, /Key is invalid/);
 });
 
 test('it fails to decrypt a key with all GNU-dummy key packets', async (t) => {
     const decryptedPrivateKey = decryptPrivateKey(testPrivateKeyAllDummy, 'any password');
     const error = await t.throwsAsync(decryptedPrivateKey);
-    t.regex(error.message, /Missing private key parameters/);
+    t.regex(error.message, /Cannot validate an all-gnu-dummy key/);
 });
