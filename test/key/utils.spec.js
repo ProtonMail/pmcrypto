@@ -1,14 +1,16 @@
 import test from 'ava';
 import '../helper';
 import {
+    binaryStringToArray,
     concatArrays,
     decodeBase64,
     encodeBase64,
-    stripArmor,
-    binaryStringToArray,
+    genPrivateEphemeralKey,
     genPublicEphemeralKey,
-    genPrivateEphemeralKey
+    stripArmor
 } from '../../lib/pmcrypto';
+import { openpgp } from '../../lib/openpgp';
+import { keyCheck } from '../../lib';
 
 test('it can correctly encode base 64', async (t) => {
     t.is(encodeBase64('foo'), 'Zm9v');
@@ -139,4 +141,30 @@ test('it can correctly perform an ECDHE roundtrip', async (t) => {
     const Zver = await genPrivateEphemeralKey({ Curve, V, d, Fingerprint });
 
     t.deepEqual(Zver, Z);
+});
+
+// Test issue https://github.com/ProtonMail/pmcrypto/issues/92
+test('it can check userId against a given email', (t) => {
+    const info = {
+        version: 4,
+        userIds: ['jb'],
+        algorithmName: 'ecdsa',
+        encrypt: {},
+        revocationSignatures: [],
+        sign: {},
+        user: {
+            hash: [openpgp.enums.hash.sha256],
+            symmetric: [openpgp.enums.symmetric.aes256],
+            userId: 'Jacky Black <jackyblack@foo.com>'
+        }
+    };
+
+    t.is(info, keyCheck(info, 'jackyblack@foo.com'));
+
+    try {
+        keyCheck(info, 'jack.black@foo.com');
+        t.fail();
+    } catch (e) {
+        e.message === 'UserID does not contain correct email address' ? t.pass() : t.fail();
+    }
 });
