@@ -258,3 +258,5 @@ export function verifyMessage(options: VerifyMessageOptions): Promise<VerifyMess
 export function serverTime(): Date;
 
 export function getPreferredAlgorithm(key: OpenPGPKey[], date?: Date): Promise<string>
+
+export function getSHA256Fingerprints(key: OpenPGPKey): Promise<string[]>
