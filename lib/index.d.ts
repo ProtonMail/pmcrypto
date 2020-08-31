@@ -84,6 +84,9 @@ export function decryptPrivateKey(armoredKey: string, password: string): Promise
 export function encodeUtf8(str: string): string;
 export function encodeUtf8(str: undefined): undefined;
 
+export function decodeUtf8(str: string): string;
+export function decodeUtf8(str: undefined): undefined;
+
 export function encodeBase64(str: string): string;
 export function encodeBase64(str: undefined): undefined;
 
