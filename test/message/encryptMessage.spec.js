@@ -24,7 +24,7 @@ test('it can encrypt and decrypt a message', async (t) => {
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
 });
 
-test('it can encrypt and decrypt a message with a detached signature', async (t) => {
+test('it can encrypt and decrypt a message with an unencrypted detached signature', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
     const { data: encrypted, signature } = await encryptMessage({
         message: createMessage('Hello world!'),
@@ -46,4 +46,31 @@ test('it can encrypt and decrypt a message with a detached signature', async (t)
         publicKeys: [decryptedPrivateKey.toPublic()]
     });
     t.is(verifiedAgain, VERIFICATION_STATUS.SIGNED_AND_VALID);
+});
+
+test('it can encrypt and decrypt a message with an encrypted detached signature', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const { data: encrypted, encSignature } = await encryptMessage({
+        message: createMessage('Hello world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        privateKeys: [decryptedPrivateKey],
+        detached: true
+    });
+    const { data: decrypted, verified } = await decryptMessage({
+        message: await getMessage(encrypted),
+        encSignature: await getMessage(encSignature),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        privateKeys: [decryptedPrivateKey]
+    });
+    t.is(decrypted, 'Hello world!');
+    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+    /*
+    DO WE HAVE A USECASE FOR USING verifyMessage WITH AN ENCRYPTED SIGNATURE?
+    const { verified: verifiedAgain } = await verifyMessage({
+        message: createMessage('Hello world!'),
+        encSignature: await getMessage(encSignature),
+        publicKeys: [decryptedPrivateKey.toPublic()]
+    });
+    t.is(verifiedAgain, VERIFICATION_STATUS.SIGNED_AND_VALID);
+    */
 });
