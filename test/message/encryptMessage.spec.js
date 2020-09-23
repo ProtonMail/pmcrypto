@@ -50,7 +50,7 @@ test('it can encrypt and decrypt a message with an unencrypted detached signatur
 
 test('it can encrypt and decrypt a message with an encrypted detached signature', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-    const { data: encrypted, encSignature } = await encryptMessage({
+    const { data: encrypted, encryptedSignature } = await encryptMessage({
         message: createMessage('Hello world!'),
         publicKeys: [decryptedPrivateKey.toPublic()],
         privateKeys: [decryptedPrivateKey],
@@ -58,19 +58,10 @@ test('it can encrypt and decrypt a message with an encrypted detached signature'
     });
     const { data: decrypted, verified } = await decryptMessage({
         message: await getMessage(encrypted),
-        encSignature: await getMessage(encSignature),
+        encryptedSignature: await getMessage(encryptedSignature),
         publicKeys: [decryptedPrivateKey.toPublic()],
         privateKeys: [decryptedPrivateKey]
     });
     t.is(decrypted, 'Hello world!');
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
-    /*
-    DO WE HAVE A USECASE FOR USING verifyMessage WITH AN ENCRYPTED SIGNATURE?
-    const { verified: verifiedAgain } = await verifyMessage({
-        message: createMessage('Hello world!'),
-        encSignature: await getMessage(encSignature),
-        publicKeys: [decryptedPrivateKey.toPublic()]
-    });
-    t.is(verifiedAgain, VERIFICATION_STATUS.SIGNED_AND_VALID);
-    */
 });
