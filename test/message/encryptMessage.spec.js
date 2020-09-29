@@ -1,10 +1,11 @@
 import test from 'ava';
 import '../helper';
+import { util } from 'openpgp';
 
 import { createMessage, getMessage, getSignature, verifyMessage } from '../../lib/message/utils';
 import encryptMessage from '../../lib/message/encrypt';
 import { decryptMessage } from '../../lib/message/decrypt';
-import { decryptPrivateKey, generateSessionKey } from '../../lib';
+import { decryptPrivateKey } from '../../lib';
 import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
@@ -106,43 +107,10 @@ test('it can encrypt a message and decrypt it unarmored using session keys along
 test('it can encrypt and decrypt a message with session key without setting returnSessionKey', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
     const sessionKey = {
-        data: new Uint8Array([
-            197,
-            98,
-            157,
-            132,
-            15,
-            214,
-            78,
-            245,
-            90,
-            234,
-            71,
-            79,
-            135,
-            220,
-            222,
-            239,
-            118,
-            187,
-            199,
-            152,
-            163,
-            64,
-            239,
-            103,
-            4,
-            83,
-            21,
-            235,
-            121,
-            36,
-            163,
-            111
-        ]),
+        data: util.hex_to_Uint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
         algorithm: 'aes256'
     };
-    const { data: encrypted, sessionKey: sessionKeys } = await encryptMessage({
+    const { data: encrypted } = await encryptMessage({
         message: createMessage('Hello world!'),
         publicKeys: [decryptedPrivateKey.toPublic()],
         privateKeys: [decryptedPrivateKey],
@@ -151,7 +119,7 @@ test('it can encrypt and decrypt a message with session key without setting retu
     const { data: decrypted, verified } = await decryptMessage({
         message: await getMessage(encrypted),
         publicKeys: [decryptedPrivateKey.toPublic()],
-        sessionKeys
+        sessionKeys: sessionKey
     });
     t.is(decrypted, 'Hello world!');
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
@@ -160,43 +128,10 @@ test('it can encrypt and decrypt a message with session key without setting retu
 test('it can encrypt and decrypt a message with session key without setting returnSessionKey with a detached signature', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
     const sessionKey = {
-        data: new Uint8Array([
-            197,
-            98,
-            157,
-            132,
-            15,
-            214,
-            78,
-            245,
-            90,
-            234,
-            71,
-            79,
-            135,
-            220,
-            222,
-            239,
-            118,
-            187,
-            199,
-            152,
-            163,
-            64,
-            239,
-            103,
-            4,
-            83,
-            21,
-            235,
-            121,
-            36,
-            163,
-            111
-        ]),
+        data: util.hex_to_Uint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
         algorithm: 'aes256'
     };
-    const { data: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
+    const { data: encrypted, encryptedSignature } = await encryptMessage({
         message: createMessage('Hello world!'),
         publicKeys: [decryptedPrivateKey.toPublic()],
         privateKeys: [decryptedPrivateKey],
@@ -207,7 +142,7 @@ test('it can encrypt and decrypt a message with session key without setting retu
         message: await getMessage(encrypted),
         publicKeys: [decryptedPrivateKey.toPublic()],
         encryptedSignature: await getMessage(encryptedSignature),
-        sessionKeys
+        sessionKeys: sessionKey
     });
     t.is(decrypted, 'Hello world!');
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
