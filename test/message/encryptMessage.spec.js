@@ -24,6 +24,23 @@ test('it can encrypt and decrypt a message', async (t) => {
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
 });
 
+test('it can encrypt and decrypt a message with session keys', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const { data: encrypted, sessionKey: sessionKeys } = await encryptMessage({
+        message: createMessage('Hello world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        privateKeys: [decryptedPrivateKey],
+        returnSessionKey: true
+    });
+    const { data: decrypted, verified } = await decryptMessage({
+        message: await getMessage(encrypted),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        sessionKeys
+    });
+    t.is(decrypted, 'Hello world!');
+    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+});
+
 test('it can encrypt and decrypt a message with an unencrypted detached signature', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
     const { data: encrypted, signature } = await encryptMessage({
@@ -61,6 +78,26 @@ test('it can encrypt and decrypt a message with an encrypted detached signature'
         encryptedSignature: await getMessage(encryptedSignature),
         publicKeys: [decryptedPrivateKey.toPublic()],
         privateKeys: [decryptedPrivateKey]
+    });
+    t.is(decrypted, 'Hello world!');
+    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+});
+
+test('it can encrypt a message and decrypt it unarmored using session keys along with an encrypted detached signature', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const { message: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
+        message: createMessage('Hello world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        privateKeys: [decryptedPrivateKey],
+        returnSessionKey: true,
+        detached: true,
+        armor: false
+    });
+    const { data: decrypted, verified } = await decryptMessage({
+        message: await getMessage(encrypted),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        encryptedSignature: await getMessage(encryptedSignature),
+        sessionKeys
     });
     t.is(decrypted, 'Hello world!');
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
