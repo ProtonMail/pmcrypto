@@ -107,7 +107,7 @@ test('it can encrypt a message and decrypt it unarmored using session keys along
 test('it can encrypt and decrypt a message with session key without setting returnSessionKey', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
     const sessionKey = {
-        data: util.hex_to_Uint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+        data: util.hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
         algorithm: 'aes256'
     };
     const { data: encrypted } = await encryptMessage({
@@ -128,7 +128,7 @@ test('it can encrypt and decrypt a message with session key without setting retu
 test('it can encrypt and decrypt a message with session key without setting returnSessionKey with a detached signature', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
     const sessionKey = {
-        data: util.hex_to_Uint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+        data: util.hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
         algorithm: 'aes256'
     };
     const { data: encrypted, encryptedSignature } = await encryptMessage({
