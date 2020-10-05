@@ -159,9 +159,53 @@ test('it can encrypt and decrypt a binary streamed message with an unencrypted d
         returnSessionKey: true,
         detached: true
     });
-    const { data: decrypted, verified, signatures: verSig } = await decryptMessage({
+    const { data: decrypted, verified } = await decryptMessage({
         message: await readMessage(encrypted),
         signature: await getSignature(signature),
+        sessionKeys,
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        streaming: 'web',
+        format: 'binary'
+    });
+    t.is(util.uint8ArrayToStr(await stream.readToEnd(decrypted)), 'Hello world!');
+    t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+});
+
+test('it can encrypt and decrypt a binary streamed message with an encrypted detached signature', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const { message: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
+        message: createMessage('Hello world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        privateKeys: [decryptedPrivateKey],
+        streaming: 'web',
+        armor: false,
+        returnSessionKey: true,
+        detached: true
+    });
+    const { data: decrypted, verified } = await decryptMessage({
+        message: await readMessage(encrypted),
+        encryptedSignature: await readMessage(encryptedSignature),
+        sessionKeys,
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        streaming: 'web',
+        format: 'binary'
+    });
+    t.is(util.uint8ArrayToStr(await stream.readToEnd(decrypted)), 'Hello world!');
+    t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+});
+
+test('it can encrypt and decrypt a binary streamed message with in-message signature', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const { message: encrypted, sessionKey: sessionKeys } = await encryptMessage({
+        message: createMessage('Hello world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        privateKeys: [decryptedPrivateKey],
+        streaming: 'web',
+        armor: false,
+        returnSessionKey: true
+    });
+    const { data: decrypted, verified } = await decryptMessage({
+        message: await readMessage(encrypted),
         sessionKeys,
         publicKeys: [decryptedPrivateKey.toPublic()],
         streaming: 'web',
