@@ -214,3 +214,30 @@ test('it can encrypt and decrypt a binary streamed message with in-message signa
     t.is(util.uint8ArrayToStr(await stream.readToEnd(decrypted)), 'Hello world!');
     t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
 });
+
+test('it fails to verfify incorrect signatures', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const { data: encrypted } = await encryptMessage({
+        message: createMessage('Hello world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        signature: await createMessage('Good Bye World!').signDetached([decryptedPrivateKey])
+    });
+    const { verified } = await decryptMessage({
+        message: await getMessage(encrypted),
+        privateKeys: [decryptedPrivateKey],
+        publicKeys: [decryptedPrivateKey.toPublic()]
+    });
+    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_INVALID);
+});
+
+test('it can verify a message with nonbreaking spaces both with in-message and detached signatures', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const validMessage = createMessage('Hello world!');
+
+    const { verified } = await verifyMessage({
+        message: createMessage('Hello\xa0world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        signature: await validMessage.signDetached([decryptedPrivateKey])
+    });
+    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+});
