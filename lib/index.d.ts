@@ -1,7 +1,7 @@
 import {
     DecryptOptions,
     DecryptResult,
-    Message,
+    message,
     key,
     type,
     signature,
@@ -9,7 +9,7 @@ import {
     SignResult,
     EncryptOptions,
     UserID,
-    CleartextMessage,
+    cleartext,
     VerifyOptions,
     VerifyResult
 } from 'openpgp';
@@ -30,7 +30,7 @@ export interface OpenPGPKey extends key.Key {
     users?: { userId?: { userid?: string } }[];
 }
 
-export type OpenPGPMessage = Message;
+export type OpenPGPMessage = message.Message;
 export type OpenPGPSignature = signature.Signature;
 
 export interface SessionKey {
@@ -124,10 +124,10 @@ export function encryptSessionKey(options: {
     wildcard?: boolean;
     date?: Date;
     userIds?: any[];
-}): Promise<{ message: Message }>;
+}): Promise<{ message: message.Message }>;
 
 export function decryptSessionKey(options: {
-    message: Message;
+    message: message.Message;
     privateKeys?: key.Key | key.Key[];
     passwords?: string | string[];
 }): Promise<SessionKey | undefined>;
@@ -160,7 +160,7 @@ export function decryptMIMEMessage(
 
 export interface EncryptOptionsPmcrypto extends Omit<EncryptOptions, 'message'> {
     data?: Uint8Array | string;
-    message?: Message;
+    message?: message.Message;
 }
 
 export function encryptMessage(
@@ -171,16 +171,16 @@ export function encryptMessage(
 ): Promise<EncryptResult<string, undefined, string>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor: false; detached?: false }
-): Promise<EncryptResult<undefined, Message, undefined>>;
+): Promise<EncryptResult<undefined, message.Message, undefined>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor: false; detached: true }
-): Promise<EncryptResult<undefined, Message, OpenPGPSignature>>;
+): Promise<EncryptResult<undefined, message.Message, OpenPGPSignature>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto
 ): Promise<
     EncryptResult<
         string | ReadableStream<String>,
-        Message,
+        message.Message,
         string | ReadableStream<String> | OpenPGPSignature
     >
 >;
@@ -194,24 +194,24 @@ interface SignOptionsPmcrypto extends Omit<SignOptions, 'message'> {
 }
 
 export function createMessage(
-    text: string | ReadableStream<String> | Message,
+    text: string | ReadableStream<String> | message.Message,
     filename?: string,
     date?: Date,
     type?: any
-): Message;
+): message.Message;
 export function createCleartextMessage(
-    text: string | ReadableStream<String> | CleartextMessage,
+    text: string | ReadableStream<String> | cleartext.CleartextMessage,
     filename?: string,
     date?: Date,
     type?: any
-): CleartextMessage;
+): cleartext.CleartextMessage;
 
 export function signMessage(
     options: SignOptionsPmcrypto & { armor?: true; detached?: false }
 ): Promise<{ data: string }>;
 export function signMessage(
     options: SignOptionsPmcrypto & { armor: false; detached?: false }
-): Promise<{ message: Message }>;
+): Promise<{ message: message.Message }>;
 export function signMessage(
     options: SignOptionsPmcrypto & { armor?: true; detached: true }
 ): Promise<{ signature: string }>;
@@ -222,10 +222,10 @@ export function signMessage(options: SignOptionsPmcrypto): Promise<SignResult>;
 
 export function getSignature(option: string | Uint8Array | OpenPGPSignature): Promise<OpenPGPSignature>;
 
-export function getMessage(message: Message | Uint8Array | string): Promise<Message>;
+export function getMessage(message: message.Message | Uint8Array | string): Promise<message.Message>;
 
 export function splitMessage(
-    message: Message | Uint8Array | string
+    message: message.Message | Uint8Array | string
 ): Promise<{
     asymmetric: Uint8Array[];
     signature: Uint8Array[];
