@@ -1,6 +1,7 @@
 import test from 'ava';
 import '../helper';
-import { util, readMessage, stream } from 'openpgp';
+import { hexToUint8Array, arrayToBinaryString } from '../../lib/utils';
+import { readMessage, stream } from 'openpgp';
 
 import { createMessage, getMessage, getSignature, verifyMessage } from '../../lib/message/utils';
 import encryptMessage from '../../lib/message/encrypt';
@@ -107,7 +108,7 @@ test('it can encrypt a message and decrypt it unarmored using session keys along
 test('it can encrypt and decrypt a message with session key without setting returnSessionKey', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
     const sessionKey = {
-        data: util.hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+        data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
         algorithm: 'aes256'
     };
     const { data: encrypted } = await encryptMessage({
@@ -128,7 +129,7 @@ test('it can encrypt and decrypt a message with session key without setting retu
 test('it can encrypt and decrypt a message with session key without setting returnSessionKey with a detached signature', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
     const sessionKey = {
-        data: util.hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+        data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
         algorithm: 'aes256'
     };
     const { data: encrypted, encryptedSignature } = await encryptMessage({
@@ -167,7 +168,7 @@ test('it can encrypt and decrypt a binary streamed message with an unencrypted d
         streaming: 'web',
         format: 'binary'
     });
-    t.is(util.uint8ArrayToStr(await stream.readToEnd(decrypted)), 'Hello world!');
+    t.is(arrayToBinaryString(await stream.readToEnd(decrypted)), 'Hello world!');
     t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
 });
 
@@ -190,7 +191,7 @@ test('it can encrypt and decrypt a binary streamed message with an encrypted det
         streaming: 'web',
         format: 'binary'
     });
-    t.is(util.uint8ArrayToStr(await stream.readToEnd(decrypted)), 'Hello world!');
+    t.is(arrayToBinaryString(await stream.readToEnd(decrypted)), 'Hello world!');
     t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
 });
 
@@ -211,7 +212,7 @@ test('it can encrypt and decrypt a binary streamed message with in-message signa
         streaming: 'web',
         format: 'binary'
     });
-    t.is(util.uint8ArrayToStr(await stream.readToEnd(decrypted)), 'Hello world!');
+    t.is(arrayToBinaryString(await stream.readToEnd(decrypted)), 'Hello world!');
     t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
 });
 
