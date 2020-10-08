@@ -59,6 +59,9 @@
     "husky": "^1.1.0",
     "lint-staged": "^7.3.0",
     "mocha": "^5.2.0",
-    "prettier": "^1.14.3"
+    "prettier": "^1.14.3",
+    "tweetnacl": "github:openpgpjs/tweetnacl-js#1ef755f2b252a3e328ac739848d00e0dad76be2d",
+    "asmcrypto.js": "github:openpgpjs/asmcrypto#475cffa5ccb2cf2556427056679414acf3610d1b",
+    "get-random-values": "^1.2.2"
   }
 }
