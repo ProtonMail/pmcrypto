@@ -1,7 +1,7 @@
 import test from 'ava';
 import '../helper';
-import { hexToUint8Array, arrayToBinaryString } from '../../lib/utils';
-import { readMessage, stream } from 'openpgp';
+import { hexToUint8Array, arrayToBinaryString, readToEnd } from '../../lib/utils';
+import { readMessage } from 'openpgp';
 
 import { createMessage, getMessage, getSignature, verifyMessage } from '../../lib/message/utils';
 import encryptMessage from '../../lib/message/encrypt';
@@ -168,7 +168,7 @@ test('it can encrypt and decrypt a binary streamed message with an unencrypted d
         streaming: 'web',
         format: 'binary'
     });
-    t.is(arrayToBinaryString(await stream.readToEnd(decrypted)), 'Hello world!');
+    t.is(arrayToBinaryString(await readToEnd(decrypted)), 'Hello world!');
     t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
 });
 
@@ -191,7 +191,7 @@ test('it can encrypt and decrypt a binary streamed message with an encrypted det
         streaming: 'web',
         format: 'binary'
     });
-    t.is(arrayToBinaryString(await stream.readToEnd(decrypted)), 'Hello world!');
+    t.is(arrayToBinaryString(await readToEnd(decrypted)), 'Hello world!');
     t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
 });
 
@@ -212,7 +212,7 @@ test('it can encrypt and decrypt a binary streamed message with in-message signa
         streaming: 'web',
         format: 'binary'
     });
-    t.is(arrayToBinaryString(await stream.readToEnd(decrypted)), 'Hello world!');
+    t.is(arrayToBinaryString(await readToEnd(decrypted)), 'Hello world!');
     t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
 });
 
@@ -223,22 +223,33 @@ test('it fails to verfify incorrect signatures', async (t) => {
         publicKeys: [decryptedPrivateKey.toPublic()],
         signature: await createMessage('Good Bye World!').signDetached([decryptedPrivateKey])
     });
-    const { verified } = await decryptMessage({
+    const { data: decrypted, verified } = await decryptMessage({
         message: await getMessage(encrypted),
         privateKeys: [decryptedPrivateKey],
         publicKeys: [decryptedPrivateKey.toPublic()]
     });
+    t.is(decrypted, 'Hello world!');
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_INVALID);
 });
 
-test('it can verify a message with nonbreaking spaces both with in-message and detached signatures', async (t) => {
+test('it verifies a message with nonbreaking spaces', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-    const validMessage = createMessage('Hello world!');
+    const message = createMessage('Crappy\xa0world!');
+    const detacheSignature = await createMessage('Crappy world!').signDetached([decryptedPrivateKey]);
+    await message.appendSignature(detacheSignature.write());
+    const { verified } = await verifyMessage({
+        message,
+        publicKeys: [decryptedPrivateKey.toPublic()]
+    });
+    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+});
 
+test('it verifies a message with nonbreaking spaces with detached signatures', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
     const { verified } = await verifyMessage({
         message: createMessage('Hello\xa0world!'),
         publicKeys: [decryptedPrivateKey.toPublic()],
-        signature: await validMessage.signDetached([decryptedPrivateKey])
+        signature: await createMessage('Hello world!').signDetached([decryptedPrivateKey])
     });
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
 });
