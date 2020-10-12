@@ -3,6 +3,10 @@ import '../helper';
 import { config } from 'openpgp';
 import * as pmcrypto from '../../lib/pmcrypto';
 
+const { Crypto } = require('@peculiar/webcrypto');
+
+global.crypto = new Crypto();
+
 test.serial('sha256 fingerprints - v4 key', async (t) => {
     const { publicKeyArmored } = await pmcrypto.generateKey({ userIds: [{}], passphrase: 'test' });
     const { fingerprints, sha256Fingerprints } = await pmcrypto.keyInfo(publicKeyArmored);
@@ -13,6 +17,7 @@ test.serial('sha256 fingerprints - v4 key', async (t) => {
 });
 
 test('sha256 fingerprints - v5 key', async (t) => {
+    config.useNative = !config.useNative;
     config.v5Keys = !config.v5Keys;
     const { publicKeyArmored } = await pmcrypto.generateKey({ userIds: [{}], passphrase: 'test' });
     const { fingerprints, sha256Fingerprints } = await pmcrypto.keyInfo(publicKeyArmored);
@@ -21,6 +26,7 @@ test('sha256 fingerprints - v5 key', async (t) => {
         t.is(sha256Fingerprint, fingerprints[i]);
     });
     config.v5Keys = !config.v5Keys;
+    config.useNative = !config.useNative;
 });
 
 const publickey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
