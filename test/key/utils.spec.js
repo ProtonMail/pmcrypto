@@ -12,10 +12,6 @@ import {
 import { enums } from 'openpgp';
 import { keyCheck } from '../../lib';
 
-const { Crypto } = require('@peculiar/webcrypto');
-
-global.crypto = new Crypto();
-
 test('it can correctly encode base 64', async (t) => {
     t.is(encodeBase64('foo'), 'Zm9v');
 });
