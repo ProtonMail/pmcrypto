@@ -3,10 +3,16 @@
 
 # pmcrypto
 
+# V7
+Removed:
+
+* MD5 hash for security concerns
+
 # V6
 Added:
 
 * SHA512 hash, exposed as `SHA512`
+* MD5 hash, exposed as `unsafeMD5`
 * `arrayToHexString`
 * `createCleartextMessage`
 
