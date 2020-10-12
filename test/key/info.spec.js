@@ -1,5 +1,5 @@
 import test from 'ava';
-import '../cryptoPolyfill';
+import '../_cryptoPolyfill';
 import '../helper';
 import * as pmcrypto from '../../lib/pmcrypto';
 import { config } from 'openpgp';
