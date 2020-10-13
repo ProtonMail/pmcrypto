@@ -1,9 +1,9 @@
 import test from 'ava';
 import '../helper';
 import * as pmcrypto from '../../lib/pmcrypto';
-import { openpgp } from '../../lib/openpgp';
+import { config } from 'openpgp';
 
-test('sha256 fingerprints - v4 key', async (t) => {
+test.serial('sha256 fingerprints - v4 key', async (t) => {
     const { publicKeyArmored } = await pmcrypto.generateKey({ userIds: [{}], passphrase: 'test' });
     const { fingerprints, sha256Fingerprints } = await pmcrypto.keyInfo(publicKeyArmored);
     t.is(sha256Fingerprints.length, fingerprints.length);
@@ -12,15 +12,15 @@ test('sha256 fingerprints - v4 key', async (t) => {
     });
 });
 
-test.serial('sha256 fingerprints - v5 key', async (t) => {
-    openpgp.config.v5_keys = !openpgp.config.v5_keys;
+test('sha256 fingerprints - v5 key', async (t) => {
+    config.v5Keys = !config.v5Keys;
     const { publicKeyArmored } = await pmcrypto.generateKey({ userIds: [{}], passphrase: 'test' });
     const { fingerprints, sha256Fingerprints } = await pmcrypto.keyInfo(publicKeyArmored);
     t.is(sha256Fingerprints.length, fingerprints.length);
     sha256Fingerprints.forEach((sha256Fingerprint, i) => {
         t.is(sha256Fingerprint, fingerprints[i]);
     });
-    openpgp.config.v5_keys = !openpgp.config.v5_keys;
+    config.v5Keys = !config.v5Keys;
 });
 
 const publickey = `-----BEGIN PGP PUBLIC KEY BLOCK-----

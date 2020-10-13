@@ -3,6 +3,11 @@
 
 # pmcrypto
 
+# V7
+Removed:
+
+* MD5 hash for security concerns
+
 # V6
 Added:
 

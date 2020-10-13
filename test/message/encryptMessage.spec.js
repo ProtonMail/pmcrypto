@@ -1,6 +1,7 @@
 import test from 'ava';
 import '../helper';
-import { util } from 'openpgp';
+import { hexToUint8Array, arrayToBinaryString, readToEnd } from '../../lib/utils';
+import { readMessage } from 'openpgp';
 
 import { createMessage, getMessage, getSignature, verifyMessage } from '../../lib/message/utils';
 import encryptMessage from '../../lib/message/encrypt';
@@ -107,7 +108,7 @@ test('it can encrypt a message and decrypt it unarmored using session keys along
 test('it can encrypt and decrypt a message with session key without setting returnSessionKey', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
     const sessionKey = {
-        data: util.hex_to_Uint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+        data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
         algorithm: 'aes256'
     };
     const { data: encrypted } = await encryptMessage({
@@ -128,7 +129,7 @@ test('it can encrypt and decrypt a message with session key without setting retu
 test('it can encrypt and decrypt a message with session key without setting returnSessionKey with a detached signature', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
     const sessionKey = {
-        data: util.hex_to_Uint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+        data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
         algorithm: 'aes256'
     };
     const { data: encrypted, encryptedSignature } = await encryptMessage({
@@ -145,5 +146,110 @@ test('it can encrypt and decrypt a message with session key without setting retu
         sessionKeys: sessionKey
     });
     t.is(decrypted, 'Hello world!');
+    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+});
+
+test('it can encrypt and decrypt a binary streamed message with an unencrypted detached signature', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const { message: encrypted, sessionKey: sessionKeys, signature } = await encryptMessage({
+        message: createMessage('Hello world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        privateKeys: [decryptedPrivateKey],
+        streaming: 'web',
+        armor: false,
+        returnSessionKey: true,
+        detached: true
+    });
+    const { data: decrypted, verified } = await decryptMessage({
+        message: await readMessage(encrypted),
+        signature: await getSignature(signature),
+        sessionKeys,
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        streaming: 'web',
+        format: 'binary'
+    });
+    t.is(arrayToBinaryString(await readToEnd(decrypted)), 'Hello world!');
+    t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+});
+
+test('it can encrypt and decrypt a binary streamed message with an encrypted detached signature', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const { message: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
+        message: createMessage('Hello world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        privateKeys: [decryptedPrivateKey],
+        streaming: 'web',
+        armor: false,
+        returnSessionKey: true,
+        detached: true
+    });
+    const { data: decrypted, verified } = await decryptMessage({
+        message: await readMessage(encrypted),
+        encryptedSignature: await readMessage(encryptedSignature),
+        sessionKeys,
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        streaming: 'web',
+        format: 'binary'
+    });
+    t.is(arrayToBinaryString(await readToEnd(decrypted)), 'Hello world!');
+    t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+});
+
+test('it can encrypt and decrypt a binary streamed message with in-message signature', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const { message: encrypted, sessionKey: sessionKeys } = await encryptMessage({
+        message: createMessage('Hello world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        privateKeys: [decryptedPrivateKey],
+        streaming: 'web',
+        armor: false,
+        returnSessionKey: true
+    });
+    const { data: decrypted, verified } = await decryptMessage({
+        message: await readMessage(encrypted),
+        sessionKeys,
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        streaming: 'web',
+        format: 'binary'
+    });
+    t.is(arrayToBinaryString(await readToEnd(decrypted)), 'Hello world!');
+    t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+});
+
+test('it fails to verfify incorrect signatures', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const { data: encrypted } = await encryptMessage({
+        message: createMessage('Hello world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        signature: await createMessage('Good Bye World!').signDetached([decryptedPrivateKey])
+    });
+    const { data: decrypted, verified } = await decryptMessage({
+        message: await getMessage(encrypted),
+        privateKeys: [decryptedPrivateKey],
+        publicKeys: [decryptedPrivateKey.toPublic()]
+    });
+    t.is(decrypted, 'Hello world!');
+    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_INVALID);
+});
+
+test('it verifies a message with nonbreaking spaces', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const message = createMessage('Crappy\xa0world!');
+    const detacheSignature = await createMessage('Crappy world!').signDetached([decryptedPrivateKey]);
+    await message.appendSignature(detacheSignature.write());
+    const { verified } = await verifyMessage({
+        message,
+        publicKeys: [decryptedPrivateKey.toPublic()]
+    });
+    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+});
+
+test('it verifies a message with nonbreaking spaces with detached signatures', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const { verified } = await verifyMessage({
+        message: createMessage('Hello\xa0world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        signature: await createMessage('Hello world!').signDetached([decryptedPrivateKey])
+    });
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
 });

@@ -9,7 +9,7 @@ import {
     genPublicEphemeralKey,
     stripArmor
 } from '../../lib/pmcrypto';
-import { openpgp } from '../../lib/openpgp';
+import { enums } from 'openpgp';
 import { keyCheck } from '../../lib';
 
 test('it can correctly encode base 64', async (t) => {
@@ -153,8 +153,8 @@ test('it can check userId against a given email', (t) => {
         revocationSignatures: [],
         sign: {},
         user: {
-            hash: [openpgp.enums.hash.sha256],
-            symmetric: [openpgp.enums.symmetric.aes256],
+            hash: [enums.hash.sha256],
+            symmetric: [enums.symmetric.aes256],
             userId: 'Jacky Black <jackyblack@foo.com>'
         }
     };
