@@ -149,14 +149,14 @@ export function decryptMessageLegacy(options: DecryptLegacyOptions): Promise<Dec
 
 export function decryptMIMEMessage(
     options: DecryptMimeOptions
-): {
+): Promise<{
     getBody: () => Promise<{ body: string; mimetype: string } | undefined>;
     getAttachments: () => Promise<any>;
     getEncryptedSubject: () => Promise<string>;
     verify: () => Promise<number>;
     errors: () => Promise<Error[] | undefined>;
     signatures: OpenPGPSignature[];
-};
+}>;
 
 export interface EncryptOptionsPmcrypto extends Omit<EncryptOptions, 'message'> {
     data?: Uint8Array | string;
