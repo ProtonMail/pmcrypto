@@ -135,6 +135,7 @@ export function decryptSessionKey(options: {
 export type DecryptResultPmcrypto = Omit<DecryptResult, 'signatures'> & {
     signatures: (OpenPGPSignature)[];
     verified: VERIFICATION_STATUS;
+    errors?: Error[];
 }
 
 export function decryptMessage(
@@ -252,6 +253,7 @@ export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
 
 export interface VerifyMessageResult extends VerifyResult {
     verified: VERIFICATION_STATUS;
+    errors?: Error[];
 }
 export interface VerifyMessageOptions extends VerifyOptions {
     detached?: boolean;
