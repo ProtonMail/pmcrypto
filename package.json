@@ -44,10 +44,10 @@
   },
   "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
   "dependencies": {
-    "@protontech/openpgp": "^4.10.6",
     "@types/openpgp": "^4.4.12",
     "elliptic": "^6.5.2",
-    "esm": "^3.0.84"
+    "esm": "^3.0.84",
+    "openpgp": "git+https://github.com/ProtonMail/openpgpjs.git#aa89893773c2ff97e85846ad5b0a184a89dc1688"
   },
   "engines": {
     "node": ">=10.15.1"
