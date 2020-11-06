@@ -15,12 +15,11 @@ test('generate forwarding key', async (t) => {
         async ({ finalRecipientKey }) => {
             const charlieKey = finalRecipientKey.key;
 
-            // Check primary key differences
-            t.is(charlieKey.getKeyId().equals(bobKey.getKeyId()), false);
+            // Check primary key: public parameters should match
+            t.is(charlieKey.getKeyId().equals(bobKey.getKeyId()), true);
+            t.is(charlieKey.keyPacket.isDummy(), true);
+            t.is(bobKey.keyPacket.isDummy(), false);
             t.notDeepEqual(charlieKey.keyPacket.keyMaterial, bobKey.keyPacket.keyMaterial);
-            t.deepEqual(charlieKey.keyPacket.params[0], bobKey.keyPacket.params[0]); // OID
-            t.notDeepEqual(charlieKey.keyPacket.params[1], bobKey.keyPacket.params[1]);
-            t.notDeepEqual(charlieKey.keyPacket.params[2], bobKey.keyPacket.params[2]);
 
             // Check subkey differences
             const bobSubKey = await bobKey.getEncryptionKey();
