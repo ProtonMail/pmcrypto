@@ -135,6 +135,7 @@ export function decryptSessionKey(options: {
 export type DecryptResultPmcrypto = Omit<DecryptResult, 'signatures'> & {
     signatures: (OpenPGPSignature)[];
     verified: VERIFICATION_STATUS;
+    errors?: Error[];
 }
 
 export function decryptMessage(
@@ -149,14 +150,14 @@ export function decryptMessageLegacy(options: DecryptLegacyOptions): Promise<Dec
 
 export function decryptMIMEMessage(
     options: DecryptMimeOptions
-): {
+): Promise<{
     getBody: () => Promise<{ body: string; mimetype: string } | undefined>;
     getAttachments: () => Promise<any>;
     getEncryptedSubject: () => Promise<string>;
     verify: () => Promise<number>;
     errors: () => Promise<Error[] | undefined>;
     signatures: OpenPGPSignature[];
-};
+}>;
 
 export interface EncryptOptionsPmcrypto extends Omit<EncryptOptions, 'message'> {
     data?: Uint8Array | string;
@@ -252,6 +253,7 @@ export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
 
 export interface VerifyMessageResult extends VerifyResult {
     verified: VERIFICATION_STATUS;
+    errors?: Error[];
 }
 export interface VerifyMessageOptions extends VerifyOptions {
     detached?: boolean;
