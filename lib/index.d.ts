@@ -159,10 +159,10 @@ export function decryptMIMEMessage(
     signatures: OpenPGPSignature[];
 }>;
 
-export interface EncryptOptionsPmcrypto extends Omit<EncryptOptions, 'message'> {
-    data?: Uint8Array | string;
-    message?: message.Message;
+export interface EncryptOptionsPmcryptoWithData extends Omit<EncryptOptions, 'message'> {
+    data: Uint8Array | string;
 }
+type EncryptOptionsPmcrypto = EncryptOptionsPmcryptoWithData | EncryptOptions;
 
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor?: true; detached?: false }
@@ -190,9 +190,10 @@ export function getMatchingKey(
     publicKeys: OpenPGPKey[]
 ): Promise<OpenPGPKey | undefined>;
 
-interface SignOptionsPmcrypto extends Omit<SignOptions, 'message'> {
+interface SignOptionsPmcryptoWithData extends Omit<SignOptions, 'message'> {
     data: string | Uint8Array;
 }
+type SignOptionsPmcrypto = SignOptionsPmcryptoWithData | SignOptions;
 
 export function createMessage(
     text: string | ReadableStream<String> | message.Message,
