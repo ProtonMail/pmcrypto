@@ -177,7 +177,7 @@ export function encryptMessage(
 ): Promise<EncryptResult<string, undefined, string, string>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor: false; detached?: false }
-): Promise<EncryptResult<undefined, message.Message, undefined>>;
+): Promise<EncryptResult<undefined, message.Message>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor: false; detached: true }
 ): Promise<EncryptResult<undefined, message.Message, OpenPGPSignature, message.Message>>;
