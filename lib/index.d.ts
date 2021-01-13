@@ -61,11 +61,12 @@ export interface DecryptMimeOptions extends DecryptLegacyOptions {
 }
 
 // No reuse from OpenPGP's equivalent
-export interface EncryptResult<D = undefined, M = undefined, S = undefined> {
+export interface EncryptResult<D = undefined, M = undefined, S = undefined, E = undefined> {
     data: D;
     message: M;
     signature: S;
     sessionKey: SessionKey;
+    encryptedSignature: E;
 }
 
 export interface BinaryResult {
@@ -132,6 +133,10 @@ export function decryptSessionKey(options: {
     passwords?: string | string[];
 }): Promise<SessionKey | undefined>;
 
+export interface DecryptOptionsPmcrypto extends DecryptOptions {
+    encryptedSignature?: message.Message;
+}
+
 export type DecryptResultPmcrypto = Omit<DecryptResult, 'signatures'> & {
     signatures: (OpenPGPSignature)[];
     verified: VERIFICATION_STATUS;
@@ -139,12 +144,12 @@ export type DecryptResultPmcrypto = Omit<DecryptResult, 'signatures'> & {
 }
 
 export function decryptMessage(
-    options: DecryptOptions & { format: 'utf8' }
+    options: DecryptOptionsPmcrypto & { format: 'utf8' }
 ): Promise<DecryptResultPmcrypto & { data: string | ReadableStream<String> }>;
 export function decryptMessage(
-    options: DecryptOptions & { format: 'binary' }
+    options: DecryptOptionsPmcrypto & { format: 'binary' }
 ): Promise<DecryptResultPmcrypto & { data: Uint8Array | ReadableStream<Uint8Array> }>;
-export function decryptMessage(options: DecryptOptions): Promise<DecryptResultPmcrypto>;
+export function decryptMessage(options: DecryptOptionsPmcrypto): Promise<DecryptResultPmcrypto>;
 
 export function decryptMessageLegacy(options: DecryptLegacyOptions): Promise<DecryptResultPmcrypto>;
 
@@ -169,20 +174,21 @@ export function encryptMessage(
 ): Promise<EncryptResult<string>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor?: true; detached: true }
-): Promise<EncryptResult<string, undefined, string>>;
+): Promise<EncryptResult<string, undefined, string, string>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor: false; detached?: false }
-): Promise<EncryptResult<undefined, message.Message, undefined>>;
+): Promise<EncryptResult<undefined, message.Message>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor: false; detached: true }
-): Promise<EncryptResult<undefined, message.Message, OpenPGPSignature>>;
+): Promise<EncryptResult<undefined, message.Message, OpenPGPSignature, message.Message>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto
 ): Promise<
     EncryptResult<
         string | ReadableStream<String>,
         message.Message,
-        string | ReadableStream<String> | OpenPGPSignature
+        string | ReadableStream<String> | OpenPGPSignature,
+        string | ReadableStream<String> | message.Message
     >
 >;
 export function getMatchingKey(
