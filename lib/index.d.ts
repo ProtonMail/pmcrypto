@@ -11,7 +11,8 @@ import {
     UserID,
     cleartext,
     VerifyOptions,
-    VerifyResult
+    VerifyResult,
+    KeyOptions
 } from 'openpgp';
 
 export enum VERIFICATION_STATUS {
@@ -38,7 +39,12 @@ export interface SessionKey {
     algorithm: string;
 }
 
-export { generateKey } from 'openpgp';
+export interface GenerateKeyOptions extends KeyOptions {
+    offset?: number;
+}
+export function generateKey(
+    option: GenerateKeyOptions
+): Promise<{ key: key.Key; privateKeyArmored: string; publicKeyArmored: string; revocationCertificate: string }>;
 
 export interface ReformatKeyOptions {
     privateKey: OpenPGPKey;
