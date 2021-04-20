@@ -264,10 +264,13 @@ export function SHA512(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeMD5(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
 
-export interface VerifyMessageResult extends VerifyResult {
+export interface VerifyMessageResult {
+    data: VerifyResult['data'];
+    signatures: OpenPGPSignature[];
     verified: VERIFICATION_STATUS;
     errors?: Error[];
 }
+
 export interface VerifyMessageOptions extends VerifyOptions {
     detached?: boolean;
 }
