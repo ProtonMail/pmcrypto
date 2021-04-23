@@ -54,7 +54,7 @@ test('it does not verify a message given wrong public key', async (t) => {
     const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
         message: createMessage('hello world'),
         signature: await openpgp.signature.readArmored(detachedSignatureFromTwoKeys),
-        publicKeys: [wrongPublicKey] // the second public key is missing, expect only one signature to be verified
+        publicKeys: [wrongPublicKey]
     });
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_INVALID);
     t.is(signatures.length, 2);
