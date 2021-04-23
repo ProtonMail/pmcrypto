@@ -265,7 +265,10 @@ export function unsafeMD5(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
 
 export interface VerifyMessageResult extends VerifyResult {
+    data: VerifyResult['data'];
     verified: VERIFICATION_STATUS;
+    signatures: OpenPGPSignature[];
+    signatureTimestamp: Date|null,
     errors?: Error[];
 }
 export interface VerifyMessageOptions extends VerifyOptions {
