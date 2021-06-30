@@ -51,8 +51,20 @@ JLdxTBJgqQoLePyHnb4LEPZItOUOMiHRBLUV8PSj/dxLEmYlmbPFOTnE62izRX4Q
 -----END PGP PUBLIC KEY BLOCK-----`;
 
 test('expiration test', async (t) => {
+    // primary key does not expire
     const { expires, dateError } = await pmcrypto.keyInfo(publickey);
-    t.is(expires.getTime(), new Date('2023-09-11T12:37:02.000Z').getTime());
+    t.is(expires, Infinity);
+    t.is(dateError, null);
+
+    const now = new Date(0);
+    // primary key expires after one second
+    const { publicKeyArmored: expiringKey } = await openpgp.generateKey({
+        userIds: [{}],
+        date: now,
+        keyExpirationTime: 1
+    });
+    const expiringKeyInfo = await pmcrypto.keyInfo(expiringKey);
+    t.is(expiringKeyInfo.expires.getTime(), new Date(+now + 1000).getTime());
     t.is(dateError, null);
 });
 
