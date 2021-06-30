@@ -121,8 +121,8 @@ export function getKeys(key: Uint8Array | string): Promise<OpenPGPKey[]>;
 
 export function getFingerprint(key: OpenPGPKey): string;
 
-export function isExpiredKey(key: OpenPGPKey): Promise<boolean>;
-export function isRevokedKey(key: OpenPGPKey): Promise<boolean>;
+export function isExpiredKey(key: OpenPGPKey, date?: Date): Promise<boolean>;
+export function isRevokedKey(key: OpenPGPKey, date?: Date): Promise<boolean>;
 
 export function generateSessionKey(algo: string): Promise<Uint8Array>;
 
