@@ -29,6 +29,9 @@ export enum SIGNATURE_TYPES {
 // type defined in OpenPGP is not complete
 export interface OpenPGPKey extends key.Key {
     users?: { userId?: { userid?: string } }[];
+    getExpirationTime( // override upstream definition, since it does not properly declare `Infinity` as return type
+        capabilities?: "encrypt" | "sign" | "encrypt_sign", keyId?: type.keyid.Keyid, userId?: object
+    ): Promise<Date | typeof Infinity | null>;
 }
 
 export type OpenPGPMessage = message.Message;
@@ -281,3 +284,5 @@ export function serverTime(): Date;
 export function getPreferredAlgorithm(key: OpenPGPKey[], date?: Date): Promise<string>
 
 export function getSHA256Fingerprints(key: OpenPGPKey): Promise<string[]>
+
+export function canKeyEncrypt(key: OpenPGPKey, date?: Date): Promise<boolean>;
