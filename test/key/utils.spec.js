@@ -7,10 +7,12 @@ import {
     encodeBase64,
     genPrivateEphemeralKey,
     genPublicEphemeralKey,
-    stripArmor
+    stripArmor,
+    isExpiredKey,
+    isRevokedKey,
+    keyCheck
 } from '../../lib/pmcrypto';
 import { openpgp } from '../../lib/openpgp';
-import { keyCheck } from '../../lib';
 
 test('it can correctly encode base 64', async (t) => {
     t.is(encodeBase64('foo'), 'Zm9v');
@@ -167,4 +169,38 @@ test('it can check userId against a given email', (t) => {
     } catch (e) {
         e.message === 'UserID does not contain correct email address' ? t.pass() : t.fail();
     }
+});
+
+test('it can correctly detect an expired key', async (t) => {
+    const now = new Date();
+    // key expires in one second
+    const { key: expiringKey } = await openpgp.generateKey({
+        userIds: [{ name: 'name', email: 'email@test.com' }],
+        date: now,
+        keyExpirationTime: 1
+    });
+    t.is(await isExpiredKey(expiringKey, now), false);
+    t.is(await isExpiredKey(expiringKey, new Date(+now + 1000)), true);
+    t.is(await isExpiredKey(expiringKey, new Date(+now - 1000)), true);
+
+    const { key } = await openpgp.generateKey({ userIds: [{ name: 'name', email: 'email@test.com' }], date: now });
+    t.is(await isExpiredKey(key), false);
+    t.is(await isExpiredKey(key, new Date(+now - 1000)), true);
+});
+
+test('it can correctly detect a revoked key', async (t) => {
+    const past = new Date(0);
+    const now = new Date();
+
+    const { key, revocationCertificate } = await openpgp.generateKey({
+        userIds: [{ name: 'name', email: 'email@test.com' }],
+        date: past
+    });
+    const { publicKey: revokedKey } = await openpgp.revokeKey({
+        key,
+        revocationCertificate
+    });
+    t.is(await isRevokedKey(revokedKey, past), true);
+    t.is(await isRevokedKey(revokedKey, now), true);
+    t.is(await isRevokedKey(key, now), false);
 });
