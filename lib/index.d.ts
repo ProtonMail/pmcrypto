@@ -109,6 +109,9 @@ export function encodeUtf8Base64(str: undefined): string;
 export function decodeUtf8Base64(str: string): string;
 export function decodeUtf8Base64(str: undefined): undefined;
 
+export function stringToUtf8Array(str: string): Uint8Array;
+export function utf8ArrayToString(bytes: Uint8Array): string;
+
 export function binaryStringToArray(str: string): Uint8Array;
 
 export function arrayToBinaryString(bytes: Uint8Array): string;
