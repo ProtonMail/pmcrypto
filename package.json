@@ -6,6 +6,10 @@
   "types": "./lib/index.d.ts",
   "module": "./lib/pmcrypto.js",
   "sideEffects": false,
+  "browser": {
+    "buffer": false,
+    "stream": false
+  },
   "scripts": {
     "test": "ava -v",
     "lint": "eslint $(find lib -type f -name '*.js')  --quiet",
@@ -49,9 +53,11 @@
   },
   "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
   "dependencies": {
-    "@types/openpgp": "^4.4.18",
+    "@openpgp/asmcrypto.js": "^2.3.2",
+    "@openpgp/tweetnacl": "^1.0.3",
+    "@openpgp/web-stream-tools": "0.0.6",
     "esm": "^3.0.84",
-    "openpgp": "^4.10.8"
+    "openpgp": "~5.0.0"
   },
   "engines": {
     "node": ">=10.15.1"

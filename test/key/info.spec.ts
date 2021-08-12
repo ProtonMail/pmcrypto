@@ -2,11 +2,13 @@ import test from 'ava';
 import '../helper';
 // @ts-ignore missing keyInfo typings
 import { generateKey, keyInfo } from '../../lib';
-import { openpgp } from '../../lib/openpgp';
+import { config, enums } from 'openpgp';
+
+globalThis.crypto = require('crypto').webcrypto;
 
 test('sha256 fingerprints - v4 key', async (t) => {
-    const { publicKeyArmored } = await generateKey({ userIds: [{}], passphrase: 'test' });
-    const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKeyArmored);
+    const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test' });
+    const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKey);
     t.is(sha256Fingerprints.length, fingerprints.length);
     sha256Fingerprints.forEach((sha256Fingerprint, i) => {
         t.not(sha256Fingerprint, fingerprints[i]);
@@ -14,16 +16,14 @@ test('sha256 fingerprints - v4 key', async (t) => {
 });
 
 test.serial('sha256 fingerprints - v5 key', async (t) => {
-    // @ts-ignore missing declaration for config.v5_keys
-    openpgp.config.v5_keys = !openpgp.config.v5_keys;
-    const { publicKeyArmored } = await generateKey({ userIds: [{}], passphrase: 'test' });
-    const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKeyArmored);
+    config.v5Keys = !config.v5Keys;
+    const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test' });
+    const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKey);
     t.is(sha256Fingerprints.length, fingerprints.length);
     sha256Fingerprints.forEach((sha256Fingerprint, i) => {
         t.is(sha256Fingerprint, fingerprints[i]);
     });
-    // @ts-ignore missing declaration for config.v5_keys
-    openpgp.config.v5_keys = !openpgp.config.v5_keys;
+    config.v5Keys = !config.v5Keys;
 });
 
 const publickey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -61,8 +61,8 @@ test('expiration test', async (t) => {
 
     const now = new Date(0);
     // primary key expires after one second
-    const { publicKeyArmored: expiringKey } = await openpgp.generateKey({
-        userIds: [{}],
+    const { publicKey: expiringKey } = await generateKey({
+        userIDs: [{}],
         date: now,
         keyExpirationTime: 1
     });
@@ -126,19 +126,22 @@ test('valid key', async (t) => {
 });
 
 test('newly generated RSA key', async (t) => {
-    const { publicKeyArmored } = await generateKey({ userIds: [{}], passphrase: 'test' });
-    const { validationError } = await keyInfo(publicKeyArmored);
+    config.preferredCompressionAlgorithm = enums.compression.zlib;
+    const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test' });
+    const { validationError } = await keyInfo(publicKey);
     t.is(validationError, null);
 });
 
 test('newly generated ECC key', async (t) => {
-    const { publicKeyArmored } = await generateKey({ userIds: [{}], passphrase: 'test', curve: 'curve25519' });
-    const { validationError } = await keyInfo(publicKeyArmored);
+    config.preferredCompressionAlgorithm = enums.compression.zlib;
+    const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', curve: 'curve25519' });
+    const { validationError } = await keyInfo(publicKey);
     t.is(validationError, null);
 });
 
 test('newly generated ECC key: invalid curve', async (t) => {
-    const { publicKeyArmored } = await generateKey({ userIds: [{}], passphrase: 'test', curve: 'secp256k1' });
+    const config = { rejectCurves: new Set<enums.curve>() };
+    const { publicKey: publicKeyArmored } = await generateKey({ userIDs: [{}], passphrase: 'test', curve: 'secp256k1', config });
     const { validationError } = await keyInfo(publicKeyArmored);
     t.is(validationError, 'Key must use Curve25519, P-256, P-384 or P-521');
 });

@@ -1,19 +1,21 @@
 import {
     DecryptOptions,
-    DecryptResult,
-    message,
-    key,
-    type,
-    signature,
+    DecryptMessageResult,
+    Message,
+    Key as OpenPGPKey,
+    User,
+    KeyID,
+    Signature,
     SignOptions,
-    SignResult,
     EncryptOptions,
     UserID,
-    cleartext,
+    CleartextMessage,
     VerifyOptions,
-    VerifyResult,
+    VerifyMessageResult as VerifyMessageResultOpenPGP,
     KeyOptions
 } from 'openpgp';
+
+export type Data = Uint8Array | string;
 
 export enum VERIFICATION_STATUS {
     NOT_SIGNED = 0,
@@ -26,16 +28,9 @@ export enum SIGNATURE_TYPES {
     CANONICAL_TEXT = 1
 }
 
-// type defined in OpenPGP is not complete
-export interface OpenPGPKey extends key.Key {
-    users?: { userId?: { userid?: string } }[];
-    getExpirationTime( // override upstream definition, since it does not properly declare `Infinity` as return type
-        capabilities?: "encrypt" | "sign" | "encrypt_sign", keyId?: type.keyid.Keyid, userId?: object
-    ): Promise<Date | typeof Infinity | null>;
-}
-
-export type OpenPGPMessage = message.Message;
-export type OpenPGPSignature = signature.Signature;
+export { OpenPGPKey };
+export type OpenPGPMessage = Message<Data>;
+export type OpenPGPSignature = Signature;
 
 export interface SessionKey {
     data: Uint8Array;
@@ -47,18 +42,18 @@ export interface GenerateKeyOptions extends KeyOptions {
 }
 export function generateKey(
     option: GenerateKeyOptions
-): Promise<{ key: key.Key; privateKeyArmored: string; publicKeyArmored: string; revocationCertificate: string }>;
+): Promise<{ key: OpenPGPKey; privateKeyArmored: string; publicKeyArmored: string; revocationCertificate: string }>;
 
 export interface ReformatKeyOptions {
     privateKey: OpenPGPKey;
-    userIds: UserID[];
+    userIDs: UserID[];
     passphrase: string;
     keyExpirationTime?: number;
     date?: Date;
 }
 export function reformatKey(
     option: ReformatKeyOptions
-): Promise<{ key: key.Key; privateKeyArmored: string; publicKeyArmored: string; revocationCertificate: string }>;
+): Promise<{ key: OpenPGPKey; privateKeyArmored: string; publicKeyArmored: string; revocationCertificate: string }>;
 
 export interface DecryptLegacyOptions extends Omit<DecryptOptions, 'message'> {
     message: string;
@@ -83,7 +78,7 @@ export interface BinaryResult {
     data: Uint8Array;
     filename?: string;
     signatures?: {
-        keyid: type.keyid.Keyid;
+        keyid: KeyID;
         verified: Promise<boolean>;
         valid: boolean;
     }[];
@@ -110,9 +105,6 @@ export function encodeUtf8Base64(str: undefined): string;
 export function decodeUtf8Base64(str: string): string;
 export function decodeUtf8Base64(str: undefined): undefined;
 
-export function stringToUtf8Array(str: string): Uint8Array;
-export function utf8ArrayToString(bytes: Uint8Array): string;
-
 export function binaryStringToArray(str: string): Uint8Array;
 
 export function arrayToBinaryString(bytes: Uint8Array): string;
@@ -121,7 +113,7 @@ export function arrayToHexString(bytes: Uint8Array): string;
 
 export function concatArrays(data: Uint8Array[]): Uint8Array;
 
-export function getKeys(key: Uint8Array | string): Promise<OpenPGPKey[]>;
+export function getOpenPGPKeys(key: Uint8Array | string): Promise<OpenPGPKey[]>;
 
 export function getFingerprint(key: OpenPGPKey): string;
 
@@ -138,20 +130,20 @@ export function encryptSessionKey(options: {
     passwords?: any[];
     wildcard?: boolean;
     date?: Date;
-    userIds?: any[];
-}): Promise<{ message: message.Message }>;
+    userIDs?: any[];
+}): Promise<{ message: OpenPGPMessage }>;
 
 export function decryptSessionKey(options: {
-    message: message.Message;
-    privateKeys?: key.Key | key.Key[];
+    message: OpenPGPMessage;
+    privateKeys?: OpenPGPKey | OpenPGPKey[];
     passwords?: string | string[];
 }): Promise<SessionKey | undefined>;
 
 export interface DecryptOptionsPmcrypto extends DecryptOptions {
-    encryptedSignature?: message.Message;
+    encryptedSignature?: OpenPGPMessage;
 }
 
-export type DecryptResultPmcrypto = Omit<DecryptResult, 'signatures'> & {
+export type DecryptResultPmcrypto = Omit<DecryptMessageResult, 'signatures'> & {
     signatures: (OpenPGPSignature)[];
     verified: VERIFICATION_STATUS;
     errors?: Error[];
@@ -185,24 +177,24 @@ type EncryptOptionsPmcrypto = EncryptOptionsPmcryptoWithData | EncryptOptions;
 
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor?: true; detached?: false }
-): Promise<EncryptResult<string>>;
+): Promise<EncryptResult<undefined, string>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor?: true; detached: true }
-): Promise<EncryptResult<string, undefined, string, string>>;
+): Promise<EncryptResult<undefined, string, Uint8Array, string>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor: false; detached?: false }
-): Promise<EncryptResult<undefined, message.Message>>;
+): Promise<EncryptResult<undefined, OpenPGPMessage>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor: false; detached: true }
-): Promise<EncryptResult<undefined, message.Message, OpenPGPSignature, message.Message>>;
+): Promise<EncryptResult<undefined, OpenPGPMessage, Uint8Array, OpenPGPMessage>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto
 ): Promise<
     EncryptResult<
         string | ReadableStream<String>,
-        message.Message,
-        string | ReadableStream<String> | OpenPGPSignature,
-        string | ReadableStream<String> | message.Message
+        OpenPGPMessage,
+        string | ReadableStream<String> | Uint8Array,
+        string | ReadableStream<String> | OpenPGPMessage
     >
 >;
 export function getMatchingKey(
@@ -220,34 +212,33 @@ export function createMessage(
     filename?: string,
     date?: Date,
     type?: any
-): message.Message;
+): OpenPGPMessage;
 export function createCleartextMessage(
-    text: string | ReadableStream<String> | cleartext.CleartextMessage,
+    text: string | ReadableStream<String> | CleartextMessage,
     filename?: string,
     date?: Date,
     type?: any
-): cleartext.CleartextMessage;
+): CleartextMessage;
 
 export function signMessage(
     options: SignOptionsPmcrypto & { armor?: true; detached?: false }
-): Promise<{ data: string }>;
+): Promise<string>;
 export function signMessage(
     options: SignOptionsPmcrypto & { armor: false; detached?: false }
-): Promise<{ message: message.Message }>;
+): Promise<Uint8Array>;
 export function signMessage(
     options: SignOptionsPmcrypto & { armor?: true; detached: true }
-): Promise<{ signature: string }>;
+): Promise<string>;
 export function signMessage(
     options: SignOptionsPmcrypto & { armor: false; detached: true }
-): Promise<{ signature: OpenPGPSignature }>;
-export function signMessage(options: SignOptionsPmcrypto): Promise<SignResult>;
+): Promise<Uint8Array>;
 
 export function getSignature(option: string | Uint8Array | OpenPGPSignature): Promise<OpenPGPSignature>;
 
-export function getMessage(message: message.Message | Uint8Array | string): Promise<message.Message>;
+export function getMessage(message: OpenPGPMessage | Uint8Array | string): Promise<OpenPGPMessage>;
 
 export function splitMessage(
-    message: message.Message | Uint8Array | string
+    message: OpenPGPMessage | Uint8Array | string
 ): Promise<{
     asymmetric: Uint8Array[];
     signature: Uint8Array[];
@@ -273,7 +264,7 @@ export function unsafeMD5(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
 
 export interface VerifyMessageResult {
-    data: VerifyResult['data'];
+    data: VerifyMessageResultOpenPGP['data'];
     verified: VERIFICATION_STATUS;
     signatures: OpenPGPSignature[];
     signatureTimestamp: Date|null,
@@ -293,3 +284,4 @@ export function getSHA256Fingerprints(key: OpenPGPKey): Promise<string[]>
 export function canKeyEncrypt(key: OpenPGPKey, date?: Date): Promise<boolean>;
 
 export function checkKeyStrength(key: OpenPGPKey): void;
+export function getKeys(serializedKeys: String | Uint8Array): Promise<OpenPGPKey>;

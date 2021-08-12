@@ -1,5 +1,6 @@
 import test from 'ava';
 import '../helper';
+import { enums, generateKey, revokeKey } from 'openpgp';
 import {
     binaryStringToArray,
     concatArrays,
@@ -7,7 +8,9 @@ import {
     encodeBase64,
     isExpiredKey,
     isRevokedKey,
-    reformatKey
+    reformatKey,
+    signMessage,
+    getMatchingKey
 } from '../../lib';
 import {
     genPrivateEphemeralKey,
@@ -15,7 +18,8 @@ import {
     stripArmor,
     keyCheck
 } from '../../lib/pmcrypto';
-import { openpgp } from '../../lib/openpgp';
+
+globalThis.crypto = require('crypto').webcrypto;
 
 test('it can correctly encode base 64', async (t) => {
     t.is(encodeBase64('foo'), 'Zm9v');
@@ -140,10 +144,9 @@ test('it can correctly perform an ECDHE roundtrip', async (t) => {
     const Q = binaryStringToArray(decodeBase64('QPOClKt3wRFh6I0D7ItvuRqQ9eIfJZfOcBK3qJ/J++oj'));
     const d = binaryStringToArray(decodeBase64('TG4WP1jLiWurBSTrpTCeYrdpJUqFTVFg1PzD2/m26Jg='));
     const Fingerprint = binaryStringToArray(decodeBase64('sbd0e0yF9dSX8+xH9VYDqGVK0Wk='));
-    const Curve = 'curve25519';
 
-    const { V, Z } = await genPublicEphemeralKey({ Curve, Q, Fingerprint });
-    const Zver = await genPrivateEphemeralKey({ Curve, V, d, Fingerprint });
+    const { V, Z } = await genPublicEphemeralKey({ Q, Fingerprint });
+    const Zver = await genPrivateEphemeralKey({ V, d, Fingerprint });
 
     t.deepEqual(Zver, Z);
 });
@@ -152,14 +155,14 @@ test('it can correctly perform an ECDHE roundtrip', async (t) => {
 test('it can check userId against a given email', (t) => {
     const info = {
         version: 4,
-        userIds: ['jb'],
+        userIDs: ['jb'],
         algorithmName: 'ecdsa',
         encrypt: {},
         revocationSignatures: [],
         sign: {},
         user: {
-            hash: [openpgp.enums.hash.sha256],
-            symmetric: [openpgp.enums.symmetric.aes256],
+            hash: [enums.hash.sha256],
+            symmetric: [enums.symmetric.aes256],
             userId: 'Jacky Black <jackyblack@foo.com>'
         }
     };
@@ -176,14 +179,15 @@ test('it can check userId against a given email', (t) => {
 
 test('it reformats a key using the key creation time', async (t) => {
     const date = new Date(0);
-    const { key } = await openpgp.generateKey({
-        userIds: [{ name: 'name', email: 'email@test.com' }],
-        date
+    const { privateKey } = await generateKey({
+        userIDs: [{ name: 'name', email: 'email@test.com' }],
+        date,
+        format: 'object'
     });
     
-    const { key: reformattedKey } = await reformatKey({ privateKey: key, passphrase: '123', userIds: [{ name: 'reformatted', email: 'reformatteed@test.com' }] });
+    const { key: reformattedKey } = await reformatKey({ privateKey, passphrase: '123', userIDs: [{ name: 'reformatted', email: 'reformatteed@test.com' }] });
     const primaryUser = await reformattedKey.getPrimaryUser();
-    t.is(primaryUser.user.userId.userid, 'reformatted <reformatteed@test.com>');
+    t.is(primaryUser.user.userID?.userID, 'reformatted <reformatteed@test.com>');
     // @ts-ignore missing `created` field declaration in signature packet
     t.deepEqual((await reformattedKey.getPrimaryUser()).selfCertification.created, date);
 });
@@ -191,16 +195,21 @@ test('it reformats a key using the key creation time', async (t) => {
 test('it can correctly detect an expired key', async (t) => {
     const now = new Date();
     // key expires in one second
-    const { key: expiringKey } = await openpgp.generateKey({
-        userIds: [{ name: 'name', email: 'email@test.com' }],
+    const { privateKey: expiringKey } = await generateKey({
+        userIDs: [{ name: 'name', email: 'email@test.com' }],
         date: now,
-        keyExpirationTime: 1
+        keyExpirationTime: 1,
+        format: 'object'
     });
     t.is(await isExpiredKey(expiringKey, now), false);
     t.is(await isExpiredKey(expiringKey, new Date(+now + 1000)), true);
     t.is(await isExpiredKey(expiringKey, new Date(+now - 1000)), true);
 
-    const { key } = await openpgp.generateKey({ userIds: [{ name: 'name', email: 'email@test.com' }], date: now });
+    const { privateKey: key } = await generateKey({
+        userIDs: [{ name: 'name', email: 'email@test.com' }],
+        date: now,
+        format: 'object'
+    });
     t.is(await isExpiredKey(key), false);
     t.is(await isExpiredKey(key, new Date(+now - 1000)), true);
 });
@@ -209,16 +218,47 @@ test('it can correctly detect a revoked key', async (t) => {
     const past = new Date(0);
     const now = new Date();
 
-    const { key, revocationCertificate } = await openpgp.generateKey({
-        userIds: [{ name: 'name', email: 'email@test.com' }],
-        date: past
+    const { privateKey: key, revocationCertificate } = await generateKey({
+        userIDs: [{ name: 'name', email: 'email@test.com' }],
+        date: past,
+        format: 'object'
     });
-    const { publicKey: revokedKey } = await openpgp.revokeKey({
-        // @ts-ignore wrong revokeKey input declaration
+    const { publicKey: revokedKey } = await revokeKey({
         key,
-        revocationCertificate
+        revocationCertificate,
+        format: 'object'
     });
     t.is(await isRevokedKey(revokedKey, past), true);
     t.is(await isRevokedKey(revokedKey, now), true);
     t.is(await isRevokedKey(key, now), false);
+});
+
+test('it can get a matching primary key', async (t) => {
+    const { privateKey: key1 } = await generateKey({
+        userIDs: [{ name: 'name', email: 'email@test.com' }],
+        format: 'object',
+        subkeys: [{ sign: true }]
+    });
+
+    const { privateKey: key2 } = await generateKey({
+        userIDs: [{ name: 'name', email: 'email@test.com' }],
+        format: 'object'
+    });
+
+    const { signature: signatureFromSubkey } = await signMessage({
+        data: 'a message',
+        signingKeys: [key1],
+        format: 'object'
+    });
+
+    const { signature: signatureFromPrimaryKey } = await signMessage({
+        data: 'a message',
+        signingKeys: [key2],
+        format: 'object'
+    });
+
+    t.is(signatureFromSubkey.packets[0].issuerKeyID, key1.subkeys[0].getKeyID());
+    t.deepEqual(await getMatchingKey(signatureFromSubkey, [key1, key2]), key1);
+    t.is(signatureFromPrimaryKey.packets[0].issuerKeyID, key2.getKeyID());
+    t.deepEqual(await getMatchingKey(signatureFromPrimaryKey, [key1, key2]), key2);
 });
