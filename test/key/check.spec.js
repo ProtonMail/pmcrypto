@@ -1,6 +1,6 @@
 import test from 'ava';
 import '../helper';
-import { checkContactKeyStrength, checkPersonalKeyStrength } from '../../lib/pmcrypto';
+import { checkKeyStrength } from '../../lib/pmcrypto';
 import { openpgp } from '../../lib/openpgp';
 
 const ecc25519Key = `-----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -58,38 +58,20 @@ m53MXUW1fnpBPuv9RWJDN+tLhm5FPJktpuElr6hcBg==
 =J9mf
 -----END PGP PUBLIC KEY BLOCK-----`;
 
-test('it warns on insecure personal primary key', async (t) => {
+test('it warns on insecure primary key (RSA 512 bits)', async (t) => {
     const key = (await openpgp.key.readArmored(rsa512BitsKey)).keys[0];
-    const error = await t.throwsAsync(checkPersonalKeyStrength(key));
-    t.is(error.message, 'Keys shorter than 2048 bits are considered unsafe');
+    const error = t.throws(() => checkKeyStrength(key));
+    t.is(error.message, 'Keys shorter than 2047 bits are considered unsafe');
 });
 
-test('it warns on insecure personal subkey', async (t) => {
+test('it warns on insecure subkey (ElGamal)', async (t) => {
     const key = (await openpgp.key.readArmored(eddsaElGamalSubkey)).keys[0];
-    const error = await t.throwsAsync(checkPersonalKeyStrength(key));
+    const error = t.throws(() => checkKeyStrength(key));
     t.is(error.message, 'elgamal keys are considered unsafe');
 });
 
-test('it warns on insecure contact primary key', async (t) => {
-    const key = (await openpgp.key.readArmored(rsa512BitsKey)).keys[0];
-    const error = await t.throwsAsync(checkContactKeyStrength(key));
-    t.is(error.message, 'Keys shorter than 1024 bits are considered unsafe');
-});
-
-test('it warns on insecure contact subkey', async (t) => {
-    const key = (await openpgp.key.readArmored(eddsaElGamalSubkey)).keys[0];
-    const error = await t.throwsAsync(checkContactKeyStrength(key));
-    t.is(error.message, 'elgamal keys are considered unsafe');
-});
-
-test('it does not warn on secure personal key', async (t) => {
+test('it does not warn on secure key (x25519)', async (t) => {
     const key = (await openpgp.key.readArmored(ecc25519Key)).keys[0];
-    await checkContactKeyStrength(key);
-    t.pass();
-});
-
-test('it does not warn on secure contact key', async (t) => {
-    const key = (await openpgp.key.readArmored(ecc25519Key)).keys[0];
-    await checkContactKeyStrength(key);
+    checkKeyStrength(key);
     t.pass();
 });

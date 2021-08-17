@@ -291,4 +291,4 @@ export function getSHA256Fingerprints(key: OpenPGPKey): Promise<string[]>
 
 export function canKeyEncrypt(key: OpenPGPKey, date?: Date): Promise<boolean>;
 
-export function checkPersonalKeyStrength(key: OpenPGPKey): Promise<void>;
+export function checkKeyStrength(key: OpenPGPKey): void;
