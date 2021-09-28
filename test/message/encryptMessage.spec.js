@@ -1,6 +1,6 @@
 import test from 'ava';
 import '../helper';
-import { util, stream } from 'openpgp';
+import { util, stream, enums } from 'openpgp';
 
 import { createMessage, getMessage, getSignature, verifyMessage } from '../../lib/message/utils';
 import encryptMessage from '../../lib/message/encrypt';
@@ -40,6 +40,35 @@ test('it can encrypt and decrypt a message with session keys', async (t) => {
     });
     t.is(decrypted, 'Hello world!');
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+});
+
+test('it does not compress a message by default', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const { data: encrypted, sessionKey: sessionKeys } = await encryptMessage({
+        message: createMessage('Hello world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        privateKeys: [decryptedPrivateKey],
+        returnSessionKey: true
+    });
+    const encryptedMessage = await getMessage(encrypted);
+    const decryptedMessage = await encryptedMessage.decrypt([], [], [sessionKeys]);
+    t.is(decryptedMessage.packets.findPacket(enums.packet.compressed), undefined);
+});
+
+test('it compresses the message if the compression option is specified', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+    const { data: encrypted, sessionKey: sessionKeys } = await encryptMessage({
+        message: createMessage('Hello world!'),
+        publicKeys: [decryptedPrivateKey.toPublic()],
+        privateKeys: [decryptedPrivateKey],
+        returnSessionKey: true,
+        compression: enums.compression.zip
+    });
+    const encryptedMessage = await getMessage(encrypted);
+    const decryptedMessage = await encryptedMessage.decrypt([], [], [sessionKeys]);
+    const compressedPacket = decryptedMessage.packets.findPacket(enums.packet.compressed);
+    t.not(compressedPacket, undefined);
+    t.is(compressedPacket.algorithm, 'zip');
 });
 
 test('it can encrypt and decrypt a message with an unencrypted detached signature', async (t) => {
