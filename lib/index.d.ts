@@ -215,7 +215,7 @@ interface SignOptionsPmcryptoWithData extends Omit<SignOptions, 'message'> {
 type SignOptionsPmcrypto = SignOptionsPmcryptoWithData | SignOptions;
 
 export function createMessage(
-    text: string | ReadableStream<String> | Uint8Array | ReadableStream<Uint8Array>,
+    data: string | ReadableStream<String> | Uint8Array | ReadableStream<Uint8Array>,
     filename?: string,
     date?: Date,
     type?: any
