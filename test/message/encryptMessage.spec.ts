@@ -1,13 +1,18 @@
 import test from 'ava';
 import '../helper';
-import { util, stream, enums } from 'openpgp';
+import {
+    util,
+    // @ts-ignore not declared as exported
+    stream,
+    enums
+} from 'openpgp';
 
-import { createMessage, getMessage, getSignature, verifyMessage } from '../../lib/message/utils';
-import encryptMessage from '../../lib/message/encrypt';
+import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage } from '../../lib';
+import { createMessage, getSignature } from '../../lib/message/utils';
 import { decryptMessage } from '../../lib/message/decrypt';
-import { decryptPrivateKey } from '../../lib';
 import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
+import { openpgp } from '../../lib/openpgp';
 
 test('it can encrypt and decrypt a message', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
@@ -66,7 +71,7 @@ test('it compresses the message if the compression option is specified', async (
     });
     const encryptedMessage = await getMessage(encrypted);
     const decryptedMessage = await encryptedMessage.decrypt([], [], [sessionKeys]);
-    const compressedPacket = decryptedMessage.packets.findPacket(enums.packet.compressed);
+    const compressedPacket = decryptedMessage.packets.findPacket(enums.packet.compressed) as openpgp.packet.Compressed;
     t.not(compressedPacket, undefined);
     t.is(compressedPacket.algorithm, 'zip');
 });
