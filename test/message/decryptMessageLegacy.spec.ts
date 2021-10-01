@@ -1,8 +1,7 @@
 import test from 'ava';
 import '../helper';
 
-import { decryptMessageLegacy } from '../../lib/message/decrypt';
-import { decryptPrivateKey } from '../../lib';
+import { decryptPrivateKey, decryptMessageLegacy } from '../../lib';
 import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult } from './decryptMessageLegacy.data';
 
 test('it can decrypt a legacy message', async (t) => {

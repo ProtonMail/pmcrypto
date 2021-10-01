@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+      "target": "ES6",
+      "moduleResolution": "node",
+      "strict": true,
+      "sourceMap": true,
+      "allowJs": true,
+      "outDir": "build/",
+  },
+  "include": [
+    "./test/**/*",
+    // these are not directly referenced by the tests, but are still needed
+    "./lib/openpgp.js",
+    "./lib/index.js"
+  ]
+}
