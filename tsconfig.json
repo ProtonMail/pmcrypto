@@ -9,8 +9,7 @@
   },
   "include": [
     "./test/**/*",
-    // these are not directly referenced by the tests, but are still needed
-    "./lib/openpgp.js",
+    // the index file is not directly referenced by the tests, hence needs manual inclusion
     "./lib/index.js"
   ]
 }
