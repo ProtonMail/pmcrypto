@@ -2,7 +2,7 @@ import test from 'ava';
 import '../helper';
 
 import { decryptPrivateKey, decryptMessageLegacy } from '../../lib';
-import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult } from './decryptMessageLegacy.data';
+import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from './decryptMessageLegacy.data';
 
 test('it can decrypt a legacy message', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
@@ -11,5 +11,17 @@ test('it can decrypt a legacy message', async (t) => {
         privateKeys: [decryptedPrivateKey],
         messageDate: new Date('2015-01-01')
     });
+    t.is(data, testMessageResult);
+});
+
+test('it can decrypt a non-legacy armored message', async (t) => {
+    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+
+    const { data } = await decryptMessageLegacy({
+        message: testMessageEncryptedStandard,
+        privateKeys: [decryptedPrivateKey],
+        messageDate: new Date('2015-01-01')
+    });
+
     t.is(data, testMessageResult);
 });
