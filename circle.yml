@@ -7,5 +7,5 @@ jobs:
        - checkout
        - run: npm i
        - run: npm run lint
-       - run: npm test
        - run: npm run test-type-definitions
+       - run: npm test
