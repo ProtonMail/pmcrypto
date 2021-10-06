@@ -5,11 +5,13 @@ import {
     concatArrays,
     decodeBase64,
     encodeBase64,
+    isExpiredKey,
+    isRevokedKey,
+} from '../../lib';
+import {
     genPrivateEphemeralKey,
     genPublicEphemeralKey,
     stripArmor,
-    isExpiredKey,
-    isRevokedKey,
     keyCheck
 } from '../../lib/pmcrypto';
 import { openpgp } from '../../lib/openpgp';

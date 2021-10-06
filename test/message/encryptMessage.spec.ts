@@ -7,9 +7,7 @@ import {
     enums
 } from 'openpgp';
 
-import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage } from '../../lib';
-import { createMessage, getSignature } from '../../lib/message/utils';
-import { decryptMessage } from '../../lib/message/decrypt';
+import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage, decryptMessage, createMessage, getSignature,  } from '../../lib';
 import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 import { openpgp } from '../../lib/openpgp';
