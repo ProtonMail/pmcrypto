@@ -2,9 +2,8 @@ import test from 'ava';
 import '../helper';
 
 import { openpgp } from '../../lib/openpgp';
-import { verifyMessage } from '../../lib/message/utils';
+import { createMessage, verifyMessage } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
-import { createMessage } from '../../lib';
 
 const detachedSignatureFromTwoKeys = `-----BEGIN PGP SIGNATURE-----
 
@@ -57,7 +56,10 @@ test('it verifies a message with multiple signatures', async (t) => {
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
     t.is(signatures.length, 2);
     t.is(errors, undefined);
-    const signaturePackets = signatures.map(({ packets: [sigPacket] }) => sigPacket);
+    const signaturePackets = signatures.map(({
+        // @ts-ignore openpgp.packet.List not declared as iterator
+        packets: [sigPacket]
+    }) => sigPacket);
     signaturePackets.forEach(({ verified }) => {
         t.is(verified, true);
     });
@@ -76,7 +78,10 @@ test('it verifies a message with multiple signatures and returns the timestamp o
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
     t.is(signatures.length, 2);
     t.is(errors, undefined);
-    const signaturePackets = signatures.map(({ packets: [sigPacket] }) => sigPacket);
+    const signaturePackets = signatures.map(({
+        // @ts-ignore openpgp.packet.List not declared as iterator
+        packets: [sigPacket]
+    }) => sigPacket);
     const validSignature = signaturePackets.find((sigPacket) => sigPacket.issuerKeyId.equals(publicKey1.getKeyId()));
     const invalidSignature = signaturePackets.find((sigPacket) => sigPacket.issuerKeyId.equals(publicKey2.getKeyId()));
     t.is(validSignature.verified, true);
@@ -94,8 +99,10 @@ test('it does not verify a message given wrong public key', async (t) => {
     });
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_INVALID);
     t.is(signatures.length, 2);
-    t.is(errors.length, 0);
+    t.not(errors, undefined);
+    t.is(errors!.length, 0);
     const verifiedSignatures = signatures
+        // @ts-ignore openpgp.packet.List not declared as iterator
         .map(({ packets: [sigPacket] }) => sigPacket)
         .filter((sigPacket) => sigPacket.verified);
     t.is(verifiedSignatures.length, 0);
@@ -111,8 +118,10 @@ test('it does not verify a message with corrupted signature', async (t) => {
     });
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_INVALID);
     t.is(signatures.length, 2);
-    t.is(errors.length, 1);
+    t.not(errors, undefined);
+    t.is(errors!.length, 1);
     const verifiedSignatures = signatures
+        // @ts-ignore openpgp.packet.List not declared as iterator
         .map(({ packets: [sigPacket] }) => sigPacket)
         .filter((sigPacket) => sigPacket.verified);
     t.is(verifiedSignatures.length, 0);

@@ -5,11 +5,13 @@ import {
     concatArrays,
     decodeBase64,
     encodeBase64,
+    isExpiredKey,
+    isRevokedKey,
+} from '../../lib';
+import {
     genPrivateEphemeralKey,
     genPublicEphemeralKey,
     stripArmor,
-    isExpiredKey,
-    isRevokedKey,
     keyCheck
 } from '../../lib/pmcrypto';
 import { openpgp } from '../../lib/openpgp';
@@ -166,7 +168,7 @@ test('it can check userId against a given email', (t) => {
     try {
         keyCheck(info, 'jack.black@foo.com');
         t.fail();
-    } catch (e) {
+    } catch (e: any) {
         e.message === 'UserID does not contain correct email address' ? t.pass() : t.fail();
     }
 });
@@ -197,6 +199,7 @@ test('it can correctly detect a revoked key', async (t) => {
         date: past
     });
     const { publicKey: revokedKey } = await openpgp.revokeKey({
+        // @ts-ignore wrong revokeKey input declaration
         key,
         revocationCertificate
     });

@@ -2,10 +2,10 @@ version: 2
 jobs:
    build:
      docker:
-       - image: circleci/node:10.9.0-stretch-browsers
+       - image: cimg/node:lts
      steps:
        - checkout
        - run: npm i
        - run: npm run lint
-       - run: npm test
        - run: npm run test-type-definitions
+       - run: npm test

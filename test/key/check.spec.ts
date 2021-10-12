@@ -1,6 +1,6 @@
 import test from 'ava';
 import '../helper';
-import { checkKeyStrength } from '../../lib/pmcrypto';
+import { checkKeyStrength } from '../../lib';
 import { openpgp } from '../../lib/openpgp';
 
 const ecc25519Key = `-----BEGIN PGP PUBLIC KEY BLOCK-----

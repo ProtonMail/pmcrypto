@@ -60,8 +60,9 @@ export function reformatKey(
     option: ReformatKeyOptions
 ): Promise<{ key: key.Key; privateKeyArmored: string; publicKeyArmored: string; revocationCertificate: string }>;
 
-export interface DecryptLegacyOptions extends DecryptOptions {
-    messageDate?: Date;
+export interface DecryptLegacyOptions extends Omit<DecryptOptions, 'message'> {
+    message: string;
+    messageDate: Date;
 }
 
 export interface DecryptMimeOptions extends DecryptLegacyOptions {

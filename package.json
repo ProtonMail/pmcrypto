@@ -38,10 +38,14 @@
       "esm"
     ],
     "files": [
-      "test/**/*.js",
-      "!test/**/*.data.js",
-      "!test/helper.js"
-    ]
+      "test/**/*.spec.ts"
+    ],
+    "typescript": {
+      "rewritePaths": {
+        "test/": "build/test/"
+      },
+      "compile": "tsc"
+    }
   },
   "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
   "dependencies": {
@@ -53,7 +57,8 @@
     "node": ">=10.15.1"
   },
   "devDependencies": {
-    "ava": "1.0.0-rc.2",
+    "@ava/typescript": "^2.0.0",
+    "ava": "^3.15.0",
     "eslint": "^6.3.0",
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-plugin-import": "^2.18.2",

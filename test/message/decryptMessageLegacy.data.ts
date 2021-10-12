@@ -81,5 +81,68 @@ cO/bcbqRxx3pG9gkPIh43FoQktTT+tsJ5vS53qfaLGdhCYfkrWjsKu+2P9Xg
 ---END ENCRYPTED RANDOM KEY---
 `;
 
+export const testMessageEncryptedStandard = `-----BEGIN PGP MESSAGE-----
+Version: OpenPGP.js v4.10.10
+Comment: https://openpgpjs.org
+
+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
+oHI=
+=Y+OF
+-----END PGP MESSAGE-----`;
+
 export const testMessageResult =
     '<div>flkasjfkjasdklfjasd<br></div><div>fasd<br></div><div>jfasjdfjasd<br></div><div>fj<br></div><div>asdfj<br></div><div>sadjf<br></div><div>sadjf<br></div><div>asjdf<br></div><div>jasd<br></div><div>fj<br></div><div>asdjf<br></div><div>asdjfsad<br></div><div>fasdlkfjasdjfkljsadfljsdfjsdljflkdsjfkljsdlkfjsdlk<br></div><div>jasfd<br></div><div>jsd<br></div><div>jf<br></div><div>sdjfjsdf<br></div><div><br></div><div>djfskjsladf<br></div><div>asd<br></div><div>fja<br></div><div>sdjfajsf<br></div><div>jas<br></div><div>fas<br></div><div>fj<br></div><div>afj<br></div><div>ajf<br></div><div>af<br></div><div>asdfasdfasd<br></div><div>Sent from <a href="https://protonmail.ch">ProtonMail</a>, encrypted email based in Switzerland.<br></div><div>dshfljsadfasdf<br></div><div>as<br></div><div>df<br></div><div>asd<br></div><div>fasd<br></div><div>f<br></div><div>asd<br></div><div>fasdflasdklfjsadlkjf</div><div>asd<br></div><div>fasdlkfjasdlkfjklasdjflkasjdflaslkfasdfjlasjflkasflksdjflkjasdf<br></div><div>asdflkasdjflajsfljaslkflasf<br></div><div>asdfkas<br></div><div>dfjas<br></div><div>djf<br></div><div>asjf<br></div><div>asj<br></div><div>faj<br></div><div>f<br></div><div>afj<br></div><div>sdjaf<br></div><div>jas<br></div><div>sdfj<br></div><div>ajf<br></div><div>aj<br></div><div>ajsdafafdaaf<br></div><div>a<br></div><div>f<br></div><div>lasl;ga<br></div><div>sags<br></div><div>ad<br></div><div>gags<br></div><div>g<br></div><div>ga<br></div><div>a<br></div><div>gg<br></div><div>a<br></div><div>ag<br></div><div>ag<br></div><div>agga.g.ga,ag.ag./ga<br></div><div><br></div><div>dsga<br></div><div>sg<br></div><div><br></div><div>gasga\\g\\g\\g\\g\\g\\n\\y\\t\\r\\\\r\\r\\\\n\\n\\n\\<br></div><div><br></div><div><br></div><div>sd<br></div><div>asdf<br></div><div>asdf<br></div><div>dsa<br></div><div>fasd<br></div><div>f</div>';

@@ -1,11 +1,12 @@
 import test from 'ava';
 import '../helper';
-import * as pmcrypto from '../../lib/pmcrypto';
+// @ts-ignore missing keyInfo typings
+import { generateKey, keyInfo } from '../../lib';
 import { openpgp } from '../../lib/openpgp';
 
 test('sha256 fingerprints - v4 key', async (t) => {
-    const { publicKeyArmored } = await pmcrypto.generateKey({ userIds: [{}], passphrase: 'test' });
-    const { fingerprints, sha256Fingerprints } = await pmcrypto.keyInfo(publicKeyArmored);
+    const { publicKeyArmored } = await generateKey({ userIds: [{}], passphrase: 'test' });
+    const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKeyArmored);
     t.is(sha256Fingerprints.length, fingerprints.length);
     sha256Fingerprints.forEach((sha256Fingerprint, i) => {
         t.not(sha256Fingerprint, fingerprints[i]);
@@ -13,13 +14,15 @@ test('sha256 fingerprints - v4 key', async (t) => {
 });
 
 test.serial('sha256 fingerprints - v5 key', async (t) => {
+    // @ts-ignore missing declaration for config.v5_keys
     openpgp.config.v5_keys = !openpgp.config.v5_keys;
-    const { publicKeyArmored } = await pmcrypto.generateKey({ userIds: [{}], passphrase: 'test' });
-    const { fingerprints, sha256Fingerprints } = await pmcrypto.keyInfo(publicKeyArmored);
+    const { publicKeyArmored } = await generateKey({ userIds: [{}], passphrase: 'test' });
+    const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKeyArmored);
     t.is(sha256Fingerprints.length, fingerprints.length);
     sha256Fingerprints.forEach((sha256Fingerprint, i) => {
         t.is(sha256Fingerprint, fingerprints[i]);
     });
+    // @ts-ignore missing declaration for config.v5_keys
     openpgp.config.v5_keys = !openpgp.config.v5_keys;
 });
 
@@ -52,7 +55,7 @@ JLdxTBJgqQoLePyHnb4LEPZItOUOMiHRBLUV8PSj/dxLEmYlmbPFOTnE62izRX4Q
 
 test('expiration test', async (t) => {
     // primary key does not expire
-    const { expires, dateError } = await pmcrypto.keyInfo(publickey);
+    const { expires, dateError } = await keyInfo(publickey);
     t.is(expires, Infinity);
     t.is(dateError, null);
 
@@ -63,7 +66,7 @@ test('expiration test', async (t) => {
         date: now,
         keyExpirationTime: 1
     });
-    const expiringKeyInfo = await pmcrypto.keyInfo(expiringKey);
+    const expiringKeyInfo = await keyInfo(expiringKey);
     t.is(expiringKeyInfo.expires.getTime(), new Date(+now + 1000).getTime());
     t.is(dateError, null);
 });
@@ -103,7 +106,7 @@ uokpJQHZjIvfQ5/9tx1946Tvo0RX0A26JfOO+J68XA==
 -----END PGP PUBLIC KEY BLOCK-----`;
 
 test('creation test', async (t) => {
-    const { dateError } = await pmcrypto.keyInfo(
+    const { dateError } = await keyInfo(
         creationkey,
         undefined,
         undefined,
@@ -113,29 +116,29 @@ test('creation test', async (t) => {
 });
 
 test('invalid key', async (t) => {
-    const { validationError } = await pmcrypto.keyInfo(publickey);
+    const { validationError } = await keyInfo(publickey);
     t.is(validationError, 'Key is less than 2048 bits');
 });
 
 test('valid key', async (t) => {
-    const { validationError } = await pmcrypto.keyInfo(creationkey);
+    const { validationError } = await keyInfo(creationkey);
     t.is(validationError, null);
 });
 
 test('newly generated RSA key', async (t) => {
-    const { publicKeyArmored } = await pmcrypto.generateKey({ userIds: [{}], passphrase: 'test' });
-    const { validationError } = await pmcrypto.keyInfo(publicKeyArmored);
+    const { publicKeyArmored } = await generateKey({ userIds: [{}], passphrase: 'test' });
+    const { validationError } = await keyInfo(publicKeyArmored);
     t.is(validationError, null);
 });
 
 test('newly generated ECC key', async (t) => {
-    const { publicKeyArmored } = await pmcrypto.generateKey({ userIds: [{}], passphrase: 'test', curve: 'curve25519' });
-    const { validationError } = await pmcrypto.keyInfo(publicKeyArmored);
+    const { publicKeyArmored } = await generateKey({ userIds: [{}], passphrase: 'test', curve: 'curve25519' });
+    const { validationError } = await keyInfo(publicKeyArmored);
     t.is(validationError, null);
 });
 
 test('newly generated ECC key: invalid curve', async (t) => {
-    const { publicKeyArmored } = await pmcrypto.generateKey({ userIds: [{}], passphrase: 'test', curve: 'secp256k1' });
-    const { validationError } = await pmcrypto.keyInfo(publicKeyArmored);
+    const { publicKeyArmored } = await generateKey({ userIds: [{}], passphrase: 'test', curve: 'secp256k1' });
+    const { validationError } = await keyInfo(publicKeyArmored);
     t.is(validationError, 'Key must use Curve25519, P-256, P-384 or P-521');
 });
