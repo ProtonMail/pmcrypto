@@ -7,6 +7,7 @@ import {
     encodeBase64,
     isExpiredKey,
     isRevokedKey,
+    reformatKey
 } from '../../lib';
 import {
     genPrivateEphemeralKey,
@@ -171,6 +172,20 @@ test('it can check userId against a given email', (t) => {
     } catch (e: any) {
         e.message === 'UserID does not contain correct email address' ? t.pass() : t.fail();
     }
+});
+
+test('it reformats a key using the key creation time', async (t) => {
+    const date = new Date(0);
+    const { key } = await openpgp.generateKey({
+        userIds: [{ name: 'name', email: 'email@test.com' }],
+        date
+    });
+    
+    const { key: reformattedKey } = await reformatKey({ privateKey: key, passphrase: '123', userIds: [{ name: 'reformatted', email: 'reformatteed@test.com' }] });
+    const primaryUser = await reformattedKey.getPrimaryUser();
+    t.is(primaryUser.user.userId.userid, 'reformatted <reformatteed@test.com>');
+    // @ts-ignore missing `created` field declaration in signature packet
+    t.deepEqual((await reformattedKey.getPrimaryUser()).selfCertification.created, date);
 });
 
 test('it can correctly detect an expired key', async (t) => {
