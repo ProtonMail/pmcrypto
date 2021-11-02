@@ -113,8 +113,6 @@ export function arrayToHexString(bytes: Uint8Array): string;
 
 export function concatArrays(data: Uint8Array[]): Uint8Array;
 
-export function getOpenPGPKeys(key: Uint8Array | string): Promise<OpenPGPKey[]>;
-
 export function getFingerprint(key: OpenPGPKey): string;
 
 export function isExpiredKey(key: OpenPGPKey, date?: Date): Promise<boolean>;
@@ -284,4 +282,5 @@ export function getSHA256Fingerprints(key: OpenPGPKey): Promise<string[]>
 export function canKeyEncrypt(key: OpenPGPKey, date?: Date): Promise<boolean>;
 
 export function checkKeyStrength(key: OpenPGPKey): void;
-export function getKeys(serializedKeys: String | Uint8Array): Promise<OpenPGPKey>;
+export function getKeys(serializedKeys: String | Uint8Array): Promise<OpenPGPKey[]>;
+export function getKey(serializedKey: String | Uint8Array): Promise<OpenPGPKey>;
