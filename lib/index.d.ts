@@ -2,7 +2,7 @@ import {
     DecryptOptions,
     DecryptMessageResult,
     Message,
-    Key as OpenPGPKey,
+    Key,
     User,
     KeyID,
     Signature,
@@ -11,8 +11,9 @@ import {
     UserID,
     CleartextMessage,
     VerifyOptions,
-    VerifyMessageResult as VerifyMessageResultOpenPGP,
-    KeyOptions
+    VerifyMessageResult as openpgp_VerifyMessageResult,
+    reformatKey,
+    generateKey,
 } from 'openpgp';
 
 export type Data = Uint8Array | string;
@@ -28,7 +29,7 @@ export enum SIGNATURE_TYPES {
     CANONICAL_TEXT = 1
 }
 
-export { OpenPGPKey };
+export type OpenPGPKey = Key;
 export type OpenPGPMessage = Message<Data>;
 export type OpenPGPSignature = Signature;
 
@@ -37,23 +38,8 @@ export interface SessionKey {
     algorithm: string;
 }
 
-export interface GenerateKeyOptions extends KeyOptions {
-    offset?: number;
-}
-export function generateKey(
-    option: GenerateKeyOptions
-): Promise<{ key: OpenPGPKey; privateKeyArmored: string; publicKeyArmored: string; revocationCertificate: string }>;
-
-export interface ReformatKeyOptions {
-    privateKey: OpenPGPKey;
-    userIDs: UserID[];
-    passphrase: string;
-    keyExpirationTime?: number;
-    date?: Date;
-}
-export function reformatKey(
-    option: ReformatKeyOptions
-): Promise<{ key: OpenPGPKey; privateKeyArmored: string; publicKeyArmored: string; revocationCertificate: string }>;
+// TODO (?) these actually differ from 'openpgp' in that the passphrase is required
+export { generateKey, reformatKey }
 
 export interface DecryptLegacyOptions extends Omit<DecryptOptions, 'message'> {
     message: string;
@@ -251,7 +237,6 @@ export function armorBytes(value: Uint8Array | string): Promise<Uint8Array | str
 
 export interface algorithmInfo {
     algorithm: string;
-    rsaBits?: number;
     bits?: number;
     curve?: string;
 }
@@ -262,7 +247,7 @@ export function unsafeMD5(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
 
 export interface VerifyMessageResult {
-    data: VerifyMessageResultOpenPGP['data'];
+    data: openpgp_VerifyMessageResult['data'];
     verified: VERIFICATION_STATUS;
     signatures: OpenPGPSignature[];
     signatureTimestamp: Date|null,
