@@ -88,6 +88,9 @@ export function encodeUtf8Base64(str: undefined): string;
 export function decodeUtf8Base64(str: string): string;
 export function decodeUtf8Base64(str: undefined): undefined;
 
+export function stringToUtf8Array(str: string): Uint8Array;
+export function utf8ArrayToString(bytes: Uint8Array): string;
+
 export function binaryStringToArray(str: string): Uint8Array;
 
 export function arrayToBinaryString(bytes: Uint8Array): string;
@@ -95,6 +98,9 @@ export function arrayToBinaryString(bytes: Uint8Array): string;
 export function arrayToHexString(bytes: Uint8Array): string;
 
 export function concatArrays(data: Uint8Array[]): Uint8Array;
+
+export function getKeys(serializedKeys: String | Uint8Array): Promise<OpenPGPKey[]>;
+export function getKey(serializedKey: String | Uint8Array): Promise<OpenPGPKey>;
 
 export function getFingerprint(key: OpenPGPKey): string;
 
@@ -265,5 +271,3 @@ export function getSHA256Fingerprints(key: OpenPGPKey): Promise<string[]>
 export function canKeyEncrypt(key: OpenPGPKey, date?: Date): Promise<boolean>;
 
 export function checkKeyStrength(key: OpenPGPKey): void;
-export function getKeys(serializedKeys: String | Uint8Array): Promise<OpenPGPKey[]>;
-export function getKey(serializedKey: String | Uint8Array): Promise<OpenPGPKey>;
