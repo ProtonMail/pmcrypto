@@ -242,7 +242,7 @@ test('it can get a matching primary key', async (t) => {
     });
 
     t.is(signatureFromSubkey.packets[0].issuerKeyID, key1.subkeys[0].getKeyID());
-    t.deepEqual(await getMatchingKey(signatureFromSubkey, [key1, key2]), key1);
+    t.deepEqual(getMatchingKey(signatureFromSubkey, [key1, key2]), key1);
     t.is(signatureFromPrimaryKey.packets[0].issuerKeyID, key2.getKeyID());
-    t.deepEqual(await getMatchingKey(signatureFromPrimaryKey, [key1, key2]), key2);
+    t.deepEqual(getMatchingKey(signatureFromPrimaryKey, [key1, key2]), key2);
 });

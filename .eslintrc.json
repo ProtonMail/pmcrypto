@@ -18,6 +18,7 @@
     ],
     "rules": {
         "prefer-spread": "off",
+        "no-restricted-syntax": "off",
         "arrow-parens": ["error", "always"],
         "indent": "off",
         "comma-dangle": ["error", "never"],

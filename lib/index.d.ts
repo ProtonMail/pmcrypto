@@ -188,7 +188,7 @@ export function encryptMessage(
 export function getMatchingKey(
     signature: OpenPGPSignature,
     publicKeys: OpenPGPKey[]
-): Promise<OpenPGPKey | undefined>;
+): OpenPGPKey | undefined;
 
 interface SignOptionsPmcryptoWithData extends Omit<SignOptions, 'message'> {
     data: string | Uint8Array;
