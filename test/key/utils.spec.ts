@@ -2,12 +2,9 @@ import test from 'ava';
 import '../helper';
 import { enums, generateKey, revokeKey } from 'openpgp';
 import {
-    binaryStringToArray,
     concatArrays,
     decodeBase64,
     encodeBase64,
-    generateDecryptionEphemeralKey,
-    generateEncryptionEphemeralKey,
     isExpiredKey,
     isRevokedKey,
     reformatKey,
@@ -136,17 +133,6 @@ GAlY9rxVStLBrg0Hn+5gkhyHI9B85rM1BEYXQ8pP5CSFuTwbJ3O2s67dzQ==
             205
         ])
     );
-});
-
-test('it can correctly perform an ECDHE roundtrip', async (t) => {
-    const Q = binaryStringToArray(decodeBase64('QPOClKt3wRFh6I0D7ItvuRqQ9eIfJZfOcBK3qJ/J++oj'));
-    const d = binaryStringToArray(decodeBase64('TG4WP1jLiWurBSTrpTCeYrdpJUqFTVFg1PzD2/m26Jg='));
-    const fingerprint = binaryStringToArray(decodeBase64('sbd0e0yF9dSX8+xH9VYDqGVK0Wk='));
-
-    const { V, Z } = await generateEncryptionEphemeralKey({ Q, fingerprint });
-    const Zver = await generateDecryptionEphemeralKey({ V, d, fingerprint });
-
-    t.deepEqual(Zver, Z);
 });
 
 // Test issue https://github.com/ProtonMail/pmcrypto/issues/92
