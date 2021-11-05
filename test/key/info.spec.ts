@@ -4,8 +4,6 @@ import '../helper';
 import { generateKey, keyInfo } from '../../lib';
 import { config, enums } from 'openpgp';
 
-globalThis.crypto = require('crypto').webcrypto;
-
 test('sha256 fingerprints - v4 key', async (t) => {
     const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test' });
     const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKey);

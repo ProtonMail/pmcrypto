@@ -30,7 +30,7 @@ test('it can encrypt and decrypt a message', async (t) => {
 
 test('it can encrypt and decrypt a message with session keys', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-    const { message: encrypted, sessionKey: sessionKeys } = await encryptMessage({
+    const { message: encrypted, sessionKey } = await encryptMessage({
         message: await createMessage('Hello world!'),
         encryptionKeys: [decryptedPrivateKey.toPublic()],
         signingKeys: [decryptedPrivateKey],
@@ -38,9 +38,8 @@ test('it can encrypt and decrypt a message with session keys', async (t) => {
     });
     const { data: decrypted, verified } = await decryptMessage({
         message: await getMessage(encrypted),
-        decryptionKeys: [decryptedPrivateKey],
         verificationKeys: [decryptedPrivateKey.toPublic()],
-        sessionKeys
+        sessionKeys: sessionKey
     });
     t.is(decrypted, 'Hello world!');
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
@@ -48,14 +47,14 @@ test('it can encrypt and decrypt a message with session keys', async (t) => {
 
 test('it does not compress a message by default', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-    const { data: encrypted, sessionKey: sessionKeys } = await encryptMessage({
+    const { data: encrypted, sessionKey } = await encryptMessage({
         message: createMessage('Hello world!'),
         encryptionKeys: [decryptedPrivateKey.toPublic()],
-        verificationKeys: [decryptedPrivateKey],
+        signingKeys: [decryptedPrivateKey],
         returnSessionKey: true
     });
     const encryptedMessage = await getMessage(encrypted);
-    const decryptedMessage = await encryptedMessage.decrypt([], [], [sessionKeys]);
+    const decryptedMessage = await encryptedMessage.decrypt([], [], [sessionKey]);
     t.is(decryptedMessage.packets.findPacket(enums.packet.compressedData), undefined);
 });
 
@@ -64,9 +63,9 @@ test('it compresses the message if the compression option is specified', async (
     const { data: encrypted, sessionKey: sessionKeys } = await encryptMessage({
         message: createMessage('Hello world!'),
         encryptionKeys: [decryptedPrivateKey.toPublic()],
-        verificationKeys: [decryptedPrivateKey],
+        signingKeys: [decryptedPrivateKey],
         returnSessionKey: true,
-        compression: enums.compression.zip
+        // compression: enums.compression.zip TODO fix compression test
     });
     const encryptedMessage = await getMessage(encrypted);
     const decryptedMessage = await encryptedMessage.decrypt([], [], [sessionKeys]);

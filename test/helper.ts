@@ -1,3 +1,9 @@
+import { webcrypto } from 'crypto';
 import { init } from '../lib/pmcrypto';
 
-init(require('openpgp'));
+// @ts-ignore
+global.crypto = webcrypto;
+// @ts-ignore
+global.navigator = { userAgent: 'Node.js' };
+
+init();

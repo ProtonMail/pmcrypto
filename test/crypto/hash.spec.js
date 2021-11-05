@@ -1,8 +1,7 @@
-import { openpgp } from '../lib/openpgp';
 import test from 'ava';
-import { unsafeMD5, unsafeSHA1, arrayToHexString, binaryStringToArray } from '../lib/utils';
+import '../helper';
 
-globalThis.crypto = require('crypto').webcrypto;
+import { unsafeMD5, unsafeSHA1, arrayToHexString, binaryStringToArray } from '../../lib';
 
 test('md5 basic test', async (t) => {
     const emptyHash = arrayToHexString(await unsafeMD5(new Uint8Array([])));

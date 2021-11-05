@@ -6,20 +6,18 @@ import {
     concatArrays,
     decodeBase64,
     encodeBase64,
+    generateDecryptionEphemeralKey,
+    generateEncryptionEphemeralKey,
     isExpiredKey,
     isRevokedKey,
     reformatKey,
     signMessage,
-    getMatchingKey
-} from '../../lib';
-import {
-    genPrivateEphemeralKey,
-    genPublicEphemeralKey,
+    getMatchingKey,
+    // @ts-ignore missing stripArmor typings
     stripArmor,
+    // @ts-ignore missing keyCheck typings
     keyCheck
-} from '../../lib/pmcrypto';
-
-globalThis.crypto = require('crypto').webcrypto;
+} from '../../lib';
 
 test('it can correctly encode base 64', async (t) => {
     t.is(encodeBase64('foo'), 'Zm9v');
@@ -143,10 +141,10 @@ GAlY9rxVStLBrg0Hn+5gkhyHI9B85rM1BEYXQ8pP5CSFuTwbJ3O2s67dzQ==
 test('it can correctly perform an ECDHE roundtrip', async (t) => {
     const Q = binaryStringToArray(decodeBase64('QPOClKt3wRFh6I0D7ItvuRqQ9eIfJZfOcBK3qJ/J++oj'));
     const d = binaryStringToArray(decodeBase64('TG4WP1jLiWurBSTrpTCeYrdpJUqFTVFg1PzD2/m26Jg='));
-    const Fingerprint = binaryStringToArray(decodeBase64('sbd0e0yF9dSX8+xH9VYDqGVK0Wk='));
+    const fingerprint = binaryStringToArray(decodeBase64('sbd0e0yF9dSX8+xH9VYDqGVK0Wk='));
 
-    const { V, Z } = await genPublicEphemeralKey({ Q, Fingerprint });
-    const Zver = await genPrivateEphemeralKey({ V, d, Fingerprint });
+    const { V, Z } = await generateEncryptionEphemeralKey({ Q, fingerprint });
+    const Zver = await generateDecryptionEphemeralKey({ V, d, fingerprint });
 
     t.deepEqual(Zver, Z);
 });
@@ -185,7 +183,7 @@ test('it reformats a key using the key creation time', async (t) => {
         format: 'object'
     });
     
-    const { key: reformattedKey } = await reformatKey({ privateKey, passphrase: '123', userIDs: [{ name: 'reformatted', email: 'reformatteed@test.com' }] });
+    const { privateKey: reformattedKey } = await reformatKey({ privateKey, passphrase: '123', userIDs: [{ name: 'reformatted', email: 'reformatteed@test.com' }], format: 'object' });
     const primaryUser = await reformattedKey.getPrimaryUser();
     t.is(primaryUser.user.userID?.userID, 'reformatted <reformatteed@test.com>');
     // @ts-ignore missing `created` field declaration in signature packet

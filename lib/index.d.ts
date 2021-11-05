@@ -14,6 +14,8 @@ import {
     VerifyMessageResult as openpgp_VerifyMessageResult,
     reformatKey,
     generateKey,
+    PrivateKey,
+    SessionKey
 } from 'openpgp';
 
 export type Data = Uint8Array | string;
@@ -32,11 +34,6 @@ export enum SIGNATURE_TYPES {
 export type OpenPGPKey = Key;
 export type OpenPGPMessage = Message<Data>;
 export type OpenPGPSignature = Signature;
-
-export interface SessionKey {
-    data: Uint8Array;
-    algorithm: string;
-}
 
 // TODO (?) these actually differ from 'openpgp' in that the passphrase is required
 export { generateKey, reformatKey }
@@ -71,7 +68,7 @@ export interface BinaryResult {
 }
 
 export function encryptPrivateKey(key: OpenPGPKey, password: string): Promise<string>;
-export function decryptPrivateKey(armoredKey: string, password: string): Promise<OpenPGPKey>;
+export function decryptPrivateKey(armoredKey: string, password: string): Promise<PrivateKey>;
 
 export function encodeUtf8(str: string): string;
 export function encodeUtf8(str: undefined): undefined;
@@ -156,6 +153,7 @@ export function decryptMIMEMessage(
 
 export interface EncryptOptionsPmcryptoWithData extends Omit<EncryptOptions, 'message'> {
     data: Uint8Array | string;
+    returnSessionKey?: boolean;
 }
 type EncryptOptionsPmcrypto = EncryptOptionsPmcryptoWithData | EncryptOptions;
 
