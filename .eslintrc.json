@@ -17,6 +17,7 @@
         "import"
     ],
     "rules": {
+        "prefer-spread": "off",
         "arrow-parens": ["error", "always"],
         "indent": "off",
         "comma-dangle": ["error", "never"],
