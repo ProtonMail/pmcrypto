@@ -165,23 +165,23 @@ type EncryptOptionsPmcrypto = EncryptOptionsPmcryptoWithData | EncryptOptions;
 
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor?: true; detached?: false }
-): Promise<EncryptResult<undefined, string>>;
+): Promise<EncryptResult<string>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor?: true; detached: true }
-): Promise<EncryptResult<undefined, string, Uint8Array, string>>;
+): Promise<EncryptResult<string, undefined, string, string>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor: false; detached?: false }
 ): Promise<EncryptResult<undefined, OpenPGPMessage>>;
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor: false; detached: true }
-): Promise<EncryptResult<undefined, OpenPGPMessage, Uint8Array, OpenPGPMessage>>;
-export function encryptMessage(
+): Promise<EncryptResult<undefined, OpenPGPMessage, OpenPGPSignature, OpenPGPMessage>>;
+export function encryptMessage( // TODO what is this for? redundant -- declare maybe streams above
     options: EncryptOptionsPmcrypto
 ): Promise<
     EncryptResult<
         string | ReadableStream<String>,
         OpenPGPMessage,
-        string | ReadableStream<String> | Uint8Array,
+        string | ReadableStream<String> | OpenPGPSignature,
         string | ReadableStream<String> | OpenPGPMessage
     >
 >;
