@@ -258,7 +258,7 @@ export interface VerifyMessageResult {
     errors?: Error[];
 }
 export interface VerifyMessageOptions extends VerifyOptions {
-    detached?: boolean;
+    detached?: boolean; // TODO what is this?
 }
 export function verifyMessage(options: VerifyMessageOptions): Promise<VerifyMessageResult>;
 

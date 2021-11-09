@@ -92,11 +92,6 @@ test('it does not verify a message given wrong public key', async (t) => {
     t.is(signatures.length, 2);
     t.not(errors, undefined);
     t.is(errors!.length, 0);
-    const verifiedSignatures = signatures
-        // @ts-ignore openpgp.packet.List not declared as iterator
-        .map(({ packets: [sigPacket] }) => sigPacket)
-        .filter((sigPacket) => sigPacket.verified);
-    t.is(verifiedSignatures.length, 0);
     t.is(signatureTimestamp, null);
 });
 
@@ -111,11 +106,6 @@ test('it does not verify a message with corrupted signature', async (t) => {
     t.is(signatures.length, 2);
     t.not(errors, undefined);
     t.is(errors!.length, 1);
-    const verifiedSignatures = signatures
-        // @ts-ignore openpgp.packet.List not declared as iterator
-        .map(({ packets: [sigPacket] }) => sigPacket)
-        .filter((sigPacket) => sigPacket.verified);
-    t.is(verifiedSignatures.length, 0);
     t.is(signatureTimestamp, null);
 });
 
