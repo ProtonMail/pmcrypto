@@ -1,6 +1,6 @@
 import test from 'ava';
 import '../helper';
-import { enums, generateKey, revokeKey } from 'openpgp';
+import { enums, generateKey, PrivateKey, revokeKey, sign } from 'openpgp';
 import {
     concatArrays,
     decodeBase64,
@@ -8,7 +8,8 @@ import {
     isExpiredKey,
     isRevokedKey,
     reformatKey,
-    signMessage,
+    createMessage,
+    getKey,
     getMatchingKey,
     // @ts-ignore missing stripArmor typings
     stripArmor,
@@ -218,31 +219,52 @@ test('it can correctly detect a revoked key', async (t) => {
 });
 
 test('it can get a matching primary key', async (t) => {
-    const { privateKey: key1 } = await generateKey({
-        userIDs: [{ name: 'name', email: 'email@test.com' }],
-        format: 'object',
-        subkeys: [{ sign: true }]
-    });
+    const keyWithoutSubkeys = `-----BEGIN PGP PRIVATE KEY BLOCK-----
 
-    const { privateKey: key2 } = await generateKey({
-        userIDs: [{ name: 'name', email: 'email@test.com' }],
+xVgEYYqcWBYJKwYBBAHaRw8BAQdAesbhqiOxbLV+P9Dt8LV+Q8hRBLbwsSf6
+emoCS30uQpEAAQDFgBruRj6Zqb0OULkaaNz+QK4+gvc006UtTgz2wdrP8xFv
+zRE8ZW1haWwyQHRlc3QuY29tPsKMBBAWCgAdBQJhipxYBAsJBwgDFQgKBBYA
+AgECGQECGwMCHgEAIQkQJCJW2HYCeYIWIQTdZGjv9WwTyL+azOUkIlbYdgJ5
+gm9nAQDY//xzc2hy6Efz8NqDJeLg1lh2sZkKcMXP3L+CJbhWJQEAuI6UDakE
++XVcDsBS+CIi3qg74r/80Ysb7tmRC06znwA=
+=I0d7
+-----END PGP PRIVATE KEY BLOCK-----`;
+
+    const keyWithSigningSubkey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEYYqb5xYJKwYBBAHaRw8BAQdA0zCRw6gyovlI8V6pQoDtmAoIr7YPNPxm
+jQa5PfiQq5gAAQDQ1o8+YXQg34FUNbbo+PUuRDAar37n9RFQiNrkH+vvlBHW
+zRA8ZW1haWxAdGVzdC5jb20+wowEEBYKAB0FAmGKm+cECwkHCAMVCAoEFgAC
+AQIZAQIbAwIeAQAhCRCqDK8y54tXERYhBELBCpl0aMYXdXBljKoMrzLni1cR
+v44BAI826OYoikU8aMs6wBiHd/SVqPU/ZVLz5VUGriEkJoqGAPwLOztUuX1Q
+zmtAq8mQUQjlrmAm50DctKQeug8rrn30BcdYBGGKm+cWCSsGAQQB2kcPAQEH
+QGNOppjS4p71QAy6MvBX6JK9zt8YeUo7dm4b7RaFq0ejAAD/ZcyhjL8LEIZO
+t/8qU7LJn+lxPSl6tFZ7TBgXj4RkldMQccLALwQYFgoACQUCYYqb5wIbAgCY
+CRCqDK8y54tXEXYgBBkWCgAGBQJhipvnACEJEF5S2ZJhJACOFiEElQ0ZXBPe
+9UZzI0KoXlLZkmEkAI6EuQD+JRU3Z+u6RHCRdKupZlLuzCFzWmvJvZGktcuQ
+40bYgFQA/iwWv5vDkw8zTxw5GRTahnnp0shs/YOG4GgB6EHXom8FFiEEQsEK
+mXRoxhd1cGWMqgyvMueLVxHYNAD+NaLEsrzFxvgu3c8nVN5sjVETTZZdHjly
+wSeOoh9ocbsA/joCCpHxxH061g/tjEhP76tWJX17ShZ9wT7KZ6aPejoM
+=FkBc
+-----END PGP PRIVATE KEY BLOCK-----`;
+
+    const key1 = await getKey(keyWithSigningSubkey) as PrivateKey;
+    const key2 = await getKey(keyWithoutSubkeys) as PrivateKey;
+
+    const signatureFromSubkey = await sign({
+        message: await createMessage('a message'),
+        signingKeys: key1,
         format: 'object'
     });
 
-    const { signature: signatureFromSubkey } = await signMessage({
-        data: 'a message',
-        signingKeys: [key1],
+    const signatureFromPrimaryKey = await sign({
+        message: await createMessage('a message'),
+        signingKeys: key2,
         format: 'object'
     });
 
-    const { signature: signatureFromPrimaryKey } = await signMessage({
-        data: 'a message',
-        signingKeys: [key2],
-        format: 'object'
-    });
-
-    t.is(signatureFromSubkey.packets[0].issuerKeyID, key1.subkeys[0].getKeyID());
+    t.true(signatureFromSubkey.getSigningKeyIDs().includes(key1.subkeys[0].getKeyID()));
     t.deepEqual(getMatchingKey(signatureFromSubkey, [key1, key2]), key1);
-    t.is(signatureFromPrimaryKey.packets[0].issuerKeyID, key2.getKeyID());
+    t.true(signatureFromPrimaryKey.getSigningKeyIDs().includes(key2.getKeyID()));
     t.deepEqual(getMatchingKey(signatureFromPrimaryKey, [key1, key2]), key2);
 });

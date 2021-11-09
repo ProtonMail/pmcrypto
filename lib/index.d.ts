@@ -186,7 +186,7 @@ export function encryptMessage( // TODO what is this for? redundant -- declare m
     >
 >;
 export function getMatchingKey(
-    signature: OpenPGPSignature,
+    signature: OpenPGPSignature | OpenPGPMessage,
     publicKeys: OpenPGPKey[]
 ): OpenPGPKey | undefined;
 
@@ -213,13 +213,13 @@ export function signMessage(
 ): Promise<string>;
 export function signMessage(
     options: SignOptionsPmcrypto & { armor: false; detached?: false }
-): Promise<Uint8Array>;
+): Promise<OpenPGPMessage>;
 export function signMessage(
     options: SignOptionsPmcrypto & { armor?: true; detached: true }
 ): Promise<string>;
 export function signMessage(
     options: SignOptionsPmcrypto & { armor: false; detached: true }
-): Promise<Uint8Array>;
+): Promise<OpenPGPSignature>;
 
 export function getSignature(option: string | Uint8Array | OpenPGPSignature): Promise<OpenPGPSignature>;
 
