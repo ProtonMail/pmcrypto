@@ -1,8 +1,8 @@
 import test from 'ava';
 import '../helper';
 // @ts-ignore missing keyInfo typings
-import { generateKey, keyInfo } from '../../lib';
-import { config, enums } from 'openpgp';
+import { keyInfo } from '../../lib';
+import { config, enums, generateKey } from 'openpgp';
 
 test('sha256 fingerprints - v4 key', async (t) => {
     const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test' });

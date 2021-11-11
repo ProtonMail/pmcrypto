@@ -59,7 +59,7 @@ m53MXUW1fnpBPuv9RWJDN+tLhm5FPJktpuElr6hcBg==
 -----END PGP PUBLIC KEY BLOCK-----`;
 
 test('it warns on insecure primary key (RSA 512 bits)', async (t) => {
-    const key = await readKey({ armoredKey: rsa512BitsKey });
+    const key = await readKey({ armoredKey: rsa512BitsKey, config: { minRSABits: 0 } });
     const error = t.throws(() => checkKeyStrength(key));
     t.is(error.message, 'Keys shorter than 2047 bits are considered unsafe');
 });

@@ -257,10 +257,7 @@ export interface VerifyMessageResult {
     signatureTimestamp: Date|null,
     errors?: Error[];
 }
-export interface VerifyMessageOptions extends VerifyOptions {
-    detached?: boolean; // TODO what is this?
-}
-export function verifyMessage(options: VerifyMessageOptions): Promise<VerifyMessageResult>;
+export function verifyMessage(options: VerifyOptions): Promise<VerifyMessageResult>;
 
 export function serverTime(): Date;
 

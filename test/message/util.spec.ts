@@ -91,7 +91,8 @@ test('it does not verify a message given wrong public key', async (t) => {
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_INVALID);
     t.is(signatures.length, 2);
     t.not(errors, undefined);
-    t.is(errors!.length, 0);
+    t.is(errors!.length, 2);
+    errors?.forEach(err => t.regex(err.message, /Could not find signing key/))
     t.is(signatureTimestamp, null);
 });
 
@@ -105,7 +106,8 @@ test('it does not verify a message with corrupted signature', async (t) => {
     t.is(verified, VERIFICATION_STATUS.SIGNED_AND_INVALID);
     t.is(signatures.length, 2);
     t.not(errors, undefined);
-    t.is(errors!.length, 1);
+    t.is(errors!.length, 2);
+    t.regex(errors?.[0].message!, /digest did not match/);
     t.is(signatureTimestamp, null);
 });
 

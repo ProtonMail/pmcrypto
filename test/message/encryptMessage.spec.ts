@@ -56,7 +56,7 @@ test('it can encrypt and decrypt a message with session keys', async (t) => {
 test('it does not compress a message by default', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
     const { data: encrypted, sessionKey } = await encryptMessage({
-        message: createMessage('Hello world!'),
+        message: await createMessage('Hello world!'),
         encryptionKeys: [decryptedPrivateKey.toPublic()],
         signingKeys: [decryptedPrivateKey],
         returnSessionKey: true
@@ -69,18 +69,19 @@ test('it does not compress a message by default', async (t) => {
 test('it compresses the message if the compression option is specified', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
     const { data: encrypted, sessionKey: sessionKeys } = await encryptMessage({
-        message: createMessage('Hello world!'),
+        message: await createMessage('Hello world!'),
         encryptionKeys: [decryptedPrivateKey.toPublic()],
         signingKeys: [decryptedPrivateKey],
         returnSessionKey: true,
-        // compression: enums.compression.zip TODO fix compression test
+        // NB: the specified compression algo must appear in the encryption key preferences, or it won't be used
+        config: { preferredCompressionAlgorithm: enums.compression.zlib }
     });
     const encryptedMessage = await getMessage(encrypted);
     const decryptedMessage = await encryptedMessage.decrypt([], [], [sessionKeys]);
     const compressedPacket = decryptedMessage.packets.findPacket(enums.packet.compressedData) as CompressedDataPacket;
     t.not(compressedPacket, undefined);
     // @ts-ignore undeclared algorithm field
-    t.is(compressedPacket.algorithm, 'zip');
+    t.is(compressedPacket.algorithm, 'zlib');
 });
 
 test('it can encrypt and decrypt a message with an unencrypted detached signature', async (t) => {
