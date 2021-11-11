@@ -1,6 +1,6 @@
 import test from 'ava';
 import '../helper';
-import { enums, generateKey, PrivateKey, revokeKey, sign } from 'openpgp';
+import { enums, generateKey, PrivateKey, readKey, revokeKey, sign } from 'openpgp';
 import {
     concatArrays,
     decodeBase64,
@@ -11,6 +11,8 @@ import {
     createMessage,
     getKey,
     getMatchingKey,
+    generateSessionKey,
+    generateSessionKeyFromKeyPreferences,
     // @ts-ignore missing stripArmor typings
     stripArmor,
     // @ts-ignore missing keyCheck typings
@@ -267,4 +269,25 @@ wSeOoh9ocbsA/joCCpHxxH061g/tjEhP76tWJX17ShZ9wT7KZ6aPejoM
     t.deepEqual(getMatchingKey(signatureFromSubkey, [key1, key2]), key1);
     t.true(signatureFromPrimaryKey.getSigningKeyIDs().includes(key2.getKeyID()));
     t.deepEqual(getMatchingKey(signatureFromPrimaryKey, [key1, key2]), key2);
+});
+
+test('it can generate an AES256 session key', async (t) => {
+    const sessionKey = await generateSessionKey('aes256');
+    t.is(sessionKey.length, 32);
+});
+
+test('it can generate a session key from the preferences of the given public keys', async (t) => {
+    const key = await readKey({ armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEYYqcWBYJKwYBBAHaRw8BAQdAesbhqiOxbLV+P9Dt8LV+Q8hRBLbwsSf6
+emoCS30uQpEAAQDFgBruRj6Zqb0OULkaaNz+QK4+gvc006UtTgz2wdrP8xFv
+zRE8ZW1haWwyQHRlc3QuY29tPsKMBBAWCgAdBQJhipxYBAsJBwgDFQgKBBYA
+AgECGQECGwMCHgEAIQkQJCJW2HYCeYIWIQTdZGjv9WwTyL+azOUkIlbYdgJ5
+gm9nAQDY//xzc2hy6Efz8NqDJeLg1lh2sZkKcMXP3L+CJbhWJQEAuI6UDakE
++XVcDsBS+CIi3qg74r/80Ysb7tmRC06znwA=
+=I0d7
+-----END PGP PRIVATE KEY BLOCK-----`});
+    const sessionKey = await generateSessionKeyFromKeyPreferences(key);
+    t.is(sessionKey.data.length, 32);
+    t.is(sessionKey.algorithm, 'aes256');
 });

@@ -108,6 +108,7 @@ export function isExpiredKey(key: OpenPGPKey, date?: Date): Promise<boolean>;
 export function isRevokedKey(key: OpenPGPKey, date?: Date): Promise<boolean>;
 
 export function generateSessionKey(algo: string): Promise<Uint8Array>;
+export function generateSessionKeyFromKeyPreferences(publicKeys: OpenPGPKey | OpenPGPKey[]): Promise<SessionKey>;
 
 export function encryptSessionKey(options: {
     data: Uint8Array;
@@ -260,8 +261,6 @@ export interface VerifyMessageResult {
 export function verifyMessage(options: VerifyOptions): Promise<VerifyMessageResult>;
 
 export function serverTime(): Date;
-
-export function getPreferredAlgorithm(key: OpenPGPKey[], date?: Date): Promise<string>
 
 export function getSHA256Fingerprints(key: OpenPGPKey): Promise<string[]>
 
