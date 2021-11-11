@@ -110,12 +110,11 @@ test('it can encrypt and decrypt a message with an unencrypted detached signatur
 
 test('it can encrypt and decrypt a message with an encrypted detached signature', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-    const { message: encrypted, encryptedSignature } = await encryptMessage({
+    const { data: encrypted, encryptedSignature } = await encryptMessage({
         message: await createMessage('Hello world!'),
         encryptionKeys: [decryptedPrivateKey.toPublic()],
         signingKeys: [decryptedPrivateKey],
-        detached: true,
-        armor: false
+        detached: true
     });
     const { data: decrypted, verified } = await decryptMessage({
         message: await getMessage(encrypted),
@@ -129,12 +128,13 @@ test('it can encrypt and decrypt a message with an encrypted detached signature'
 
 test('it can encrypt a message and decrypt it unarmored using session keys along with an encrypted detached signature', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-    const { data: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
+    const { message: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
         message: await createMessage('Hello world!'),
         encryptionKeys: [decryptedPrivateKey.toPublic()],
         signingKeys: [decryptedPrivateKey],
         returnSessionKey: true,
-        detached: true
+        detached: true,
+        armor: false
     });
     const { data: decrypted, verified } = await decryptMessage({
         message: await getMessage(encrypted),

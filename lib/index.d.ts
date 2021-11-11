@@ -164,16 +164,16 @@ export interface EncryptOptionsPmcryptoWithData extends Omit<EncryptOptions, 'me
 type EncryptOptionsPmcrypto = EncryptOptionsPmcryptoWithData | EncryptOptions;
 
 export function encryptMessage(
-    options: EncryptOptionsPmcrypto & { armor?: true; detached?: false }
+    options: EncryptOptionsPmcrypto & { armor?: true; format?: 'armored'; detached?: false }
 ): Promise<EncryptResult<string>>;
 export function encryptMessage(
-    options: EncryptOptionsPmcrypto & { armor?: true; detached: true }
+    options: EncryptOptionsPmcrypto & { armor?: true; format?: 'armored'; detached: true }
 ): Promise<EncryptResult<string, undefined, string, string>>;
 export function encryptMessage(
-    options: EncryptOptionsPmcrypto & { armor: false; detached?: false }
+    options: EncryptOptionsPmcrypto & { armor: false; format?: 'object'; detached?: false }
 ): Promise<EncryptResult<undefined, OpenPGPMessage>>;
 export function encryptMessage(
-    options: EncryptOptionsPmcrypto & { armor: false; detached: true }
+    options: EncryptOptionsPmcrypto & { armor: false; format?: 'object'; detached: true }
 ): Promise<EncryptResult<undefined, OpenPGPMessage, OpenPGPSignature, OpenPGPMessage>>;
 export function encryptMessage( // TODO what is this for? redundant -- declare maybe streams above
     options: EncryptOptionsPmcrypto
