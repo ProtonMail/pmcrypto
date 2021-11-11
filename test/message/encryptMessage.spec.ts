@@ -162,7 +162,6 @@ test('it can encrypt and decrypt a message with session key without setting retu
     const { data: decrypted, verified } = await decryptMessage({
         message: await getMessage(encrypted),
         verificationKeys: [decryptedPrivateKey.toPublic()],
-        decryptionKeys: [decryptedPrivateKey],
         sessionKeys: sessionKey
     });
     t.is(decrypted, 'Hello world!');
@@ -208,7 +207,6 @@ test('it can encrypt and decrypt a binary streamed message with an unencrypted d
         signature,
         sessionKeys,
         verificationKeys: [decryptedPrivateKey.toPublic()],
-        decryptionKeys: [decryptedPrivateKey],
         format: 'binary'
     });
     t.is(arrayToBinaryString(await readToEnd(decrypted)), 'Hello world!');
@@ -248,7 +246,6 @@ test('it can encrypt and decrypt a binary streamed message with in-message signa
     const { data: decrypted, verified } = await decryptMessage({
         message: await getMessage(encrypted),
         sessionKeys,
-        decryptionKeys: [decryptedPrivateKey],
         verificationKeys: [decryptedPrivateKey.toPublic()],
         format: 'binary'
     });
