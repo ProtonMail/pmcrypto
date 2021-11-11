@@ -138,7 +138,6 @@ test('it can encrypt a message and decrypt it unarmored using session keys along
     });
     const { data: decrypted, verified } = await decryptMessage({
         message: await getMessage(encrypted),
-        decryptionKeys: [decryptedPrivateKey],
         verificationKeys: [decryptedPrivateKey.toPublic()],
         encryptedSignature: await getMessage(encryptedSignature),
         sessionKeys
@@ -183,7 +182,6 @@ test('it can encrypt and decrypt a message with session key without setting retu
     });
     const { data: decrypted, verified } = await decryptMessage({
         message: await getMessage(encrypted),
-        decryptionKeys: [decryptedPrivateKey],
         verificationKeys: [decryptedPrivateKey.toPublic()],
         encryptedSignature: await getMessage(encryptedSignature),
         sessionKeys: sessionKey
