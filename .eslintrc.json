@@ -46,6 +46,7 @@
         }],
         "import/prefer-default-export": "off",
         "import/no-extraneous-dependencies": "off",
+        "import/no-unassigned-import": "error",
         "max-len": ["error", {
             "ignoreComments": true,
             "code": 120,

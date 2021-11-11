@@ -5,7 +5,7 @@ import { keyInfo } from '../../lib';
 import { config, enums, generateKey } from 'openpgp';
 
 test('sha256 fingerprints - v4 key', async (t) => {
-    const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test' });
+    const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: false }  });
     const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKey);
     t.is(sha256Fingerprints.length, fingerprints.length);
     sha256Fingerprints.forEach((sha256Fingerprint, i) => {
@@ -14,14 +14,12 @@ test('sha256 fingerprints - v4 key', async (t) => {
 });
 
 test.serial('sha256 fingerprints - v5 key', async (t) => {
-    config.v5Keys = !config.v5Keys;
-    const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test' });
+    const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: true } });
     const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKey);
     t.is(sha256Fingerprints.length, fingerprints.length);
     sha256Fingerprints.forEach((sha256Fingerprint, i) => {
         t.is(sha256Fingerprint, fingerprints[i]);
     });
-    config.v5Keys = !config.v5Keys;
 });
 
 const publickey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
