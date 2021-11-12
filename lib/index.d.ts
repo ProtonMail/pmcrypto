@@ -16,8 +16,6 @@ import {
     encryptSessionKey
 } from 'openpgp';
 
-export type Data = Uint8Array | string;
-
 export enum VERIFICATION_STATUS {
     NOT_SIGNED = 0,
     SIGNED_AND_VALID = 1,
@@ -30,7 +28,7 @@ export enum SIGNATURE_TYPES {
 }
 
 export type OpenPGPKey = Key;
-export type OpenPGPMessage = Message<Data>;
+export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing streaming support
 export type OpenPGPSignature = Signature;
 
 // TODO (?) these actually differ from 'openpgp' in that the passphrase is required
