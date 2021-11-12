@@ -3,19 +3,17 @@ import {
     DecryptMessageResult,
     Message,
     Key,
-    User,
-    KeyID,
     Signature,
     SignOptions,
     EncryptOptions,
-    UserID,
     CleartextMessage,
     VerifyOptions,
     VerifyMessageResult as openpgp_VerifyMessageResult,
     reformatKey,
     generateKey,
     PrivateKey,
-    SessionKey
+    SessionKey,
+    encryptSessionKey
 } from 'openpgp';
 
 export type Data = Uint8Array | string;
@@ -55,16 +53,6 @@ export interface EncryptResult<D = undefined, M = undefined, S = undefined, E = 
     signature: S;
     sessionKey: SessionKey;
     encryptedSignature: E;
-}
-
-export interface BinaryResult {
-    data: Uint8Array;
-    filename?: string;
-    signatures?: {
-        keyid: KeyID;
-        verified: Promise<boolean>;
-        valid: boolean;
-    }[];
 }
 
 export function encryptPrivateKey(key: OpenPGPKey, password: string): Promise<string>;
@@ -110,16 +98,7 @@ export function isRevokedKey(key: OpenPGPKey, date?: Date): Promise<boolean>;
 export function generateSessionKey(algo: string): Promise<Uint8Array>;
 export function generateSessionKeyFromKeyPreferences(publicKeys: OpenPGPKey | OpenPGPKey[]): Promise<SessionKey>;
 
-export function encryptSessionKey(options: {
-    data: Uint8Array;
-    algorithm: string;
-    aeadAlgo?: string;
-    publicKeys?: any[];
-    passwords?: any[];
-    wildcard?: boolean;
-    date?: Date;
-    userIDs?: any[];
-}): Promise<{ message: OpenPGPMessage }>;
+export { encryptSessionKey };
 
 export function decryptSessionKey(options: {
     message: OpenPGPMessage;
@@ -242,8 +221,8 @@ export function armorBytes(value: Uint8Array | string): Promise<Uint8Array | str
 
 export interface algorithmInfo {
     algorithm: string;
-    bits?: number;
-    curve?: string;
+    bits?: number; // if algorithm == 'rsaEncryptSign' | 'rsaEncrypt' | 'rsaSign'
+    curve?: string; // if algorithm == 'ecdh' | 'eddsa' | 'ecdsa' 
 }
 
 export function SHA256(arg: Uint8Array): Promise<Uint8Array>;
