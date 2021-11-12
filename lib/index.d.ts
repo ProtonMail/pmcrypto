@@ -100,6 +100,7 @@ export function generateSessionKeyFromKeyPreferences(publicKeys: OpenPGPKey | Op
 
 export { encryptSessionKey };
 
+// This differs from `openpgp.decryptSessionKeys` in the return type
 export function decryptSessionKey(options: {
     message: OpenPGPMessage;
     privateKeys?: OpenPGPKey | OpenPGPKey[];
