@@ -1,8 +1,8 @@
 import test from 'ava';
 import '../helper';
 // @ts-ignore missing keyInfo typings
-import { keyInfo } from '../../lib';
-import { config, enums, generateKey } from 'openpgp';
+import { keyInfo, generateKey, getKey } from '../../lib';
+import { enums, PrivateKey, reformatKey } from 'openpgp';
 
 test('sha256 fingerprints - v4 key', async (t) => {
     const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: false }  });
@@ -59,6 +59,7 @@ test('expiration test', async (t) => {
     // primary key expires after one second
     const { publicKey: expiringKey } = await generateKey({
         userIDs: [{}],
+        passphrase: 'test',
         date: now,
         keyExpirationTime: 1
     });
@@ -122,16 +123,40 @@ test('valid key', async (t) => {
 });
 
 test('newly generated RSA key', async (t) => {
-    config.preferredCompressionAlgorithm = enums.compression.zlib;
     const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test' });
     const { validationError } = await keyInfo(publicKey);
     t.is(validationError, null);
 });
 
 test('newly generated ECC key', async (t) => {
-    config.preferredCompressionAlgorithm = enums.compression.zlib;
     const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', curve: 'curve25519' });
     const { validationError } = await keyInfo(publicKey);
+    t.is(validationError, null);
+});
+
+test('reformatted key', async (t) => {
+    const keyWithUncompressedPrefs = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEYY59gxYJKwYBBAHaRw8BAQdA3DNzk7qxgFfjGv2857uqzBUMZo+hg+4I
+vGrmYl8nNgQAAP97yy0+vpHCz6QagYd2rfWXuVJ5CoDKGrTEP4ZRiJIbtxFx
+zRB0ZXN0IDx0ZXN0QGEuaXQ+wooEEBYKABsFAmGOfYMECwkHCAMVCAoCFgAC
+GQECGwMCHgEAIQkQI+qK7FSXbHYWIQSjeLP72yV1s/rmKeoj6orsVJdsdiaM
+AP9oO7ev/fBQBj62VD0deZ5qBn4FfEr83fpBirGO2llBcgD+IcBT+M3hH4iU
+I7QkN2sbwEXjcmgVEMstxjznHYx1iw3HXQRhjn2DEgorBgEEAZdVAQUBAQdA
+V4Vjk7Ja6eCWT2wdmrvNCotMBLcaJii64Js0VpdOhHsDAQgHAAD/SX7fPa10
+GRIRUT3Y4qgsChAGRVLjMMR3HA2fonCyQbAN3cJ4BBgWCAAJBQJhjn2DAhsM
+ACEJECPqiuxUl2x2FiEEo3iz+9sldbP65inqI+qK7FSXbHaYBAEA+dOkYlvI
+oRqcHrieqMQU7fmKAskJGb+0E0wG15dek28A/2TI9YMe6rbH4yvHWw+MLvYJ
+0Z/fFLxYWQxNdcIETekM
+=aRnh
+-----END PGP PRIVATE KEY BLOCK-----`;
+    const privateKey = await getKey(keyWithUncompressedPrefs) as PrivateKey;
+
+    const { validationError: compressionPrefsError } = await keyInfo(privateKey.toPublic().armor());
+    t.regex(compressionPrefsError, /Preferred compression algorithms must include zlib/);
+
+    const { privateKey: reformattedKey } = await reformatKey({ privateKey, userIDs: [{}], passphrase: 'test' });
+    const { validationError } = await keyInfo(reformattedKey);
     t.is(validationError, null);
 });
 
