@@ -192,7 +192,7 @@ test('it can encrypt and decrypt a message with session key without setting retu
 
 test('it can encrypt and decrypt a binary streamed message with an unencrypted detached signature', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-    const { message: encrypted, sessionKey: sessionKeys, signature } = await encryptMessage({
+    const encryptedMessagePromise = encryptMessage({
         message: await openpgp_createMessage({ text: toStream('Hello world!') }),
         encryptionKeys: [decryptedPrivateKey.toPublic()],
         signingKeys: [decryptedPrivateKey],
@@ -200,20 +200,30 @@ test('it can encrypt and decrypt a binary streamed message with an unencrypted d
         returnSessionKey: true,
         detached: true
     });
-    const { data: decrypted, verified } = await decryptMessage({
-        message: await readMessage({ binaryMessage: encrypted.write() }), // TODO re-enable streaming
-        signature,
-        sessionKeys,
-        verificationKeys: [decryptedPrivateKey.toPublic()],
-        format: 'binary'
-    });
-    t.is(arrayToBinaryString(await readToEnd(decrypted)), 'Hello world!');
-    t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+    const error = await t.throwsAsync(encryptedMessagePromise);
+    t.regex(error.message, /not supported yet/);
+    // const { message: encrypted, sessionKey: sessionKeys, signature } = await encryptMessage({
+    //     message: await openpgp_createMessage({ text: toStream('Hello world!') }),
+    //     encryptionKeys: [decryptedPrivateKey.toPublic()],
+    //     signingKeys: [decryptedPrivateKey],
+    //     armor: false,
+    //     returnSessionKey: true,
+    //     detached: true
+    // });
+    // const { data: decrypted, verified } = await decryptMessage({
+    //     message: await readMessage({ binaryMessage: encrypted.write() }), // TODO re-enable streaming
+    //     signature,
+    //     sessionKeys,
+    //     verificationKeys: [decryptedPrivateKey.toPublic()],
+    //     format: 'binary'
+    // });
+    // t.is(arrayToBinaryString(await readToEnd(decrypted)), 'Hello world!');
+    // t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
 });
 
 test('it can encrypt and decrypt a binary streamed message with an encrypted detached signature', async (t) => {
     const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-    const { message: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
+    const encryptedMessagePromise = encryptMessage({
         message: await openpgp_createMessage({ text: toStream('Hello world!') }),
         encryptionKeys: [decryptedPrivateKey.toPublic()],
         signingKeys: [decryptedPrivateKey],
@@ -221,15 +231,25 @@ test('it can encrypt and decrypt a binary streamed message with an encrypted det
         returnSessionKey: true,
         detached: true
     });
-    const { data: decrypted, verified } = await decryptMessage({
-        message: await getMessage(encrypted),
-        encryptedSignature: await getMessage(encryptedSignature),
-        sessionKeys,
-        verificationKeys: [decryptedPrivateKey.toPublic()],
-        format: 'binary'
-    });
-    t.is(arrayToBinaryString(await readToEnd(decrypted)), 'Hello world!');
-    t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
+    const error = await t.throwsAsync(encryptedMessagePromise);
+    t.regex(error.message, /not supported yet/);
+    // const { message: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
+    //     message: await openpgp_createMessage({ text: toStream('Hello world!') }),
+    //     encryptionKeys: [decryptedPrivateKey.toPublic()],
+    //     signingKeys: [decryptedPrivateKey],
+    //     armor: false,
+    //     returnSessionKey: true,
+    //     detached: true
+    // });
+    // const { data: decrypted, verified } = await decryptMessage({
+    //     message: await getMessage(encrypted),
+    //     encryptedSignature: await getMessage(encryptedSignature),
+    //     sessionKeys,
+    //     verificationKeys: [decryptedPrivateKey.toPublic()],
+    //     format: 'binary'
+    // });
+    // t.is(arrayToBinaryString(await readToEnd(decrypted)), 'Hello world!');
+    // t.is(await verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
 });
 
 test('it can encrypt and decrypt a binary streamed message with in-message signature', async (t) => {
