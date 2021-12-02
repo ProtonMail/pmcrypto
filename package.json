@@ -57,7 +57,7 @@
     "@openpgp/tweetnacl": "^1.0.3",
     "@openpgp/web-stream-tools": "0.0.6",
     "esm": "^3.0.84",
-    "openpgp": "~5.0.0"
+    "openpgp": "^5.0.1"
   },
   "engines": {
     "node": ">=16.13.0"
