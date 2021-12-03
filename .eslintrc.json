@@ -1,5 +1,8 @@
 {
-    "extends": "airbnb-base",
+    "extends": [
+        "airbnb-base",
+        "prettier"
+    ],
     "parserOptions": {
         "ecmaVersion": 2020,
         "sourceType": "module"
@@ -17,6 +20,8 @@
         "import"
     ],
     "rules": {
+        "prefer-spread": "off",
+        "no-restricted-syntax": "off",
         "arrow-parens": ["error", "always"],
         "indent": "off",
         "comma-dangle": ["error", "never"],
@@ -41,6 +46,7 @@
         }],
         "import/prefer-default-export": "off",
         "import/no-extraneous-dependencies": "off",
+        "import/no-unassigned-import": "error",
         "max-len": ["error", {
             "ignoreComments": true,
             "code": 120,

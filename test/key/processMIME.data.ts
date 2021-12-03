@@ -36,7 +36,7 @@ trailing whitespace that occurs on lines in order to ensure  =20
 that the message signature is not invalidated when passing =20
 a gateway that modifies such whitespace (like BITNET). =20
 
-me
+me   
 --bar
 
 Content-Type: application/pgp-signature

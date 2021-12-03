@@ -1,21 +1,23 @@
 import test from 'ava';
 import '../helper';
+import { enums, generateKey, PrivateKey, readKey, revokeKey, sign } from 'openpgp';
 import {
-    binaryStringToArray,
     concatArrays,
     decodeBase64,
     encodeBase64,
     isExpiredKey,
     isRevokedKey,
-    reformatKey
-} from '../../lib';
-import {
-    genPrivateEphemeralKey,
-    genPublicEphemeralKey,
+    reformatKey,
+    createMessage,
+    getKey,
+    getMatchingKey,
+    generateSessionKey,
+    generateSessionKeyFromKeyPreferences,
+    // @ts-ignore missing stripArmor typings
     stripArmor,
+    // @ts-ignore missing keyCheck typings
     keyCheck
-} from '../../lib/pmcrypto';
-import { openpgp } from '../../lib/openpgp';
+} from '../../lib';
 
 test('it can correctly encode base 64', async (t) => {
     t.is(encodeBase64('foo'), 'Zm9v');
@@ -136,30 +138,18 @@ GAlY9rxVStLBrg0Hn+5gkhyHI9B85rM1BEYXQ8pP5CSFuTwbJ3O2s67dzQ==
     );
 });
 
-test('it can correctly perform an ECDHE roundtrip', async (t) => {
-    const Q = binaryStringToArray(decodeBase64('QPOClKt3wRFh6I0D7ItvuRqQ9eIfJZfOcBK3qJ/J++oj'));
-    const d = binaryStringToArray(decodeBase64('TG4WP1jLiWurBSTrpTCeYrdpJUqFTVFg1PzD2/m26Jg='));
-    const Fingerprint = binaryStringToArray(decodeBase64('sbd0e0yF9dSX8+xH9VYDqGVK0Wk='));
-    const Curve = 'curve25519';
-
-    const { V, Z } = await genPublicEphemeralKey({ Curve, Q, Fingerprint });
-    const Zver = await genPrivateEphemeralKey({ Curve, V, d, Fingerprint });
-
-    t.deepEqual(Zver, Z);
-});
-
 // Test issue https://github.com/ProtonMail/pmcrypto/issues/92
 test('it can check userId against a given email', (t) => {
     const info = {
         version: 4,
-        userIds: ['jb'],
+        userIDs: ['jb'],
         algorithmName: 'ecdsa',
         encrypt: {},
         revocationSignatures: [],
         sign: {},
         user: {
-            hash: [openpgp.enums.hash.sha256],
-            symmetric: [openpgp.enums.symmetric.aes256],
+            hash: [enums.hash.sha256],
+            symmetric: [enums.symmetric.aes256],
             userId: 'Jacky Black <jackyblack@foo.com>'
         }
     };
@@ -176,14 +166,15 @@ test('it can check userId against a given email', (t) => {
 
 test('it reformats a key using the key creation time', async (t) => {
     const date = new Date(0);
-    const { key } = await openpgp.generateKey({
-        userIds: [{ name: 'name', email: 'email@test.com' }],
-        date
+    const { privateKey } = await generateKey({
+        userIDs: [{ name: 'name', email: 'email@test.com' }],
+        date,
+        format: 'object'
     });
     
-    const { key: reformattedKey } = await reformatKey({ privateKey: key, passphrase: '123', userIds: [{ name: 'reformatted', email: 'reformatteed@test.com' }] });
+    const { privateKey: reformattedKey } = await reformatKey({ privateKey, passphrase: '123', userIDs: [{ name: 'reformatted', email: 'reformatteed@test.com' }], format: 'object' });
     const primaryUser = await reformattedKey.getPrimaryUser();
-    t.is(primaryUser.user.userId.userid, 'reformatted <reformatteed@test.com>');
+    t.is(primaryUser.user.userID?.userID, 'reformatted <reformatteed@test.com>');
     // @ts-ignore missing `created` field declaration in signature packet
     t.deepEqual((await reformattedKey.getPrimaryUser()).selfCertification.created, date);
 });
@@ -191,16 +182,21 @@ test('it reformats a key using the key creation time', async (t) => {
 test('it can correctly detect an expired key', async (t) => {
     const now = new Date();
     // key expires in one second
-    const { key: expiringKey } = await openpgp.generateKey({
-        userIds: [{ name: 'name', email: 'email@test.com' }],
+    const { privateKey: expiringKey } = await generateKey({
+        userIDs: [{ name: 'name', email: 'email@test.com' }],
         date: now,
-        keyExpirationTime: 1
+        keyExpirationTime: 1,
+        format: 'object'
     });
     t.is(await isExpiredKey(expiringKey, now), false);
     t.is(await isExpiredKey(expiringKey, new Date(+now + 1000)), true);
     t.is(await isExpiredKey(expiringKey, new Date(+now - 1000)), true);
 
-    const { key } = await openpgp.generateKey({ userIds: [{ name: 'name', email: 'email@test.com' }], date: now });
+    const { privateKey: key } = await generateKey({
+        userIDs: [{ name: 'name', email: 'email@test.com' }],
+        date: now,
+        format: 'object'
+    });
     t.is(await isExpiredKey(key), false);
     t.is(await isExpiredKey(key, new Date(+now - 1000)), true);
 });
@@ -209,16 +205,89 @@ test('it can correctly detect a revoked key', async (t) => {
     const past = new Date(0);
     const now = new Date();
 
-    const { key, revocationCertificate } = await openpgp.generateKey({
-        userIds: [{ name: 'name', email: 'email@test.com' }],
-        date: past
+    const { privateKey: key, revocationCertificate } = await generateKey({
+        userIDs: [{ name: 'name', email: 'email@test.com' }],
+        date: past,
+        format: 'object'
     });
-    const { publicKey: revokedKey } = await openpgp.revokeKey({
-        // @ts-ignore wrong revokeKey input declaration
+    const { publicKey: revokedKey } = await revokeKey({
         key,
-        revocationCertificate
+        revocationCertificate,
+        format: 'object'
     });
     t.is(await isRevokedKey(revokedKey, past), true);
     t.is(await isRevokedKey(revokedKey, now), true);
     t.is(await isRevokedKey(key, now), false);
+});
+
+test('it can get a matching primary key', async (t) => {
+    const keyWithoutSubkeys = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEYYqcWBYJKwYBBAHaRw8BAQdAesbhqiOxbLV+P9Dt8LV+Q8hRBLbwsSf6
+emoCS30uQpEAAQDFgBruRj6Zqb0OULkaaNz+QK4+gvc006UtTgz2wdrP8xFv
+zRE8ZW1haWwyQHRlc3QuY29tPsKMBBAWCgAdBQJhipxYBAsJBwgDFQgKBBYA
+AgECGQECGwMCHgEAIQkQJCJW2HYCeYIWIQTdZGjv9WwTyL+azOUkIlbYdgJ5
+gm9nAQDY//xzc2hy6Efz8NqDJeLg1lh2sZkKcMXP3L+CJbhWJQEAuI6UDakE
++XVcDsBS+CIi3qg74r/80Ysb7tmRC06znwA=
+=I0d7
+-----END PGP PRIVATE KEY BLOCK-----`;
+
+    const keyWithSigningSubkey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEYYqb5xYJKwYBBAHaRw8BAQdA0zCRw6gyovlI8V6pQoDtmAoIr7YPNPxm
+jQa5PfiQq5gAAQDQ1o8+YXQg34FUNbbo+PUuRDAar37n9RFQiNrkH+vvlBHW
+zRA8ZW1haWxAdGVzdC5jb20+wowEEBYKAB0FAmGKm+cECwkHCAMVCAoEFgAC
+AQIZAQIbAwIeAQAhCRCqDK8y54tXERYhBELBCpl0aMYXdXBljKoMrzLni1cR
+v44BAI826OYoikU8aMs6wBiHd/SVqPU/ZVLz5VUGriEkJoqGAPwLOztUuX1Q
+zmtAq8mQUQjlrmAm50DctKQeug8rrn30BcdYBGGKm+cWCSsGAQQB2kcPAQEH
+QGNOppjS4p71QAy6MvBX6JK9zt8YeUo7dm4b7RaFq0ejAAD/ZcyhjL8LEIZO
+t/8qU7LJn+lxPSl6tFZ7TBgXj4RkldMQccLALwQYFgoACQUCYYqb5wIbAgCY
+CRCqDK8y54tXEXYgBBkWCgAGBQJhipvnACEJEF5S2ZJhJACOFiEElQ0ZXBPe
+9UZzI0KoXlLZkmEkAI6EuQD+JRU3Z+u6RHCRdKupZlLuzCFzWmvJvZGktcuQ
+40bYgFQA/iwWv5vDkw8zTxw5GRTahnnp0shs/YOG4GgB6EHXom8FFiEEQsEK
+mXRoxhd1cGWMqgyvMueLVxHYNAD+NaLEsrzFxvgu3c8nVN5sjVETTZZdHjly
+wSeOoh9ocbsA/joCCpHxxH061g/tjEhP76tWJX17ShZ9wT7KZ6aPejoM
+=FkBc
+-----END PGP PRIVATE KEY BLOCK-----`;
+
+    const key1 = await getKey(keyWithSigningSubkey) as PrivateKey;
+    const key2 = await getKey(keyWithoutSubkeys) as PrivateKey;
+
+    const signatureFromSubkey = await sign({
+        message: await createMessage('a message'),
+        signingKeys: key1,
+        format: 'object'
+    });
+
+    const signatureFromPrimaryKey = await sign({
+        message: await createMessage('a message'),
+        signingKeys: key2,
+        format: 'object'
+    });
+
+    t.true(signatureFromSubkey.getSigningKeyIDs().includes(key1.subkeys[0].getKeyID()));
+    t.deepEqual(getMatchingKey(signatureFromSubkey, [key1, key2]), key1);
+    t.true(signatureFromPrimaryKey.getSigningKeyIDs().includes(key2.getKeyID()));
+    t.deepEqual(getMatchingKey(signatureFromPrimaryKey, [key1, key2]), key2);
+});
+
+test('it can generate an AES256 session key', async (t) => {
+    const sessionKey = await generateSessionKey('aes256');
+    t.is(sessionKey.length, 32);
+});
+
+test('it can generate a session key from the preferences of the given public keys', async (t) => {
+    const key = await readKey({ armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEYYqcWBYJKwYBBAHaRw8BAQdAesbhqiOxbLV+P9Dt8LV+Q8hRBLbwsSf6
+emoCS30uQpEAAQDFgBruRj6Zqb0OULkaaNz+QK4+gvc006UtTgz2wdrP8xFv
+zRE8ZW1haWwyQHRlc3QuY29tPsKMBBAWCgAdBQJhipxYBAsJBwgDFQgKBBYA
+AgECGQECGwMCHgEAIQkQJCJW2HYCeYIWIQTdZGjv9WwTyL+azOUkIlbYdgJ5
+gm9nAQDY//xzc2hy6Efz8NqDJeLg1lh2sZkKcMXP3L+CJbhWJQEAuI6UDakE
++XVcDsBS+CIi3qg74r/80Ysb7tmRC06znwA=
+=I0d7
+-----END PGP PRIVATE KEY BLOCK-----`});
+    const sessionKey = await generateSessionKeyFromKeyPreferences(key);
+    t.is(sessionKey.data.length, 32);
+    t.is(sessionKey.algorithm, 'aes256');
 });
