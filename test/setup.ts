@@ -1,11 +1,7 @@
 import { use as chaiUse } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
-import * as openpgp from 'openpgp';
 
-import { init } from '../lib/pmcrypto';
+import { init } from '../lib';
 
 chaiUse(chaiAsPromised);
-
-before(() => {
-    init(openpgp);
-});
+before(init);
