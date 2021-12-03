@@ -7,7 +7,7 @@ describe('decryptMessageLegacy', () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
         const { data } = await decryptMessageLegacy({
             message: testMessageEncryptedLegacy,
-            privateKeys: [decryptedPrivateKey],
+            decryptionKeys: [decryptedPrivateKey],
             messageDate: new Date('2015-01-01')
         });
         expect(data).to.equal(testMessageResult);
@@ -18,7 +18,7 @@ describe('decryptMessageLegacy', () => {
 
         const { data } = await decryptMessageLegacy({
             message: testMessageEncryptedStandard,
-            privateKeys: [decryptedPrivateKey],
+            decryptionKeys: [decryptedPrivateKey],
             messageDate: new Date('2015-01-01')
         });
 

@@ -1,3 +1,2 @@
-import * as openpgp from 'openpgp';
-
-export { openpgp };
+export * from 'openpgp/lightweight';
+export function setConfig(): void;

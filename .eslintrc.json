@@ -1,5 +1,9 @@
 {
-    "extends": "airbnb-base",
+    "extends": [
+        "airbnb-base",
+        "prettier",
+        "plugin:@typescript-eslint/recommended"
+    ],
     "parserOptions": {
         "ecmaVersion": 2020,
         "sourceType": "module"
@@ -14,10 +18,13 @@
         "mocha": true
     },
     "plugins": [
+        "@typescript-eslint",
         "import",
         "chai-friendly"
     ],
     "rules": {
+        "prefer-spread": "off",
+        "no-restricted-syntax": "off",
         "arrow-parens": ["error", "always"],
         "indent": "off",
         "comma-dangle": ["error", "never"],
@@ -39,16 +46,27 @@
         "operator-linebreak": "off",
         "implicit-arrow-linebreak": "off",
         "import/no-unresolved": ["error", {
-            "ignore": ["^react$", "ttag"]
+            "ignore": ["^react$", "ttag", ".data"]
         }],
         "import/prefer-default-export": "off",
         "import/no-extraneous-dependencies": "off",
+        "import/no-unassigned-import": "error",
         "max-len": ["error", {
             "ignoreComments": true,
             "code": 120,
             "ignoreStrings": true,
             "ignoreTemplateLiterals": true,
             "ignoreRegExpLiterals": true
-        }]
+        }],
+        "no-restricted-imports": ["error", {
+            "name": "openpgp",
+            "message": "Please import from 'lib/openpgp' instead."
+        }],
+        "no-multiple-empty-lines": ["error"],
+        "no-trailing-spaces": ["error"],
+
+        "@typescript-eslint/ban-ts-comment": "off",
+        "@typescript-eslint/no-unused-vars": ["error"],
+        "@typescript-eslint/no-empty-function": "off"
     }
 }

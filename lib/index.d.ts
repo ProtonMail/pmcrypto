@@ -1,19 +1,23 @@
 import {
     DecryptOptions,
-    DecryptResult,
-    message,
-    key,
-    type,
-    signature,
+    DecryptMessageResult,
+    Message,
+    Key,
+    Signature,
     SignOptions,
-    SignResult,
     EncryptOptions,
-    UserID,
-    cleartext,
+    CleartextMessage,
     VerifyOptions,
-    VerifyResult,
-    KeyOptions
-} from 'openpgp';
+    // eslint-disable-next-line camelcase
+    VerifyMessageResult as openpgp_VerifyMessageResult,
+    reformatKey,
+    generateKey,
+    PrivateKey,
+    SessionKey,
+    encryptSessionKey
+} from 'openpgp/lightweight';
+
+export function init(): void;
 
 export enum VERIFICATION_STATUS {
     NOT_SIGNED = 0,
@@ -26,39 +30,11 @@ export enum SIGNATURE_TYPES {
     CANONICAL_TEXT = 1
 }
 
-// type defined in OpenPGP is not complete
-export interface OpenPGPKey extends key.Key {
-    users?: { userId?: { userid?: string } }[];
-    getExpirationTime( // override upstream definition, since it does not properly declare `Infinity` as return type
-        capabilities?: "encrypt" | "sign" | "encrypt_sign", keyId?: type.keyid.Keyid, userId?: object
-    ): Promise<Date | typeof Infinity | null>;
-}
+export type OpenPGPKey = Key;
+export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing streaming support
+export type OpenPGPSignature = Signature;
 
-export type OpenPGPMessage = message.Message;
-export type OpenPGPSignature = signature.Signature;
-
-export interface SessionKey {
-    data: Uint8Array;
-    algorithm: string;
-}
-
-export interface GenerateKeyOptions extends KeyOptions {
-    offset?: number;
-}
-export function generateKey(
-    option: GenerateKeyOptions
-): Promise<{ key: key.Key; privateKeyArmored: string; publicKeyArmored: string; revocationCertificate: string }>;
-
-export interface ReformatKeyOptions {
-    privateKey: OpenPGPKey;
-    userIds: UserID[];
-    passphrase: string;
-    keyExpirationTime?: number;
-    date?: Date;
-}
-export function reformatKey(
-    option: ReformatKeyOptions
-): Promise<{ key: key.Key; privateKeyArmored: string; publicKeyArmored: string; revocationCertificate: string }>;
+export { generateKey, reformatKey }
 
 export interface DecryptLegacyOptions extends Omit<DecryptOptions, 'message'> {
     message: string;
@@ -79,18 +55,8 @@ export interface EncryptResult<D = undefined, M = undefined, S = undefined, E = 
     encryptedSignature: E;
 }
 
-export interface BinaryResult {
-    data: Uint8Array;
-    filename?: string;
-    signatures?: {
-        keyid: type.keyid.Keyid;
-        verified: Promise<boolean>;
-        valid: boolean;
-    }[];
-}
-
 export function encryptPrivateKey(key: OpenPGPKey, password: string): Promise<string>;
-export function decryptPrivateKey(armoredKey: string, password: string): Promise<OpenPGPKey>;
+export function decryptPrivateKey(armoredKey: string, password: string): Promise<PrivateKey>;
 
 export function encodeUtf8(str: string): string;
 export function encodeUtf8(str: undefined): undefined;
@@ -121,7 +87,8 @@ export function arrayToHexString(bytes: Uint8Array): string;
 
 export function concatArrays(data: Uint8Array[]): Uint8Array;
 
-export function getKeys(key: Uint8Array | string): Promise<OpenPGPKey[]>;
+export function getKeys(serializedKeys: string | Uint8Array): Promise<OpenPGPKey[]>;
+export function getKey(serializedKey: string | Uint8Array): Promise<OpenPGPKey>;
 
 export function getFingerprint(key: OpenPGPKey): string;
 
@@ -129,29 +96,22 @@ export function isExpiredKey(key: OpenPGPKey, date?: Date): Promise<boolean>;
 export function isRevokedKey(key: OpenPGPKey, date?: Date): Promise<boolean>;
 
 export function generateSessionKey(algo: string): Promise<Uint8Array>;
+export function generateSessionKeyFromKeyPreferences(publicKeys: OpenPGPKey | OpenPGPKey[]): Promise<SessionKey>;
 
-export function encryptSessionKey(options: {
-    data: Uint8Array;
-    algorithm: string;
-    aeadAlgo?: string;
-    publicKeys?: any[];
-    passwords?: any[];
-    wildcard?: boolean;
-    date?: Date;
-    userIds?: any[];
-}): Promise<{ message: message.Message }>;
+export { encryptSessionKey };
 
+// This differs from `openpgp.decryptSessionKeys` in the return type
 export function decryptSessionKey(options: {
-    message: message.Message;
-    privateKeys?: key.Key | key.Key[];
+    message: OpenPGPMessage;
+    privateKeys?: OpenPGPKey | OpenPGPKey[];
     passwords?: string | string[];
 }): Promise<SessionKey | undefined>;
 
 export interface DecryptOptionsPmcrypto extends DecryptOptions {
-    encryptedSignature?: message.Message;
+    encryptedSignature?: OpenPGPMessage;
 }
 
-export type DecryptResultPmcrypto = Omit<DecryptResult, 'signatures'> & {
+export type DecryptResultPmcrypto = Omit<DecryptMessageResult, 'signatures'> & {
     signatures: (OpenPGPSignature)[];
     verified: VERIFICATION_STATUS;
     errors?: Error[];
@@ -159,7 +119,7 @@ export type DecryptResultPmcrypto = Omit<DecryptResult, 'signatures'> & {
 
 export function decryptMessage(
     options: DecryptOptionsPmcrypto & { format: 'utf8' }
-): Promise<DecryptResultPmcrypto & { data: string | ReadableStream<String> }>;
+): Promise<DecryptResultPmcrypto & { data: string | ReadableStream<string> }>;
 export function decryptMessage(
     options: DecryptOptionsPmcrypto & { format: 'binary' }
 ): Promise<DecryptResultPmcrypto & { data: Uint8Array | ReadableStream<Uint8Array> }>;
@@ -180,35 +140,36 @@ export function decryptMIMEMessage(
 
 export interface EncryptOptionsPmcryptoWithData extends Omit<EncryptOptions, 'message'> {
     data: Uint8Array | string;
+    returnSessionKey?: boolean;
 }
 type EncryptOptionsPmcrypto = EncryptOptionsPmcryptoWithData | EncryptOptions;
 
 export function encryptMessage(
-    options: EncryptOptionsPmcrypto & { armor?: true; detached?: false }
+    options: EncryptOptionsPmcrypto & { armor?: true; format?: 'armored'; detached?: false }
 ): Promise<EncryptResult<string>>;
 export function encryptMessage(
-    options: EncryptOptionsPmcrypto & { armor?: true; detached: true }
+    options: EncryptOptionsPmcrypto & { armor?: true; format?: 'armored'; detached: true }
 ): Promise<EncryptResult<string, undefined, string, string>>;
 export function encryptMessage(
-    options: EncryptOptionsPmcrypto & { armor: false; detached?: false }
-): Promise<EncryptResult<undefined, message.Message>>;
+    options: EncryptOptionsPmcrypto & { armor: false; format?: 'object'; detached?: false }
+): Promise<EncryptResult<undefined, OpenPGPMessage>>;
 export function encryptMessage(
-    options: EncryptOptionsPmcrypto & { armor: false; detached: true }
-): Promise<EncryptResult<undefined, message.Message, OpenPGPSignature, message.Message>>;
-export function encryptMessage(
+    options: EncryptOptionsPmcrypto & { armor: false; format?: 'object'; detached: true }
+): Promise<EncryptResult<undefined, OpenPGPMessage, OpenPGPSignature, OpenPGPMessage>>;
+export function encryptMessage( // TODO what is this for? redundant -- declare maybe streams above
     options: EncryptOptionsPmcrypto
 ): Promise<
     EncryptResult<
-        string | ReadableStream<String>,
-        message.Message,
-        string | ReadableStream<String> | OpenPGPSignature,
-        string | ReadableStream<String> | message.Message
+        string | ReadableStream<string>,
+        OpenPGPMessage,
+        string | ReadableStream<string> | OpenPGPSignature,
+        string | ReadableStream<string> | OpenPGPMessage
     >
 >;
 export function getMatchingKey(
-    signature: OpenPGPSignature,
+    signature: OpenPGPSignature | OpenPGPMessage,
     publicKeys: OpenPGPKey[]
-): Promise<OpenPGPKey | undefined>;
+): OpenPGPKey | undefined;
 
 interface SignOptionsPmcryptoWithData extends Omit<SignOptions, 'message'> {
     data: string | Uint8Array;
@@ -216,38 +177,37 @@ interface SignOptionsPmcryptoWithData extends Omit<SignOptions, 'message'> {
 type SignOptionsPmcrypto = SignOptionsPmcryptoWithData | SignOptions;
 
 export function createMessage(
-    data: string | ReadableStream<String> | Uint8Array,
+    data: string | ReadableStream<string> | Uint8Array,
     filename?: string,
     date?: Date,
     type?: any
-): message.Message;
+): OpenPGPMessage;
 export function createCleartextMessage(
-    text: string | ReadableStream<String> | cleartext.CleartextMessage,
+    text: string | ReadableStream<string> | CleartextMessage,
     filename?: string,
     date?: Date,
     type?: any
-): cleartext.CleartextMessage;
+): CleartextMessage;
 
 export function signMessage(
     options: SignOptionsPmcrypto & { armor?: true; detached?: false }
-): Promise<{ data: string }>;
+): Promise<string>;
 export function signMessage(
     options: SignOptionsPmcrypto & { armor: false; detached?: false }
-): Promise<{ message: message.Message }>;
+): Promise<OpenPGPMessage>;
 export function signMessage(
     options: SignOptionsPmcrypto & { armor?: true; detached: true }
-): Promise<{ signature: string }>;
+): Promise<string>;
 export function signMessage(
     options: SignOptionsPmcrypto & { armor: false; detached: true }
-): Promise<{ signature: OpenPGPSignature }>;
-export function signMessage(options: SignOptionsPmcrypto): Promise<SignResult>;
+): Promise<OpenPGPSignature>;
 
 export function getSignature(option: string | Uint8Array | OpenPGPSignature): Promise<OpenPGPSignature>;
 
-export function getMessage(message: message.Message | Uint8Array | string): Promise<message.Message>;
+export function getMessage(message: OpenPGPMessage | Uint8Array | string): Promise<OpenPGPMessage>;
 
 export function splitMessage(
-    message: message.Message | Uint8Array | string
+    message: OpenPGPMessage | Uint8Array | string
 ): Promise<{
     asymmetric: Uint8Array[];
     signature: Uint8Array[];
@@ -262,9 +222,8 @@ export function armorBytes(value: Uint8Array | string): Promise<Uint8Array | str
 
 export interface algorithmInfo {
     algorithm: string;
-    rsaBits?: number;
-    bits?: number;
-    curve?: string;
+    bits?: number; // if algorithm == 'rsaEncryptSign' | 'rsaEncrypt' | 'rsaSign'
+    curve?: string; // if algorithm == 'ecdh' | 'eddsa' | 'ecdsa'
 }
 
 export function SHA256(arg: Uint8Array): Promise<Uint8Array>;
@@ -273,20 +232,16 @@ export function unsafeMD5(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
 
 export interface VerifyMessageResult {
-    data: VerifyResult['data'];
+    // eslint-disable-next-line camelcase
+    data: openpgp_VerifyMessageResult['data'];
     verified: VERIFICATION_STATUS;
     signatures: OpenPGPSignature[];
     signatureTimestamp: Date|null,
     errors?: Error[];
 }
-export interface VerifyMessageOptions extends VerifyOptions {
-    detached?: boolean;
-}
-export function verifyMessage(options: VerifyMessageOptions): Promise<VerifyMessageResult>;
+export function verifyMessage(options: VerifyOptions): Promise<VerifyMessageResult>;
 
 export function serverTime(): Date;
-
-export function getPreferredAlgorithm(key: OpenPGPKey[], date?: Date): Promise<string>
 
 export function getSHA256Fingerprints(key: OpenPGPKey): Promise<string[]>
 
