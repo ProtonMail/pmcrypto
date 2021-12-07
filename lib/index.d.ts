@@ -138,11 +138,13 @@ export function decryptMIMEMessage(
     signatures: OpenPGPSignature[];
 }>;
 
+type MaybeStream<T extends Uint8Array | string> = T | ReadableStream<T>;
 export interface EncryptOptionsPmcryptoWithData extends Omit<EncryptOptions, 'message'> {
-    data: Uint8Array | string;
+    text?: MaybeStream<string>,
+    binary?: MaybeStream<Uint8Array>,
     returnSessionKey?: boolean;
 }
-type EncryptOptionsPmcrypto = EncryptOptionsPmcryptoWithData | EncryptOptions;
+type EncryptOptionsPmcrypto = EncryptOptionsPmcryptoWithData;
 
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor?: true; format?: 'armored'; detached?: false }

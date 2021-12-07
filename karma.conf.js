@@ -60,6 +60,13 @@ module.exports = function(config) {
 
         // Concurrency level
         // how many browser instances should be started simultaneously
-        concurrency: Infinity
+        concurrency: Infinity,
+
+        client: {
+            mocha: {
+              // timeout for mocha tests, default is 2 seconds. Some streaming tests can take longer.
+              timeout : 6000
+            }
+          }
     });
 };
