@@ -1,26 +1,10 @@
-import test from 'ava';
-import '../helper';
+import { expect, use as chaiUse } from 'chai';
+import * as chaiAsPromised from 'chai-as-promised';
+chaiUse(chaiAsPromised);
+
 // @ts-ignore missing keyInfo typings
 import { keyInfo, generateKey, getKey } from '../../lib';
-import { enums, PrivateKey, reformatKey } from 'openpgp';
-
-test('sha256 fingerprints - v4 key', async (t) => {
-    const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: false }  });
-    const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKey);
-    t.is(sha256Fingerprints.length, fingerprints.length);
-    sha256Fingerprints.forEach((sha256Fingerprint, i) => {
-        t.not(sha256Fingerprint, fingerprints[i]);
-    });
-});
-
-test.serial('sha256 fingerprints - v5 key', async (t) => {
-    const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: true } });
-    const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKey);
-    t.is(sha256Fingerprints.length, fingerprints.length);
-    sha256Fingerprints.forEach((sha256Fingerprint, i) => {
-        t.is(sha256Fingerprint, fingerprints[i]);
-    });
-});
+import { enums, PrivateKey, reformatKey, readKey } from '../../lib/openpgp';
 
 const publickey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -48,25 +32,6 @@ r7Wg1nvgd7aRzevVrtpn/fowNXaB6pfX1bUl4sRbGAKnF1avn4tPBAAZ5eh67bhO
 JLdxTBJgqQoLePyHnb4LEPZItOUOMiHRBLUV8PSj/dxLEmYlmbPFOTnE62izRX4Q
 =dM0r
 -----END PGP PUBLIC KEY BLOCK-----`;
-
-test('expiration test', async (t) => {
-    // primary key does not expire
-    const { expires, dateError } = await keyInfo(publickey);
-    t.is(expires, Infinity);
-    t.is(dateError, null);
-
-    const now = new Date(0);
-    // primary key expires after one second
-    const { publicKey: expiringKey } = await generateKey({
-        userIDs: [{}],
-        passphrase: 'test',
-        date: now,
-        keyExpirationTime: 1
-    });
-    const expiringKeyInfo = await keyInfo(expiringKey);
-    t.is(expiringKeyInfo.expires.getTime(), new Date(+now + 1000).getTime());
-    t.is(dateError, null);
-});
 
 const creationkey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: OpenPGP.js v3.0.5
@@ -102,39 +67,84 @@ uokpJQHZjIvfQ5/9tx1946Tvo0RX0A26JfOO+J68XA==
 =MPBF
 -----END PGP PUBLIC KEY BLOCK-----`;
 
-test('creation test', async (t) => {
-    const { dateError } = await keyInfo(
-        creationkey,
-        undefined,
-        undefined,
-        new Date('2019-01-01T00:00:00.000Z')
-    );
-    t.is(dateError, 'The self certifications are created with illegal times');
-});
+describe('key info', () => {
+    it('sha256 fingerprints - v4 key', async () => {
+        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: false }  });
+        const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKey);
+        expect(sha256Fingerprints.length).to.equal(fingerprints.length);
+        sha256Fingerprints.forEach((sha256Fingerprint, i) => {
+            expect(sha256Fingerprint).to.not.equal(fingerprints[i]);
+        });
+    });
+    
+    it('sha256 fingerprints - v5 key', async () => {
+        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: true } });
+        const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKey);
+        expect(sha256Fingerprints.length).to.equal(fingerprints.length);
+        sha256Fingerprints.forEach((sha256Fingerprint, i) => {
+            expect(sha256Fingerprint).to.equal(fingerprints[i]);
+        });
+    });
 
-test('invalid key', async (t) => {
-    const { validationError } = await keyInfo(publickey);
-    t.is(validationError, 'Key is less than 2048 bits');
-});
+    it('key expiration', async () => {
+        // primary key does not expire
+        const { expires, dateError } = await keyInfo(publickey);
+        expect(expires).to.equal(Infinity);
+        expect(dateError).to.be.null;
 
-test('valid key', async (t) => {
-    const { validationError } = await keyInfo(creationkey);
-    t.is(validationError, null);
-});
+        const now = new Date(0);
+        // primary key expires after one second
+        const { publicKey: expiringKey } = await generateKey({
+            userIDs: [{}],
+            passphrase: 'test',
+            date: now,
+            keyExpirationTime: 1
+        });
+        const expiringKeyInfo = await keyInfo(expiringKey);
+        expect(expiringKeyInfo.expires.getTime()).to.equal(new Date(+now + 1000).getTime());
+        expect(expiringKeyInfo.dateError).to.be.null;
+    });
 
-test('newly generated RSA key', async (t) => {
-    const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test' });
-    const { validationError } = await keyInfo(publicKey);
-    t.is(validationError, null);
-});
+    it('illegal key creation date', async () => {
+        const { dateError } = await keyInfo(
+            creationkey,
+            undefined,
+            undefined,
+            new Date('2019-01-01T00:00:00.000Z')
+        );
+        expect(dateError).to.equal('The self certifications are created with illegal times');
+    });
 
-test('newly generated ECC key', async (t) => {
-    const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', curve: 'curve25519' });
-    const { validationError } = await keyInfo(publicKey);
-    t.is(validationError, null);
-});
+    it('key validation - invalid key', async () => {
+        const { validationError } = await keyInfo(publickey);
+        expect(validationError).to.equal('Key is less than 2048 bits');
+    });
+    
+    it('key validation - valid key', async () => {
+        const { validationError } = await keyInfo(creationkey);
+        expect(validationError).to.be.null;
+    });
 
-test('reformatted key', async (t) => {
+    it('key validation - newly generated RSA key should be valid', async () => {
+        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test' });
+        const { validationError } = await keyInfo(publicKey);
+        expect(validationError).to.be.null;
+    });
+    
+    it('key validation - newly generated ECC 25519 key should be valid', async () => {
+        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', curve: 'curve25519' });
+        const { validationError } = await keyInfo(publicKey);
+        expect(validationError).to.be.null;
+    });
+    
+    it('key validation - newly generated ECC key with invalid curve should fail validation', async () => {
+        const config = { rejectCurves: new Set<enums.curve>() };
+        const { publicKey: publicKeyArmored } = await generateKey({ userIDs: [{}], passphrase: 'test', curve: 'secp256k1', config });
+        const { validationError } = await keyInfo(publicKeyArmored);
+        expect(validationError).to.equal('Key must use Curve25519, P-256, P-384 or P-521');
+    });
+
+    it('key validation - reformatted key should be valid', async () => {
     const keyWithUncompressedPrefs = `-----BEGIN PGP PRIVATE KEY BLOCK-----
 
 xVgEYY59gxYJKwYBBAHaRw8BAQdA3DNzk7qxgFfjGv2857uqzBUMZo+hg+4I
@@ -150,19 +160,13 @@ oRqcHrieqMQU7fmKAskJGb+0E0wG15dek28A/2TI9YMe6rbH4yvHWw+MLvYJ
 0Z/fFLxYWQxNdcIETekM
 =aRnh
 -----END PGP PRIVATE KEY BLOCK-----`;
-    const privateKey = await getKey(keyWithUncompressedPrefs) as PrivateKey;
-
-    const { validationError: compressionPrefsError } = await keyInfo(privateKey.toPublic().armor());
-    t.regex(compressionPrefsError, /Preferred compression algorithms must include zlib/);
-
-    const { privateKey: reformattedKey } = await reformatKey({ privateKey, userIDs: [{}], passphrase: 'test' });
-    const { validationError } = await keyInfo(reformattedKey);
-    t.is(validationError, null);
-});
-
-test('newly generated ECC key: invalid curve', async (t) => {
-    const config = { rejectCurves: new Set<enums.curve>() };
-    const { publicKey: publicKeyArmored } = await generateKey({ userIDs: [{}], passphrase: 'test', curve: 'secp256k1', config });
-    const { validationError } = await keyInfo(publicKeyArmored);
-    t.is(validationError, 'Key must use Curve25519, P-256, P-384 or P-521');
+        const privateKey = await getKey(keyWithUncompressedPrefs) as PrivateKey;
+    
+        const { validationError: compressionPrefsError } = await keyInfo(privateKey.toPublic().armor());
+        expect(compressionPrefsError).to.match(/Preferred compression algorithms must include zlib/);
+    
+        const { privateKey: reformattedKey } = await reformatKey({ privateKey, userIDs: [{}], passphrase: 'test' });
+        const { validationError } = await keyInfo(reformattedKey);
+        expect(validationError).to.be.null;
+    });
 });

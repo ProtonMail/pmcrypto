@@ -27,8 +27,14 @@ module.exports = function(config) {
 
         webpack: {
             resolve: {
-                fallback: { stream: false },
+                fallback: {
+                    stream: false,
+                    buffer: false
+                },
                 extensions: ['', '.js', '.ts']
+            },
+            module: {
+                rules: [{ test: /\.ts?$/, loader: 'ts-loader' }]
             }
         },
 
