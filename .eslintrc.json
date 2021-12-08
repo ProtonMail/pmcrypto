@@ -10,7 +10,9 @@
     "globals": {
         "window": "readonly",
         "btoa": "readonly",
-        "atob": "readonly"
+        "atob": "readonly",
+        "describe": "readonly",
+        "it": "readonly"
     },
     "env": {
         "es6": true,
