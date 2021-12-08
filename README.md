@@ -29,7 +29,7 @@ Now, pmcrypto must to be initialized with openpgp using the init function.
 ```
 import { init } from 'pmcrypto';
 
-init(require('openpgp'));
+init();
 ```
 
 

@@ -14,7 +14,7 @@ import {
     PrivateKey,
     SessionKey,
     encryptSessionKey
-} from 'openpgp';
+} from 'openpgp/lightweight';
 
 export enum VERIFICATION_STATUS {
     NOT_SIGNED = 0,

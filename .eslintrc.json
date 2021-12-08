@@ -53,6 +53,10 @@
             "ignoreStrings": true,
             "ignoreTemplateLiterals": true,
             "ignoreRegExpLiterals": true
+        }],
+        "no-restricted-imports": ["error", {
+            "name": "openpgp",
+            "message": "Please import from 'lib/openpgp' instead."
         }]
     }
 }
