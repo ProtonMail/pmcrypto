@@ -16,6 +16,8 @@ import {
     encryptSessionKey
 } from 'openpgp/lightweight';
 
+export function init(): void;
+
 export enum VERIFICATION_STATUS {
     NOT_SIGNED = 0,
     SIGNED_AND_VALID = 1,

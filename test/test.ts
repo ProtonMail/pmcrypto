@@ -1,6 +1,15 @@
-const chai = require('chai');
+import { expect } from 'chai';
 // chai.use(require('chai-as-promised'));
-const { expect } = chai;
+// const { expect } = chai;
+// require('./helper');
+import { createMessage, init } from '../lib';
+import { config, setConfig } from '../lib/openpgp';
+
+before(init)
+
+it('it sets the correct configuration on openpgp', async () => {
+    expect(config.s2kIterationCountByte).to.eq(96);
+});
 
 describe('Array', () => {
     describe('#indexOf()', () => {

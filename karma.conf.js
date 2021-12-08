@@ -13,7 +13,7 @@ module.exports = function(config) {
         plugins: ['karma-mocha', 'karma-chrome-launcher', 'karma-webpack', 'karma-spec-reporter'],
 
         // list of files / patterns to load in the browser
-        files: [{ pattern: 'test/**/*.js', watched: false }],
+        files: [{ pattern: 'test/**/test.ts', watched: false }],
 
         // list of files / patterns to exclude
         exclude: [],
@@ -22,10 +22,15 @@ module.exports = function(config) {
         // available preprocessors: https://www.npmjs.com/search?q=keywords:karma-preprocessor
         preprocessors: {
             // 'test/**/*.ts': 'karma-typescript'
-            'test/**/*.js': 'webpack'
+            'test/**/test.ts': 'webpack'
         },
 
-        webpack: {},
+        webpack: {
+            resolve: {
+                fallback: { stream: false },
+                extensions: ['', '.js', '.ts']
+            }
+        },
 
         // test results reporter to use
         // possible values: 'dots', 'progress'
