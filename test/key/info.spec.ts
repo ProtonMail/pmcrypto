@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 // @ts-ignore missing keyInfo typings
 import { keyInfo, generateKey, getKey } from '../../lib';
-import { enums, PrivateKey, reformatKey, readKey } from '../../lib/openpgp';
+import { enums, PrivateKey, reformatKey } from '../../lib/openpgp';
 
 const publickey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -64,10 +64,15 @@ uokpJQHZjIvfQ5/9tx1946Tvo0RX0A26JfOO+J68XA==
 =MPBF
 -----END PGP PUBLIC KEY BLOCK-----`;
 
+interface KeyInfoFingerprints {
+    fingerprints: string[],
+    sha256Fingerprints: string[]
+}
+
 describe('key info', () => {
     it('sha256 fingerprints - v4 key', async () => {
         const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: false }  });
-        const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKey);
+        const { fingerprints, sha256Fingerprints } : KeyInfoFingerprints = await keyInfo(publicKey);
         expect(sha256Fingerprints.length).to.equal(fingerprints.length);
         sha256Fingerprints.forEach((sha256Fingerprint, i) => {
             expect(sha256Fingerprint).to.not.equal(fingerprints[i]);
@@ -76,7 +81,7 @@ describe('key info', () => {
     
     it('sha256 fingerprints - v5 key', async () => {
         const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: true } });
-        const { fingerprints, sha256Fingerprints } : { fingerprints: string[], sha256Fingerprints: string[] } = await keyInfo(publicKey);
+        const { fingerprints, sha256Fingerprints } : KeyInfoFingerprints = await keyInfo(publicKey);
         expect(sha256Fingerprints.length).to.equal(fingerprints.length);
         sha256Fingerprints.forEach((sha256Fingerprint, i) => {
             expect(sha256Fingerprint).to.equal(fingerprints[i]);

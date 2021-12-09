@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { readKey, readSignature, generateKey } from '../../lib/openpgp';
-import { createMessage, getSignature, verifyMessage, signMessage, getMessage, binaryStringToArray } from '../../lib';
+import { createMessage, verifyMessage, signMessage, getMessage } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
 const detachedSignatureFromTwoKeys = `-----BEGIN PGP SIGNATURE-----
@@ -72,8 +72,12 @@ describe('message utils', () => {
         expect(signatures.length).to.equal(2);
         expect(errors).to.be.undefined;
         const signaturePackets = signatures.map(({ packets: [sigPacket] }) => sigPacket);
-        const validSignature = signaturePackets.find((sigPacket) => sigPacket.issuerKeyID.equals(publicKey1.getKeyID()));
-        const invalidSignature = signaturePackets.find((sigPacket) => sigPacket.issuerKeyID.equals(publicKey2.getKeyID()));
+        const validSignature = signaturePackets.find(
+            (sigPacket) => sigPacket.issuerKeyID.equals(publicKey1.getKeyID())
+        );
+        const invalidSignature = signaturePackets.find(
+            (sigPacket) => sigPacket.issuerKeyID.equals(publicKey2.getKeyID())
+        );
         expect(signatureTimestamp).to.equal(validSignature?.created);
         expect(signatureTimestamp).to.not.equal(invalidSignature?.created);
     });
@@ -92,7 +96,7 @@ describe('message utils', () => {
         expect(signatures.length).to.equal(2);
         expect(errors).to.not.be.undefined;
         expect(errors!.length).to.equal(2);
-        errors?.forEach(err => expect(err.message).to.match(/Could not find signing key/))
+        errors?.forEach((err) => expect(err.message).to.match(/Could not find signing key/))
         expect(signatureTimestamp).to.be.null;
     });
 
@@ -106,8 +110,8 @@ describe('message utils', () => {
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
         expect(signatures.length).to.equal(2);
         expect(errors).to.not.be.undefined;
-        expect(errors!.length).to.equal(2);
-        expect(errors?.[0].message!).to.match(/digest did not match/);
+        expect(errors?.length).to.equal(2);
+        expect(errors?.[0].message).to.match(/digest did not match/);
         expect(signatureTimestamp).to.be.null;
     });
 

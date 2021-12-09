@@ -8,6 +8,7 @@ import {
     EncryptOptions,
     CleartextMessage,
     VerifyOptions,
+    // eslint-disable-next-line camelcase
     VerifyMessageResult as openpgp_VerifyMessageResult,
     reformatKey,
     generateKey,
@@ -87,8 +88,8 @@ export function arrayToHexString(bytes: Uint8Array): string;
 
 export function concatArrays(data: Uint8Array[]): Uint8Array;
 
-export function getKeys(serializedKeys: String | Uint8Array): Promise<OpenPGPKey[]>;
-export function getKey(serializedKey: String | Uint8Array): Promise<OpenPGPKey>;
+export function getKeys(serializedKeys: string | Uint8Array): Promise<OpenPGPKey[]>;
+export function getKey(serializedKey: string | Uint8Array): Promise<OpenPGPKey>;
 
 export function getFingerprint(key: OpenPGPKey): string;
 
@@ -119,7 +120,7 @@ export type DecryptResultPmcrypto = Omit<DecryptMessageResult, 'signatures'> & {
 
 export function decryptMessage(
     options: DecryptOptionsPmcrypto & { format: 'utf8' }
-): Promise<DecryptResultPmcrypto & { data: string | ReadableStream<String> }>;
+): Promise<DecryptResultPmcrypto & { data: string | ReadableStream<string> }>;
 export function decryptMessage(
     options: DecryptOptionsPmcrypto & { format: 'binary' }
 ): Promise<DecryptResultPmcrypto & { data: Uint8Array | ReadableStream<Uint8Array> }>;
@@ -160,10 +161,10 @@ export function encryptMessage( // TODO what is this for? redundant -- declare m
     options: EncryptOptionsPmcrypto
 ): Promise<
     EncryptResult<
-        string | ReadableStream<String>,
+        string | ReadableStream<string>,
         OpenPGPMessage,
-        string | ReadableStream<String> | OpenPGPSignature,
-        string | ReadableStream<String> | OpenPGPMessage
+        string | ReadableStream<string> | OpenPGPSignature,
+        string | ReadableStream<string> | OpenPGPMessage
     >
 >;
 export function getMatchingKey(
@@ -177,13 +178,13 @@ interface SignOptionsPmcryptoWithData extends Omit<SignOptions, 'message'> {
 type SignOptionsPmcrypto = SignOptionsPmcryptoWithData | SignOptions;
 
 export function createMessage(
-    data: string | ReadableStream<String> | Uint8Array,
+    data: string | ReadableStream<string> | Uint8Array,
     filename?: string,
     date?: Date,
     type?: any
 ): OpenPGPMessage;
 export function createCleartextMessage(
-    text: string | ReadableStream<String> | CleartextMessage,
+    text: string | ReadableStream<string> | CleartextMessage,
     filename?: string,
     date?: Date,
     type?: any
@@ -232,6 +233,7 @@ export function unsafeMD5(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
 
 export interface VerifyMessageResult {
+    // eslint-disable-next-line camelcase
     data: openpgp_VerifyMessageResult['data'];
     verified: VERIFICATION_STATUS;
     signatures: OpenPGPSignature[];

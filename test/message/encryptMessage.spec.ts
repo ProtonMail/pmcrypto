@@ -1,10 +1,10 @@
 import { expect } from 'chai';
 // @ts-ignore missing web-stream-tools types
-import { readToEnd, toStream, loadStreamsPonyfill } from '@openpgp/web-stream-tools';
+import { readToEnd, toStream } from '@openpgp/web-stream-tools';
 // eslint-disable-next-line camelcase
-import { config, readMessage, createMessage as openpgp_createMessage, CompressedDataPacket, enums } from '../../lib/openpgp';
+import { config, createMessage as openpgp_createMessage, CompressedDataPacket, enums } from '../../lib/openpgp';
 
-import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage, decryptMessage, createMessage, getSignature,  } from '../../lib';
+import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage, decryptMessage, createMessage, getSignature  } from '../../lib';
 import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 import { hexToUint8Array, arrayToBinaryString } from '../../lib/utils';
@@ -76,7 +76,9 @@ describe('encryptMessage', () => {
         });
         const encryptedMessage = await getMessage(encrypted);
         const decryptedMessage = await encryptedMessage.decrypt([], [], [sessionKeys]);
-        const compressedPacket = decryptedMessage.packets.findPacket(enums.packet.compressedData) as CompressedDataPacket;
+        const compressedPacket = decryptedMessage.packets.findPacket(
+            enums.packet.compressedData
+        ) as CompressedDataPacket;
         expect(compressedPacket).to.not.be.undefined;
         // @ts-ignore undeclared algorithm field
         expect(compressedPacket.algorithm).to.equal('zlib');
