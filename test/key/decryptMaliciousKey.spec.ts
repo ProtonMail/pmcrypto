@@ -1,8 +1,4 @@
-import { expect, use as chaiUse } from 'chai';
-import * as chaiAsPromised from 'chai-as-promised';
-chaiUse(chaiAsPromised);
-
-
+import { expect } from 'chai';
 import { decryptPrivateKey } from '../../lib';
 
 const testPrivateKeyMalicious = `-----BEGIN PGP PRIVATE KEY BLOCK-----

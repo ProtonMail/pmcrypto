@@ -1,6 +1,3 @@
-// Karma configuration
-// Generated on Mon Dec 06 2021 17:59:38 GMT+0100 (Central European Standard Time)
-
 module.exports = function(config) {
     config.set({
         // base path that will be used to resolve all patterns (eg. files, exclude)
@@ -8,12 +5,12 @@ module.exports = function(config) {
 
         // frameworks to use
         // available frameworks: https://www.npmjs.com/search?q=keywords:karma-adapter
-        frameworks: ['mocha', 'webpack'], // need karma-typescrit?
+        frameworks: ['mocha', 'webpack'],
 
-        plugins: ['karma-mocha', 'karma-chrome-launcher', 'karma-webpack', 'karma-spec-reporter'],
+        plugins: ['karma-mocha', 'karma-chrome-launcher', 'karma-webpack', 'karma-mocha-reporter'],
 
         // list of files / patterns to load in the browser
-        files: [{ pattern: 'test/**/test.ts', watched: false }],
+        files: [{ pattern: 'test/**/*.*', watched: false }],
 
         // list of files / patterns to exclude
         exclude: [],
@@ -21,8 +18,7 @@ module.exports = function(config) {
         // preprocess matching files before serving them to the browser
         // available preprocessors: https://www.npmjs.com/search?q=keywords:karma-preprocessor
         preprocessors: {
-            // 'test/**/*.ts': 'karma-typescript'
-            'test/**/test.ts': 'webpack'
+            'test/**/*.*': 'webpack'
         },
 
         webpack: {
@@ -38,10 +34,8 @@ module.exports = function(config) {
             }
         },
 
-        // test results reporter to use
-        // possible values: 'dots', 'progress'
         // available reporters: https://www.npmjs.com/search?q=keywords:karma-reporter
-        reporters: ['spec'], // 'karma-typescript'],
+        reporters: ['mocha'],
 
         // web server port
         port: 9876,

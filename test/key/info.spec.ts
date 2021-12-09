@@ -1,7 +1,4 @@
-import { expect, use as chaiUse } from 'chai';
-import * as chaiAsPromised from 'chai-as-promised';
-chaiUse(chaiAsPromised);
-
+import { expect } from 'chai';
 // @ts-ignore missing keyInfo typings
 import { keyInfo, generateKey, getKey } from '../../lib';
 import { enums, PrivateKey, reformatKey, readKey } from '../../lib/openpgp';

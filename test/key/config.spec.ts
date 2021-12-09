@@ -45,16 +45,16 @@ describe('openpgp configuration', () => {
         // ensure that `allowInsecureDecryptionWithSigningKeys` is applied
         const encryptedRsaSignOnly = `-----BEGIN PGP MESSAGE-----
     
-    wcBMAwr9x5ZY6oZmAQf+Lxghg4keIFpEq8a65gFkIfW+chHTDPlfI8xnx6U9
-    HdsICX3Oye5V0ToCVKkEWDxfN1yCfXiYalSNo7ScRZKR7C+j02/pC+FfR6AJ
-    2cvdFoGIrLaXdjXXc/oXbsCCZA4C1DhQqpdORo2qGF0Q6Sm8659B0CfOgYSL
-    fBfKQ5VJngUT5JG8Uek3YuXBufPNhzdmXLHyB2Y2CwKkldi2vo4YNAukDhrR
-    2TojxdNoouhnMm+gloCE1n8huY1vw5F78/uiHen0tmHQ0dxtfk8cc1burgl/
-    zUdJ3Sg6Eu+OC2ae5II63iB5fG+lCwZtfuepWnePDv8RDKNHCVP/LoBNpGOZ
-    U9I6AUkZWdcsueib9ghKDDy+HbUbf2kCJWUnuyeOCKqQifDb8bsLmdQY4Wb6
-    EBeLgD8oZHVsH3NLjPakPw==
-    =STqy
-    -----END PGP MESSAGE-----`;
+wcBMAwr9x5ZY6oZmAQf+Lxghg4keIFpEq8a65gFkIfW+chHTDPlfI8xnx6U9
+HdsICX3Oye5V0ToCVKkEWDxfN1yCfXiYalSNo7ScRZKR7C+j02/pC+FfR6AJ
+2cvdFoGIrLaXdjXXc/oXbsCCZA4C1DhQqpdORo2qGF0Q6Sm8659B0CfOgYSL
+fBfKQ5VJngUT5JG8Uek3YuXBufPNhzdmXLHyB2Y2CwKkldi2vo4YNAukDhrR
+2TojxdNoouhnMm+gloCE1n8huY1vw5F78/uiHen0tmHQ0dxtfk8cc1burgl/
+zUdJ3Sg6Eu+OC2ae5II63iB5fG+lCwZtfuepWnePDv8RDKNHCVP/LoBNpGOZ
+U9I6AUkZWdcsueib9ghKDDy+HbUbf2kCJWUnuyeOCKqQifDb8bsLmdQY4Wb6
+EBeLgD8oZHVsH3NLjPakPw==
+=STqy
+-----END PGP MESSAGE-----`;
         const key = await readPrivateKey({ armoredKey: rsaSignOnly });
         // decryption should succeed
         const { data } = await decryptMessage({
