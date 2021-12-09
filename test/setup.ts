@@ -5,4 +5,3 @@ import { init } from '../lib';
 
 chaiUse(chaiAsPromised);
 before(init);
-console.log('yoloooo')
