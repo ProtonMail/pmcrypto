@@ -1,5 +1,4 @@
-import test from 'ava';
-import '../helper';
+import { expect } from 'chai';
 import { checkKeyStrength } from '../../lib';
 import { openpgp } from '../../lib/openpgp';
 
@@ -58,20 +57,19 @@ m53MXUW1fnpBPuv9RWJDN+tLhm5FPJktpuElr6hcBg==
 =J9mf
 -----END PGP PUBLIC KEY BLOCK-----`;
 
-test('it warns on insecure primary key (RSA 512 bits)', async (t) => {
-    const key = (await openpgp.key.readArmored(rsa512BitsKey)).keys[0];
-    const error = t.throws(() => checkKeyStrength(key));
-    t.is(error.message, 'Keys shorter than 2047 bits are considered unsafe');
-});
+describe('key checks', () => {
+    it('it warns on insecure primary key (RSA 512 bits)', async () => {
+        const key = (await openpgp.key.readArmored(rsa512BitsKey)).keys[0];
+        expect(() => checkKeyStrength(key)).to.throw(/Keys shorter than 2047 bits are considered unsafe/);
+    });
 
-test('it warns on insecure subkey (ElGamal)', async (t) => {
-    const key = (await openpgp.key.readArmored(eddsaElGamalSubkey)).keys[0];
-    const error = t.throws(() => checkKeyStrength(key));
-    t.is(error.message, 'elgamal keys are considered unsafe');
-});
+    it('it warns on insecure subkey (ElGamal)', async () => {
+        const key = (await openpgp.key.readArmored(eddsaElGamalSubkey)).keys[0];
+        expect((() => checkKeyStrength(key))).to.throw(/elgamal keys are considered unsafe/);
+    });
 
-test('it does not warn on secure key (x25519)', async (t) => {
-    const key = (await openpgp.key.readArmored(ecc25519Key)).keys[0];
-    checkKeyStrength(key);
-    t.pass();
+    it('it does not warn on secure key (x25519)', async () => {
+        const key = (await openpgp.key.readArmored(ecc25519Key)).keys[0];
+        expect(() => checkKeyStrength(key)).to.not.throw();
+    });
 });

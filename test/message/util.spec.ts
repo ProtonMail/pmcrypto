@@ -1,5 +1,4 @@
-import test from 'ava';
-import '../helper';
+import { expect } from 'chai';
 
 import { openpgp } from '../../lib/openpgp';
 import { createMessage, verifyMessage } from '../../lib';
@@ -44,98 +43,100 @@ hhwl92GFuTXz4AEAqn4L+ayYgphejF/ZTRIseHPK+t521CT6NZKoVaHnTWQA
 =IEm4
 -----END PGP PUBLIC KEY BLOCK-----`;
 
-test('it verifies a message with multiple signatures', async (t) => {
-    const publicKey1 = (await openpgp.key.readArmored(armoredPublicKey)).keys[0];
-    const publicKey2 = (await openpgp.key.readArmored(armoredPublicKey2)).keys[0];
-    const { data, verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-        message: createMessage('hello world'),
-        signature: await openpgp.signature.readArmored(detachedSignatureFromTwoKeys),
-        publicKeys: [publicKey1, publicKey2]
+describe('message utils', () => {
+    it('it verifies a message with multiple signatures', async () => {
+        const publicKey1 = (await openpgp.key.readArmored(armoredPublicKey)).keys[0];
+        const publicKey2 = (await openpgp.key.readArmored(armoredPublicKey2)).keys[0];
+        const { data, verified, signatureTimestamp, signatures, errors } = await verifyMessage({
+            message: createMessage('hello world'),
+            signature: await openpgp.signature.readArmored(detachedSignatureFromTwoKeys),
+            publicKeys: [publicKey1, publicKey2]
+        });
+        expect(data).to.deep.equal(openpgp.util.str_to_Uint8Array('hello world'));
+        expect(await verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(signatures.length).to.equal(2);
+        expect(errors).to.be.undefined;
+        const signaturePackets = signatures.map(({
+                                                     // @ts-ignore openpgp.packet.List not declared as iterator
+                                                     packets: [sigPacket]
+                                                 }) => sigPacket);
+        signaturePackets.forEach(({ verified }) => {
+            expect(verified).to.equal(true);
+        });
+        expect(signatureTimestamp).to.equal(signaturePackets[0].created);
     });
-    t.deepEqual(data, openpgp.util.str_to_Uint8Array('hello world'));
-    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
-    t.is(signatures.length, 2);
-    t.is(errors, undefined);
-    const signaturePackets = signatures.map(({
-        // @ts-ignore openpgp.packet.List not declared as iterator
-        packets: [sigPacket]
-    }) => sigPacket);
-    signaturePackets.forEach(({ verified }) => {
-        t.is(verified, true);
-    });
-    t.is(signatureTimestamp, signaturePackets[0].created);
-});
 
-test('it verifies a message with multiple signatures and returns the timestamp of the valid signature', async (t) => {
-    const publicKey1 = (await openpgp.key.readArmored(armoredPublicKey)).keys[0];
-    const publicKey2 = (await openpgp.key.readArmored(armoredPublicKey2)).keys[0];
-    const { data, verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-        message: createMessage('hello world'),
-        signature: await openpgp.signature.readArmored(detachedSignatureFromTwoKeys),
-        publicKeys: [publicKey1] // the second public key is missing, expect only one signature to be verified
+    it('it verifies a message with multiple signatures and returns the timestamp of the valid signature', async () => {
+        const publicKey1 = (await openpgp.key.readArmored(armoredPublicKey)).keys[0];
+        const publicKey2 = (await openpgp.key.readArmored(armoredPublicKey2)).keys[0];
+        const { data, verified, signatureTimestamp, signatures, errors } = await verifyMessage({
+            message: createMessage('hello world'),
+            signature: await openpgp.signature.readArmored(detachedSignatureFromTwoKeys),
+            publicKeys: [publicKey1] // the second public key is missing, expect only one signature to be verified
+        });
+        expect(data).to.deep.equal(openpgp.util.str_to_Uint8Array('hello world'));
+        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(signatures.length).to.equal(2);
+        expect(errors).to.equal(undefined);
+        const signaturePackets = signatures.map(({
+                                                     // @ts-ignore openpgp.packet.List not declared as iterator
+                                                     packets: [sigPacket]
+                                                 }) => sigPacket);
+        const validSignature = signaturePackets.find((sigPacket) => sigPacket.issuerKeyId.equals(publicKey1.getKeyId()));
+        const invalidSignature = signaturePackets.find((sigPacket) => sigPacket.issuerKeyId.equals(publicKey2.getKeyId()));
+        expect(validSignature.verified).to.equal(true);
+        expect(signatureTimestamp).to.equal(validSignature.created);
+        expect(invalidSignature.verified).to.equal(null);
+        expect(signatureTimestamp).to.not.equal(invalidSignature.created);
     });
-    t.deepEqual(data, openpgp.util.str_to_Uint8Array('hello world'));
-    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_VALID);
-    t.is(signatures.length, 2);
-    t.is(errors, undefined);
-    const signaturePackets = signatures.map(({
-        // @ts-ignore openpgp.packet.List not declared as iterator
-        packets: [sigPacket]
-    }) => sigPacket);
-    const validSignature = signaturePackets.find((sigPacket) => sigPacket.issuerKeyId.equals(publicKey1.getKeyId()));
-    const invalidSignature = signaturePackets.find((sigPacket) => sigPacket.issuerKeyId.equals(publicKey2.getKeyId()));
-    t.is(validSignature.verified, true);
-    t.is(signatureTimestamp, validSignature.created);
-    t.is(invalidSignature.verified, null);
-    t.not(signatureTimestamp, invalidSignature.created);
-});
 
-test('it does not verify a message given wrong public key', async (t) => {
-    const { key: wrongPublicKey } = await openpgp.generateKey({ userIds: [{ name: 'test', email: 'a@b.com' }] });
-    const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-        message: createMessage('hello world'),
-        signature: await openpgp.signature.readArmored(detachedSignatureFromTwoKeys),
-        publicKeys: [wrongPublicKey]
+    it('it does not verify a message given wrong public key', async () => {
+        const { key: wrongPublicKey } = await openpgp.generateKey({ userIds: [{ name: 'it', email: 'a@b.com' }] });
+        const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
+            message: createMessage('hello world'),
+            signature: await openpgp.signature.readArmored(detachedSignatureFromTwoKeys),
+            publicKeys: [wrongPublicKey]
+        });
+        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(signatures.length).to.equal(2);
+        expect(errors).to.not.equal(undefined);
+        expect(errors?.length).to.equal(0);
+        const verifiedSignatures = signatures
+            // @ts-ignore openpgp.packet.List not declared as iterator
+            .map(({ packets: [sigPacket] }) => sigPacket)
+            .filter((sigPacket) => sigPacket.verified);
+        expect(verifiedSignatures.length).to.equal(0);
+        expect(signatureTimestamp).to.equal(null);
     });
-    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_INVALID);
-    t.is(signatures.length, 2);
-    t.not(errors, undefined);
-    t.is(errors!.length, 0);
-    const verifiedSignatures = signatures
-        // @ts-ignore openpgp.packet.List not declared as iterator
-        .map(({ packets: [sigPacket] }) => sigPacket)
-        .filter((sigPacket) => sigPacket.verified);
-    t.is(verifiedSignatures.length, 0);
-    t.is(signatureTimestamp, null);
-});
 
-test('it does not verify a message with corrupted signature', async (t) => {
-    const publicKey = (await openpgp.key.readArmored(armoredPublicKey)).keys[0];
-    const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-        message: createMessage('corrupted'),
-        signature: await openpgp.signature.readArmored(detachedSignatureFromTwoKeys),
-        publicKeys: [publicKey]
+    it('it does not verify a message with corrupted signature', async () => {
+        const publicKey = (await openpgp.key.readArmored(armoredPublicKey)).keys[0];
+        const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
+            message: createMessage('corrupted'),
+            signature: await openpgp.signature.readArmored(detachedSignatureFromTwoKeys),
+            publicKeys: [publicKey]
+        });
+        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(signatures.length).to.equal(2);
+        expect(errors).not.to.equal(undefined);
+        expect(errors!.length).to.equal(1);
+        const verifiedSignatures = signatures
+            // @ts-ignore openpgp.packet.List not declared as iterator
+            .map(({ packets: [sigPacket] }) => sigPacket)
+            .filter((sigPacket) => sigPacket.verified);
+        expect(verifiedSignatures.length).to.equal(0);
+        expect(signatureTimestamp).to.equal(null);
     });
-    t.is(verified, VERIFICATION_STATUS.SIGNED_AND_INVALID);
-    t.is(signatures.length, 2);
-    t.not(errors, undefined);
-    t.is(errors!.length, 1);
-    const verifiedSignatures = signatures
-        // @ts-ignore openpgp.packet.List not declared as iterator
-        .map(({ packets: [sigPacket] }) => sigPacket)
-        .filter((sigPacket) => sigPacket.verified);
-    t.is(verifiedSignatures.length, 0);
-    t.is(signatureTimestamp, null);
-});
 
-test('it detects missing signatures', async (t) => {
-    const publicKey = (await openpgp.key.readArmored(armoredPublicKey)).keys[0];
-    const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-        message: createMessage('no signatures'),
-        publicKeys: [publicKey]
+    it('it detects missing signatures', async () => {
+        const publicKey = (await openpgp.key.readArmored(armoredPublicKey)).keys[0];
+        const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
+            message: createMessage('no signatures'),
+            publicKeys: [publicKey]
+        });
+        expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
+        expect(signatures.length).to.equal(0);
+        expect(errors).to.be.undefined;
+        expect(signatureTimestamp).to.be.null;
     });
-    t.is(verified, VERIFICATION_STATUS.NOT_SIGNED);
-    t.is(signatures.length, 0);
-    t.is(errors, undefined);
-    t.is(signatureTimestamp, null);
 });
