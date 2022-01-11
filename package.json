@@ -1,71 +1,67 @@
 {
-  "name": "pmcrypto",
-  "version": "6.6.0",
-  "description": "",
-  "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
-  "module": "./lib/pmcrypto.js",
-  "sideEffects": false,
-  "scripts": {
-    "test": "ava -v",
-    "lint": "eslint $(find lib -type f -name '*.js')  --quiet",
-    "pretty": "prettier --write $(find lib -type f -name '*.js')",
-    "postversion": "git push && git push --tags",
-    "test-type-definitions": "tsc lib/index.d.ts"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
+    "name": "pmcrypto",
+    "version": "6.6.0",
+    "description": "",
+    "main": "./lib/index.js",
+    "types": "./lib/index.d.ts",
+    "module": "./lib/pmcrypto.js",
+    "sideEffects": false,
+    "scripts": {
+        "test": "karma start --single-run --browsers ChromeHeadless karma.conf.js",
+        "lint": "eslint $(find lib -type f -name '*.js')  --quiet",
+        "pretty": "prettier --write $(find lib -type f -name '*.js')",
+        "postversion": "git push && git push --tags",
+        "test-type-definitions": "tsc lib/index.d.ts"
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "lint-staged"
+        }
+    },
+    "lint-staged": {
+        "*.js,*.ts": [
+            "prettier --write",
+            "git add"
+        ]
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ProtonMail/pmcrypto.git"
+    },
+    "author": "ProtonMail",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/ProtonMail/pmcrypto/issues"
+    },
+    "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
+    "dependencies": {
+        "@types/openpgp": "^4.4.18",
+        "openpgp": "^4.10.8"
+    },
+    "engines": {
+        "node": ">=10.15.1"
+    },
+    "devDependencies": {
+        "@types/chai": "^4.3.0",
+        "@types/chai-as-promised": "^7.1.4",
+        "@types/mocha": "^9.0.0",
+        "@types/node": "^16.11.7",
+        "chai": "^4.3.4",
+        "chai-as-promised": "^7.1.1",
+        "eslint": "^6.3.0",
+        "eslint-config-airbnb-base": "^14.0.0",
+        "eslint-plugin-chai-friendly": "^0.7.2",
+        "eslint-plugin-import": "^2.18.2",
+        "husky": "^1.1.0",
+        "karma": "^6.3.9",
+        "karma-chrome-launcher": "^3.1.0",
+        "karma-mocha": "^2.0.1",
+        "karma-mocha-reporter": "^2.2.5",
+        "karma-webpack": "^5.0.0",
+        "lint-staged": "^11.2.6",
+        "mocha": "^9.1.3",
+        "prettier": "^1.14.3",
+        "ts-loader": "^9.2.6",
+        "typescript": "^4.2.4"
     }
-  },
-  "lint-staged": {
-    "*.js": [
-      "prettier --write",
-      "git add"
-    ]
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ProtonMail/pmcrypto.git"
-  },
-  "author": "ProtonMail",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/ProtonMail/pmcrypto/issues"
-  },
-  "ava": {
-    "require": [
-      "esm"
-    ],
-    "files": [
-      "test/**/*.spec.ts"
-    ],
-    "typescript": {
-      "rewritePaths": {
-        "test/": "build/test/"
-      },
-      "compile": "tsc"
-    }
-  },
-  "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
-  "dependencies": {
-    "@types/openpgp": "^4.4.18",
-    "esm": "^3.0.84",
-    "openpgp": "^4.10.8"
-  },
-  "engines": {
-    "node": ">=10.15.1"
-  },
-  "devDependencies": {
-    "@ava/typescript": "^2.0.0",
-    "ava": "^3.15.0",
-    "eslint": "^6.3.0",
-    "eslint-config-airbnb-base": "^14.0.0",
-    "eslint-plugin-import": "^2.18.2",
-    "husky": "^1.1.0",
-    "lint-staged": "^7.3.0",
-    "mocha": "^5.2.0",
-    "prettier": "^1.14.3",
-    "typescript": "^4.2.4"
-  }
 }

@@ -1,27 +1,27 @@
-import test from 'ava';
-import '../helper';
-
+import { expect } from 'chai';
 import { decryptPrivateKey, decryptMessageLegacy } from '../../lib';
 import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from './decryptMessageLegacy.data';
 
-test('it can decrypt a legacy message', async (t) => {
-    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-    const { data } = await decryptMessageLegacy({
-        message: testMessageEncryptedLegacy,
-        privateKeys: [decryptedPrivateKey],
-        messageDate: new Date('2015-01-01')
-    });
-    t.is(data, testMessageResult);
-});
-
-test('it can decrypt a non-legacy armored message', async (t) => {
-    const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-
-    const { data } = await decryptMessageLegacy({
-        message: testMessageEncryptedStandard,
-        privateKeys: [decryptedPrivateKey],
-        messageDate: new Date('2015-01-01')
+describe('decryptMessageLegacy', () => {
+    it('it can decrypt a legacy message', async () => {
+        const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+        const { data } = await decryptMessageLegacy({
+            message: testMessageEncryptedLegacy,
+            privateKeys: [decryptedPrivateKey],
+            messageDate: new Date('2015-01-01')
+        });
+        expect(data).to.equal(testMessageResult);
     });
 
-    t.is(data, testMessageResult);
+    it('it can decrypt a non-legacy armored message', async () => {
+        const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+
+        const { data } = await decryptMessageLegacy({
+            message: testMessageEncryptedStandard,
+            privateKeys: [decryptedPrivateKey],
+            messageDate: new Date('2015-01-01')
+        });
+
+        expect(data).to.equal(testMessageResult);
+    });
 });

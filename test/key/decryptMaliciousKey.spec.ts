@@ -1,5 +1,4 @@
-import test from 'ava';
-import '../helper';
+import { expect } from 'chai';
 
 import { decryptPrivateKey } from '../../lib';
 
@@ -84,14 +83,14 @@ BVwyGMu4Utoe7o2jTBfQiSuisOU5rQk=
 =tZEz
 -----END PGP PRIVATE KEY BLOCK-----`;
 
-test('it fails to decrypt a key with mismatching private and public key parameters', async (t) => {
-    const decryptedPrivateKey = decryptPrivateKey(testPrivateKeyMalicious, 'userpass');
-    const error = await t.throwsAsync(decryptedPrivateKey);
-    t.regex(error.message, /Key is invalid/);
-});
+describe('malicious encrypted key detection', () => {
+    it('it fails to decrypt a key with mismatching private and public key parameters', async () => {
+        const decryptedPrivateKey = decryptPrivateKey(testPrivateKeyMalicious, 'userpass');
+        await expect(decryptedPrivateKey).to.be.rejectedWith(/Key is invalid/);
+    });
 
-test('it fails to decrypt a key with all GNU-dummy key packets', async (t) => {
-    const decryptedPrivateKey = decryptPrivateKey(testPrivateKeyAllDummy, 'any password');
-    const error = await t.throwsAsync(decryptedPrivateKey);
-    t.regex(error.message, /Cannot validate an all-gnu-dummy key/);
+    it('it fails to decrypt a key with all GNU-dummy key packets', async () => {
+        const decryptedPrivateKey = decryptPrivateKey(testPrivateKeyAllDummy, 'any password');
+        await expect(decryptedPrivateKey).to.be.rejectedWith(/Cannot validate an all-gnu-dummy key/);
+    });
 });
