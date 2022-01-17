@@ -65,18 +65,18 @@ describe('key checks', () => {
             () => checkKeyStrength(key)
         ).to.throw(/Keys shorter than 2047 bits are considered unsafe/)
     });
-    
+
     it('it warns on insecure subkey (ElGamal)', async () => {
         const key = await readKey({ armoredKey: eddsaElGamalSubkey });
         expect(
             () => checkKeyStrength(key)
         ).to.throw(/elgamal keys are considered unsafe/);
     });
-    
+
     it('it does not warn on secure key (x25519)', async () => {
         const key = await readKey({ armoredKey: ecc25519Key });
         expect(
             () => checkKeyStrength(key)
         ).to.not.throw;
-    }); 
+    });
 });

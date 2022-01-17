@@ -34,7 +34,7 @@ describe('processMIME', () => {
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         expect(body).to.equal('hello');
     });
-    
+
     it('it does not verify invalid messages', async () => {
         const { verified, body } = await processMIME(
             {
@@ -45,7 +45,7 @@ describe('processMIME', () => {
         expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
         expect(body).to.equal('message with missing signature');
     });
-    
+
     it('it can parse messages with special characters in the boundary', async () => {
         const { verified, body } = await processMIME(
             {
@@ -56,7 +56,4 @@ describe('processMIME', () => {
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         expect(body).to.equal('hello');
     });
-    
-})
-
-
+});

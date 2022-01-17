@@ -22,11 +22,11 @@ describe('key utils', () => {
     it('it can correctly encode base 64', async () => {
         expect(encodeBase64('foo')).to.equal('Zm9v');
     });
-    
+
     it('it can correctly decode base 64', async () => {
         expect(decodeBase64('Zm9v')).to.equal('foo');
     });
-    
+
     it('it can correctly concat arrays', async () => {
         expect(concatArrays([
             new Uint8Array([1]),
@@ -84,7 +84,7 @@ GAlY9rxVStLBrg0Hn+5gkhyHI9B85rM1BEYXQ8pP5CSFuTwbJ3O2s67dzQ==
             date,
             format: 'object'
         });
-        
+
         const { privateKey: reformattedKey } = await reformatKey({ privateKey, passphrase: '123', userIDs: [{ name: 'reformatted', email: 'reformatteed@test.com' }], format: 'object' });
         const primaryUser = await reformattedKey.getPrimaryUser();
         expect(primaryUser.user.userID?.userID).to.equal('reformatted <reformatteed@test.com>');
@@ -104,7 +104,7 @@ GAlY9rxVStLBrg0Hn+5gkhyHI9B85rM1BEYXQ8pP5CSFuTwbJ3O2s67dzQ==
         expect(await isExpiredKey(expiringKey, now)).to.be.false;
         expect(await isExpiredKey(expiringKey, new Date(+now + 1000))).to.be.true;
         expect(await isExpiredKey(expiringKey, new Date(+now - 1000))).to.be.true;
-    
+
         const { privateKey: key } = await generateKey({
             userIDs: [{ name: 'name', email: 'email@test.com' }],
             date: now,
@@ -144,7 +144,7 @@ gm9nAQDY//xzc2hy6Efz8NqDJeLg1lh2sZkKcMXP3L+CJbhWJQEAuI6UDakE
 +XVcDsBS+CIi3qg74r/80Ysb7tmRC06znwA=
 =I0d7
 -----END PGP PRIVATE KEY BLOCK-----`;
-    
+
         const keyWithSigningSubkey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
 
 xVgEYYqb5xYJKwYBBAHaRw8BAQdA0zCRw6gyovlI8V6pQoDtmAoIr7YPNPxm
@@ -162,22 +162,22 @@ mXRoxhd1cGWMqgyvMueLVxHYNAD+NaLEsrzFxvgu3c8nVN5sjVETTZZdHjly
 wSeOoh9ocbsA/joCCpHxxH061g/tjEhP76tWJX17ShZ9wT7KZ6aPejoM
 =FkBc
 -----END PGP PRIVATE KEY BLOCK-----`;
-    
+
         const key1 = await getKey(keyWithSigningSubkey) as PrivateKey;
         const key2 = await getKey(keyWithoutSubkeys) as PrivateKey;
-    
+
         const signatureFromSubkey = await sign({
             message: await createMessage('a message'),
             signingKeys: key1,
             format: 'object'
         });
-    
+
         const signatureFromPrimaryKey = await sign({
             message: await createMessage('a message'),
             signingKeys: key2,
             format: 'object'
         });
-    
+
         expect(signatureFromSubkey.getSigningKeyIDs().includes(key1.subkeys[0].getKeyID())).to.be.true;
         expect(getMatchingKey(signatureFromSubkey, [key1, key2])).to.deep.equal(key1);
         expect(signatureFromPrimaryKey.getSigningKeyIDs().includes(key2.getKeyID())).to.be.true;
@@ -188,7 +188,6 @@ wSeOoh9ocbsA/joCCpHxxH061g/tjEhP76tWJX17ShZ9wT7KZ6aPejoM
         const sessionKey = await generateSessionKey('aes256');
         expect(sessionKey.length).to.equal(32);
     });
-
 
     it('it can generate a session key from the preferences of the given public keys', async () => {
         const key = await readKey({ armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
@@ -205,8 +204,4 @@ gm9nAQDY//xzc2hy6Efz8NqDJeLg1lh2sZkKcMXP3L+CJbhWJQEAuI6UDakE
         expect(sessionKey.data.length).to.equal(32);
         expect(sessionKey.algorithm).to.equal('aes256');
     });
-})
-
-
-
-
+});

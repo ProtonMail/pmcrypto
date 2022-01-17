@@ -224,7 +224,7 @@ export function armorBytes(value: Uint8Array | string): Promise<Uint8Array | str
 export interface algorithmInfo {
     algorithm: string;
     bits?: number; // if algorithm == 'rsaEncryptSign' | 'rsaEncrypt' | 'rsaSign'
-    curve?: string; // if algorithm == 'ecdh' | 'eddsa' | 'ecdsa' 
+    curve?: string; // if algorithm == 'ecdh' | 'eddsa' | 'ecdsa'
 }
 
 export function SHA256(arg: Uint8Array): Promise<Uint8Array>;

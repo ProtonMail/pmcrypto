@@ -134,17 +134,17 @@ describe('message utils', () => {
             keyExpirationTime: 10000,
             format: 'object'
         });
-    
+
         const signature = await signMessage({
             message: await createMessage('message'),
             signingKeys: [privateKey]
         });
-    
+
         const verificationResult = await verifyMessage({
             message: await getMessage(signature),
             verificationKeys: [publicKey]
         });
-    
+
         expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 

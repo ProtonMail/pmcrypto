@@ -41,7 +41,7 @@ describe('openpgp configuration', () => {
     it('it sets the correct configuration', async () => {
         expect(config.s2kIterationCountByte).to.equal(96);
         expect(config.allowInsecureDecryptionWithSigningKeys).to.be.true;
-    
+
         // ensure that `allowInsecureDecryptionWithSigningKeys` is applied
         const encryptedRsaSignOnly = `-----BEGIN PGP MESSAGE-----
     
@@ -62,5 +62,5 @@ EBeLgD8oZHVsH3NLjPakPw==
             decryptionKeys: key
         });
         expect(data).to.equal('hi');
-    }); 
+    });
 });

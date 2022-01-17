@@ -78,7 +78,7 @@ describe('key info', () => {
             expect(sha256Fingerprint).to.not.equal(fingerprints[i]);
         });
     });
-    
+
     it('sha256 fingerprints - v5 key', async () => {
         const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: true } });
         const { fingerprints, sha256Fingerprints } : KeyInfoFingerprints = await keyInfo(publicKey);
@@ -121,7 +121,7 @@ describe('key info', () => {
         const { validationError } = await keyInfo(publickey);
         expect(validationError).to.equal('Key is less than 2048 bits');
     });
-    
+
     it('key validation - valid key', async () => {
         const { validationError } = await keyInfo(creationkey);
         expect(validationError).to.be.null;
@@ -132,13 +132,13 @@ describe('key info', () => {
         const { validationError } = await keyInfo(publicKey);
         expect(validationError).to.be.null;
     });
-    
+
     it('key validation - newly generated ECC 25519 key should be valid', async () => {
         const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', curve: 'curve25519' });
         const { validationError } = await keyInfo(publicKey);
         expect(validationError).to.be.null;
     });
-    
+
     it('key validation - newly generated ECC key with invalid curve should fail validation', async () => {
         const config = { rejectCurves: new Set<enums.curve>() };
         const { publicKey: publicKeyArmored } = await generateKey({ userIDs: [{}], passphrase: 'test', curve: 'secp256k1', config });
@@ -163,10 +163,10 @@ oRqcHrieqMQU7fmKAskJGb+0E0wG15dek28A/2TI9YMe6rbH4yvHWw+MLvYJ
 =aRnh
 -----END PGP PRIVATE KEY BLOCK-----`;
         const privateKey = await getKey(keyWithUncompressedPrefs) as PrivateKey;
-    
+
         const { validationError: compressionPrefsError } = await keyInfo(privateKey.toPublic().armor());
         expect(compressionPrefsError).to.match(/Preferred compression algorithms must include zlib/);
-    
+
         const { privateKey: reformattedKey } = await reformatKey({ privateKey, userIDs: [{}], passphrase: 'test' });
         const { validationError } = await keyInfo(reformattedKey);
         expect(validationError).to.be.null;

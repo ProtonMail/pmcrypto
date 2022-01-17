@@ -15,7 +15,6 @@
     },
     "env": {
         "es6": true,
-        "node": true,
         "mocha": true
     },
     "plugins": [
@@ -63,6 +62,9 @@
             "name": "openpgp",
             "message": "Please import from 'lib/openpgp' instead."
         }],
+        "no-multiple-empty-lines": ["error"],
+        "no-trailing-spaces": ["error"],
+
         "@typescript-eslint/ban-ts-comment": "off",
         "@typescript-eslint/no-unused-vars": ["error"],
         "@typescript-eslint/no-empty-function": "off"

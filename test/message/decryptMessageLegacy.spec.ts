@@ -12,16 +12,16 @@ describe('decryptMessageLegacy', () => {
         });
         expect(data).to.equal(testMessageResult);
     });
-    
+
     it('it can decrypt a non-legacy armored message', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-    
+
         const { data } = await decryptMessageLegacy({
             message: testMessageEncryptedStandard,
             decryptionKeys: [decryptedPrivateKey],
             messageDate: new Date('2015-01-01')
         });
-    
+
         expect(data).to.equal(testMessageResult);
     });
 });
