@@ -32,5 +32,9 @@ import { init } from 'pmcrypto';
 init();
 ```
 
+# Testing
+Headless Chrome is used for the tests.
+With Chrome installed, running `npm test` should work out of the box.
+To use a different Chromium-based browser, set the environment variable `CHROME_BIN` to point to the corresponding executable.
 
 
