@@ -138,12 +138,18 @@ export function decryptMIMEMessage(
 }>;
 
 type MaybeStream<T extends Uint8Array | string> = T | ReadableStream<T>;
-export interface EncryptOptionsPmcryptoWithData extends Omit<EncryptOptions, 'message'> {
-    text?: MaybeStream<string>,
-    binary?: MaybeStream<Uint8Array>,
-    returnSessionKey?: boolean;
+export interface EncryptOptionsPmcryptoWithTextData extends Omit<EncryptOptions, 'message'> {
+    textData: MaybeStream<string>;
+    binaryData?: undefined;
 }
-type EncryptOptionsPmcrypto = EncryptOptionsPmcryptoWithData;
+export interface EncryptOptionsPmcryptoWithBinaryData extends Omit<EncryptOptions, 'message'> {
+    textData?: undefined;
+    binaryData: MaybeStream<Uint8Array>;
+}
+type EncryptOptionsPmcrypto = (EncryptOptionsPmcryptoWithBinaryData | EncryptOptionsPmcryptoWithTextData) & {
+    returnSessionKey?: boolean;
+    detached?: boolean;
+};
 
 export function encryptMessage(
     options: EncryptOptionsPmcrypto & { armor?: true; format?: 'armored'; detached?: false }
