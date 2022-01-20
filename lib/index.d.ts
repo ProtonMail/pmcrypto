@@ -8,7 +8,6 @@ import {
     EncryptOptions,
     CleartextMessage,
     VerifyOptions,
-    // eslint-disable-next-line camelcase
     VerifyMessageResult as openpgp_VerifyMessageResult,
     reformatKey,
     generateKey,
@@ -234,7 +233,6 @@ export function unsafeMD5(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
 
 export interface VerifyMessageResult {
-    // eslint-disable-next-line camelcase
     data: openpgp_VerifyMessageResult['data'];
     verified: VERIFICATION_STATUS;
     signatures: OpenPGPSignature[];

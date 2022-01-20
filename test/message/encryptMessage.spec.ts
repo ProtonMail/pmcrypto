@@ -1,8 +1,7 @@
 import { expect } from 'chai';
 // @ts-ignore missing web-stream-tools types
 import { readToEnd, toStream, ReadableStream} from '@openpgp/web-stream-tools';
-// eslint-disable-next-line camelcase
-import { config, readMessage, CompressedDataPacket, enums, readSignature } from '../../lib/openpgp';
+import { config, readMessage, CompressedDataPacket, enums } from '../../lib/openpgp';
 
 import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage, decryptMessage, createMessage, getSignature  } from '../../lib';
 import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
