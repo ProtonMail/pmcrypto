@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { readKey, readSignature, generateKey } from '../../lib/openpgp';
-import { createMessage, verifyMessage, signMessage, getMessage } from '../../lib';
+import { readKey, readSignature, generateKey, createMessage } from '../../lib/openpgp';
+import { verifyMessage, signMessage, getMessage } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
 const detachedSignatureFromTwoKeys = `-----BEGIN PGP SIGNATURE-----
@@ -47,7 +47,7 @@ describe('message utils', () => {
         const publicKey1 = await readKey({ armoredKey: armoredPublicKey });
         const publicKey2 = await readKey({ armoredKey: armoredPublicKey2 });
         const { data, verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-            message: await createMessage('hello world'),
+            message: await createMessage({ text: 'hello world' }),
             signature: await readSignature({ armoredSignature: detachedSignatureFromTwoKeys }),
             verificationKeys: [publicKey1, publicKey2]
         });
@@ -63,7 +63,7 @@ describe('message utils', () => {
         const publicKey1 = await readKey({ armoredKey: armoredPublicKey });
         const publicKey2 = await readKey({ armoredKey: armoredPublicKey2 });
         const { data, verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-            message: await createMessage('hello world'),
+            message: await createMessage({ text: 'hello world' }),
             signature: await readSignature({ armoredSignature: detachedSignatureFromTwoKeys }),
             verificationKeys: [publicKey1] // the second public key is missing, expect only one signature to be verified
         });
@@ -88,7 +88,7 @@ describe('message utils', () => {
             format: 'object'
         });
         const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-            message: await createMessage('hello world'),
+            message: await createMessage({ text: 'hello world' }),
             signature: await readSignature({ armoredSignature: detachedSignatureFromTwoKeys }),
             verificationKeys: [wrongPublicKey]
         });
@@ -103,7 +103,7 @@ describe('message utils', () => {
     it('verifyMessage - it does not verify a message with corrupted signature', async () => {
         const publicKey = await readKey({ armoredKey: armoredPublicKey });
         const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-            message: await createMessage('corrupted'),
+            message: await createMessage({ text: 'corrupted' }),
             signature: await readSignature({ armoredSignature: detachedSignatureFromTwoKeys }),
             verificationKeys: [publicKey]
         });
@@ -118,7 +118,7 @@ describe('message utils', () => {
     it('verifyMessage - it detects missing signatures', async () => {
         const publicKey = await readKey({ armoredKey: armoredPublicKey });
         const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-            message: await createMessage('no signatures'),
+            message: await createMessage({ text: 'no signatures' }),
             verificationKeys: [publicKey]
         });
         expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
@@ -136,7 +136,7 @@ describe('message utils', () => {
         });
 
         const signature = await signMessage({
-            message: await createMessage('message'),
+            textData: 'message',
             signingKeys: [privateKey]
         });
 

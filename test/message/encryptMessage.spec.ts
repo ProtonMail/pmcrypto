@@ -1,9 +1,9 @@
 import { expect } from 'chai';
 // @ts-ignore missing web-stream-tools types
 import { readToEnd, ReadableStream, WritableStream } from '@openpgp/web-stream-tools';
-import { config, readMessage, CompressedDataPacket, enums } from '../../lib/openpgp';
+import { config, readMessage, CompressedDataPacket, enums, createMessage } from '../../lib/openpgp';
 
-import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage, decryptMessage, createMessage, getSignature, stringToUtf8Array  } from '../../lib';
+import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage, decryptMessage, getSignature, stringToUtf8Array  } from '../../lib';
 import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 import { hexToUint8Array, arrayToBinaryString } from '../../lib/utils';
@@ -122,7 +122,7 @@ describe('encryptMessage', () => {
         expect(decrypted).to.equal('Hello world!');
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         const { verified: verifiedAgain } = await verifyMessage({
-            message: await createMessage('Hello world!'),
+            message: await createMessage({ text: 'Hello world!' }),
             signature: await getSignature(signature),
             verificationKeys: [decryptedPrivateKey.toPublic()]
         });

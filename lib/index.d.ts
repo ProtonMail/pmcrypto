@@ -6,7 +6,6 @@ import {
     Signature,
     SignOptions,
     EncryptOptions,
-    CleartextMessage,
     VerifyOptions,
     VerifyMessageResult as openpgp_VerifyMessageResult,
     reformatKey,
@@ -178,23 +177,24 @@ export function getMatchingKey(
     publicKeys: OpenPGPKey[]
 ): OpenPGPKey | undefined;
 
-interface SignOptionsPmcryptoWithData extends Omit<SignOptions, 'message'> {
-    data: string | Uint8Array;
+interface SignOptionsPmcryptoWithTextData extends Omit<SignOptions, 'message'> {
+    textData: MaybeStream<string>;
+    binaryData?: undefined;
+    cleartextMessageData?: undefined;
 }
-type SignOptionsPmcrypto = SignOptionsPmcryptoWithData | SignOptions;
-
-export function createMessage(
-    data: string | ReadableStream<string> | Uint8Array,
-    filename?: string,
-    date?: Date,
-    type?: any
-): OpenPGPMessage;
-export function createCleartextMessage(
-    text: string | ReadableStream<string> | CleartextMessage,
-    filename?: string,
-    date?: Date,
-    type?: any
-): CleartextMessage;
+interface SignOptionsPmcryptoWithBinaryData extends Omit<SignOptions, 'message'> {
+    textData?: undefined;
+    binaryData: MaybeStream<Uint8Array>;
+    cleartextMessageData?: undefined;
+}
+interface SignOptionsPmcryptoWithCleartextMessageData extends Omit<SignOptions, 'message'> {
+    textData?: undefined;
+    binaryData?: undefined;
+    cleartextMessageData: string;
+}
+type SignOptionsPmcrypto = SignOptionsPmcryptoWithTextData |
+    SignOptionsPmcryptoWithBinaryData |
+    SignOptionsPmcryptoWithCleartextMessageData;
 
 export function signMessage(
     options: SignOptionsPmcrypto & { armor?: true; detached?: false }
