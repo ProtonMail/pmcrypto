@@ -110,9 +110,9 @@ export interface DecryptOptionsPmcrypto extends DecryptOptions {
 }
 
 export type DecryptResultPmcrypto = Omit<DecryptMessageResult, 'signatures'> & {
-    signatures: (OpenPGPSignature)[];
-    verified: VERIFICATION_STATUS;
-    errors?: Error[];
+    signatures: (OpenPGPSignature)[]; // Promise if streamed input
+    verified: VERIFICATION_STATUS; // Promise if streamed input
+    errors?: Error[]; // Promise if streamed input
 }
 
 export function decryptMessage(
@@ -140,10 +140,12 @@ type MaybeStream<T extends Uint8Array | string> = T | ReadableStream<T>;
 export interface EncryptOptionsPmcryptoWithTextData extends Omit<EncryptOptions, 'message'> {
     textData: MaybeStream<string>;
     binaryData?: undefined;
+    stripTrailingSpaces?: boolean;
 }
 export interface EncryptOptionsPmcryptoWithBinaryData extends Omit<EncryptOptions, 'message'> {
     textData?: undefined;
     binaryData: MaybeStream<Uint8Array>;
+    stripTrailingSpaces?: undefined;
 }
 type EncryptOptionsPmcrypto = (EncryptOptionsPmcryptoWithBinaryData | EncryptOptionsPmcryptoWithTextData) & {
     returnSessionKey?: boolean;
@@ -180,21 +182,14 @@ export function getMatchingKey(
 interface SignOptionsPmcryptoWithTextData extends Omit<SignOptions, 'message'> {
     textData: MaybeStream<string>;
     binaryData?: undefined;
-    cleartextMessageData?: undefined;
+    stripTrailingSpaces?: boolean;
 }
 interface SignOptionsPmcryptoWithBinaryData extends Omit<SignOptions, 'message'> {
     textData?: undefined;
     binaryData: MaybeStream<Uint8Array>;
-    cleartextMessageData?: undefined;
+    stripTrailingSpaces?: undefined;
 }
-interface SignOptionsPmcryptoWithCleartextMessageData extends Omit<SignOptions, 'message'> {
-    textData?: undefined;
-    binaryData?: undefined;
-    cleartextMessageData: string;
-}
-type SignOptionsPmcrypto = SignOptionsPmcryptoWithTextData |
-    SignOptionsPmcryptoWithBinaryData |
-    SignOptionsPmcryptoWithCleartextMessageData;
+type SignOptionsPmcrypto = SignOptionsPmcryptoWithTextData | SignOptionsPmcryptoWithBinaryData
 
 export function signMessage(
     options: SignOptionsPmcrypto & { armor?: true; detached?: false }
@@ -238,6 +233,17 @@ export function SHA512(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeMD5(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
 
+export interface VerifyOptionsPmcryptoWithTextData extends Omit<VerifyOptions, 'message'> {
+    textData: string; // streaming not supported when verifying detached signatures
+    binaryData?: undefined;
+    stripTrailingSpaces?: boolean;
+}
+export interface VerifyOptionsPmcryptoWithBinaryData extends Omit<VerifyOptions, 'message'> {
+    textData?: undefined;
+    binaryData: Uint8Array; // streaming not supported when verifying detached signatures
+    stripTrailingSpaces?: undefined;
+}
+type VerifyOptionsPmcrypto = VerifyOptionsPmcryptoWithTextData | VerifyOptionsPmcryptoWithBinaryData;
 export interface VerifyMessageResult {
     data: openpgp_VerifyMessageResult['data'];
     verified: VERIFICATION_STATUS;
@@ -245,7 +251,7 @@ export interface VerifyMessageResult {
     signatureTimestamp: Date|null,
     errors?: Error[];
 }
-export function verifyMessage(options: VerifyOptions): Promise<VerifyMessageResult>;
+export function verifyMessage(options: VerifyOptionsPmcrypto): Promise<VerifyMessageResult>;
 
 export function serverTime(): Date;
 

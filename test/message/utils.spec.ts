@@ -1,6 +1,8 @@
 import { expect } from 'chai';
-import { readKey, readSignature, generateKey, createMessage } from '../../lib/openpgp';
-import { verifyMessage, signMessage, getMessage } from '../../lib';
+// @ts-ignore missing web-stream-tools types
+import { WritableStream, ReadableStream, readToEnd } from '@openpgp/web-stream-tools';
+import { readKey, readSignature, generateKey } from '../../lib/openpgp';
+import { verifyMessage, signMessage, getSignature, stringToUtf8Array } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
 const detachedSignatureFromTwoKeys = `-----BEGIN PGP SIGNATURE-----
@@ -47,7 +49,7 @@ describe('message utils', () => {
         const publicKey1 = await readKey({ armoredKey: armoredPublicKey });
         const publicKey2 = await readKey({ armoredKey: armoredPublicKey2 });
         const { data, verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-            message: await createMessage({ text: 'hello world' }),
+            textData: 'hello world',
             signature: await readSignature({ armoredSignature: detachedSignatureFromTwoKeys }),
             verificationKeys: [publicKey1, publicKey2]
         });
@@ -63,7 +65,7 @@ describe('message utils', () => {
         const publicKey1 = await readKey({ armoredKey: armoredPublicKey });
         const publicKey2 = await readKey({ armoredKey: armoredPublicKey2 });
         const { data, verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-            message: await createMessage({ text: 'hello world' }),
+            textData: 'hello world',
             signature: await readSignature({ armoredSignature: detachedSignatureFromTwoKeys }),
             verificationKeys: [publicKey1] // the second public key is missing, expect only one signature to be verified
         });
@@ -88,7 +90,7 @@ describe('message utils', () => {
             format: 'object'
         });
         const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-            message: await createMessage({ text: 'hello world' }),
+            textData: 'hello world',
             signature: await readSignature({ armoredSignature: detachedSignatureFromTwoKeys }),
             verificationKeys: [wrongPublicKey]
         });
@@ -103,7 +105,7 @@ describe('message utils', () => {
     it('verifyMessage - it does not verify a message with corrupted signature', async () => {
         const publicKey = await readKey({ armoredKey: armoredPublicKey });
         const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-            message: await createMessage({ text: 'corrupted' }),
+            textData: 'corrupted',
             signature: await readSignature({ armoredSignature: detachedSignatureFromTwoKeys }),
             verificationKeys: [publicKey]
         });
@@ -118,7 +120,7 @@ describe('message utils', () => {
     it('verifyMessage - it detects missing signatures', async () => {
         const publicKey = await readKey({ armoredKey: armoredPublicKey });
         const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
-            message: await createMessage({ text: 'no signatures' }),
+            textData: 'no signatures',
             verificationKeys: [publicKey]
         });
         expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
@@ -127,7 +129,7 @@ describe('message utils', () => {
         expect(signatureTimestamp).to.be.null;
     });
 
-    it('signMessage - it verifies a message it has signed', async () => {
+    it('signMessage/verifyMessage - it verifies a text message it has signed', async () => {
         const { privateKey, publicKey } = await generateKey({
             userIDs: [{ name: 'name', email: 'email@test.com' }],
             date: new Date(),
@@ -137,15 +139,70 @@ describe('message utils', () => {
 
         const signature = await signMessage({
             textData: 'message',
-            signingKeys: [privateKey]
+            signingKeys: [privateKey],
+            detached: true
         });
 
         const verificationResult = await verifyMessage({
-            message: await getMessage(signature),
+            textData: 'message',
+            signature: await getSignature(signature),
             verificationKeys: [publicKey]
         });
 
         expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
+    it('signMessage/verifyMessage - it verifies a binary message it has signed', async () => {
+        const { privateKey, publicKey } = await generateKey({
+            userIDs: [{ name: 'name', email: 'email@test.com' }],
+            date: new Date(),
+            keyExpirationTime: 10000,
+            format: 'object'
+        });
+
+        const signature = await signMessage({
+            binaryData: stringToUtf8Array('message'),
+            signingKeys: [privateKey],
+            detached: true
+        });
+
+        const verificationResult = await verifyMessage({
+            binaryData: stringToUtf8Array('message'),
+            signature: await getSignature(signature),
+            verificationKeys: [publicKey]
+        });
+
+        expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+    });
+
+    it('signMessage/verifyMessage - it verifies a streamed message it has signed', async () => {
+        const inputStream = new ReadableStream({
+            pull: (controller: WritableStream) => { for (let i = 0; i < 10000; i++ ) { controller.enqueue('string'); } controller.close() }
+        });
+        const inputData = 'string'.repeat(10000);
+
+        const { privateKey, publicKey } = await generateKey({
+            userIDs: [{ name: 'name', email: 'email@test.com' }],
+            date: new Date(),
+            keyExpirationTime: 10000,
+            format: 'object'
+        });
+
+        const streamedSignature = await signMessage({
+            textData: inputStream,
+            signingKeys: [privateKey],
+            detached: true
+        });
+
+        const armoredSignature = await readToEnd(streamedSignature);
+
+        const verificationResult = await verifyMessage({
+            textData: inputData,
+            signature: await getSignature(armoredSignature),
+            verificationKeys: [publicKey]
+        });
+
+        expect(verificationResult.data).to.equal(inputData);
+        expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+    });
 })

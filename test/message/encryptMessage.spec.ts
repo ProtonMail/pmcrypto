@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 // @ts-ignore missing web-stream-tools types
-import { readToEnd, ReadableStream, WritableStream } from '@openpgp/web-stream-tools';
-import { config, readMessage, CompressedDataPacket, enums, createMessage } from '../../lib/openpgp';
+import { readToEnd, ReadableStream, WritableStream, toStream } from '@openpgp/web-stream-tools';
+import { config, readMessage, CompressedDataPacket, enums } from '../../lib/openpgp';
 
 import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage, decryptMessage, getSignature, stringToUtf8Array  } from '../../lib';
 import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
@@ -122,7 +122,7 @@ describe('encryptMessage', () => {
         expect(decrypted).to.equal('Hello world!');
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         const { verified: verifiedAgain } = await verifyMessage({
-            message: await createMessage({ text: 'Hello world!' }),
+            textData: 'Hello world!',
             signature: await getSignature(signature),
             verificationKeys: [decryptedPrivateKey.toPublic()]
         });
@@ -244,15 +244,17 @@ describe('encryptMessage', () => {
             returnSessionKey: true,
             detached: true
         });
+        const encryptedArmoredMessage = await readToEnd(encrypted);
+
         const { data: decrypted, verified } = await decryptMessage({
-            message: await readMessage({ armoredMessage: await readToEnd(encrypted) }),
+            message: await readMessage({ armoredMessage: toStream(encryptedArmoredMessage) }),
             encryptedSignature: await readMessage({ armoredMessage: encryptedSignature }),
             sessionKeys,
             verificationKeys: [decryptedPrivateKey.toPublic()],
             format: 'binary'
         });
         expect(arrayToBinaryString(await readToEnd(decrypted))).to.equal(inputData);
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(await verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('it can encrypt and decrypt a binary streamed message with in-message signature', async () => {
