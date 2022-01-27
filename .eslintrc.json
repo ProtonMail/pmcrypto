@@ -15,7 +15,8 @@
     },
     "env": {
         "es6": true,
-        "mocha": true
+        "mocha": true,
+        "browser": true
     },
     "plugins": [
         "@typescript-eslint",
@@ -64,6 +65,8 @@
         }],
         "no-multiple-empty-lines": ["error"],
         "no-trailing-spaces": ["error"],
+        "eol-last": ["error"],
+        "camelcase": ["error", {"allow": ["openpgp_*"]}],
 
         "@typescript-eslint/ban-ts-comment": "off",
         "@typescript-eslint/no-unused-vars": ["error"],

@@ -3,6 +3,12 @@
 
 # pmcrypto
 
+# v7 (WIP)
+Changed:
+
+* In `encryptMessage`, `options.data` used to have trailing spaces automatically stripped. Now pass `options.stripTrailingSpaces = true` for the same behaviour
+* In `signMessage`, `options.data` used to automatically create a cleartext message. For the same behaviour, if `detached = true`, now pass `textData` with `stripTrailingSpaces`, otherwise pass `cleartextMessageData` (TBD: never used in app -- not implemented for now).
+
 # V6
 Added:
 
