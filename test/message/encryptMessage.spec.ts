@@ -81,7 +81,7 @@ describe('encryptMessage', () => {
         ) as CompressedDataPacket;
         expect(compressedPacket).to.not.be.undefined;
         // @ts-ignore undeclared algorithm field
-        expect(compressedPacket.algorithm).to.equal('zlib');
+        expect(compressedPacket.algorithm).to.equal(enums.compression.zlib);
     });
 
     it('it can encrypt and decrypt a message with an unencrypted detached signature', async () => {
