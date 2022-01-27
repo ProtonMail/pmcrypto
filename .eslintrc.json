@@ -65,6 +65,7 @@
         }],
         "no-multiple-empty-lines": ["error"],
         "no-trailing-spaces": ["error"],
+        "eol-last": ["error"],
         "camelcase": ["error", {"allow": ["openpgp_*"]}],
 
         "@typescript-eslint/ban-ts-comment": "off",
