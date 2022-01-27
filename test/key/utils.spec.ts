@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { enums, generateKey, PrivateKey, readKey, revokeKey, sign } from '../../lib/openpgp';
+import { enums, generateKey, PrivateKey, readKey, revokeKey, sign, createMessage } from '../../lib/openpgp';
 import {
     concatArrays,
     decodeBase64,
@@ -7,7 +7,6 @@ import {
     isExpiredKey,
     isRevokedKey,
     reformatKey,
-    createMessage,
     getKey,
     getMatchingKey,
     generateSessionKey,
@@ -167,13 +166,13 @@ wSeOoh9ocbsA/joCCpHxxH061g/tjEhP76tWJX17ShZ9wT7KZ6aPejoM
         const key2 = await getKey(keyWithoutSubkeys) as PrivateKey;
 
         const signatureFromSubkey = await sign({
-            message: await createMessage('a message'),
+            message: await createMessage({ text: 'a message' }),
             signingKeys: key1,
             format: 'object'
         });
 
         const signatureFromPrimaryKey = await sign({
-            message: await createMessage('a message'),
+            message: await createMessage({ text: 'a message' }),
             signingKeys: key2,
             format: 'object'
         });
