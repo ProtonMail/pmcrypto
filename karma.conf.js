@@ -10,7 +10,15 @@ module.exports = function(config) {
         plugins: ['karma-mocha', 'karma-chrome-launcher', 'karma-webpack', 'karma-mocha-reporter'],
 
         // list of files / patterns to load in the browser
-        files: [{ pattern: 'test/**/*.*', watched: false }],
+        files: [
+            { pattern: 'test/worker/*.*', watched: false },
+            // { pattern: 'lib/worker/*.js', watched: false, included: false, served: true },
+            { pattern: 'dist/worker.js', watched: false, included: false, served: true }
+        ],
+
+        proxies: {
+            '/dist': '/base/dist'
+        },
 
         // list of files / patterns to exclude
         exclude: [],
@@ -21,7 +29,7 @@ module.exports = function(config) {
             'test/**/*.*': 'webpack'
         },
 
-        webpack: {
+        webpack: { // TODO can remove in favour of webpack.config.js???
             resolve: {
                 fallback: {
                     stream: false,

@@ -11,6 +11,7 @@
         "stream": false
     },
     "scripts": {
+        "build": "webpack --config webpack.config.js",
         "test": "karma start karma.conf.js",
         "lint": "eslint lib test --quiet",
         "pretty": "prettier --write $(find lib -type f -name '*.js')",
@@ -53,6 +54,7 @@
         "@typescript-eslint/parser": "^5.9.1",
         "chai": "^4.3.4",
         "chai-as-promised": "^7.1.1",
+        "comlink": "^4.3.1",
         "eslint": "^8.4.1",
         "eslint-config-airbnb-base": "^15.0.0",
         "eslint-config-prettier": "^8.3.0",
