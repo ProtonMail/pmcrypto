@@ -29,7 +29,7 @@ module.exports = function(config) {
             'test/**/*.*': 'webpack'
         },
 
-        webpack: { // TODO can remove in favour of webpack.config.js???
+        webpack: {
             resolve: {
                 fallback: {
                     stream: false,

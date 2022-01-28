@@ -12,9 +12,10 @@
     },
     "scripts": {
         "build": "webpack --config webpack.config.js",
-        "test": "karma start karma.conf.js",
+        "test": "npm run build && karma start karma.conf.js",
         "lint": "eslint lib test --quiet",
         "pretty": "prettier --write $(find lib -type f -name '*.js')",
+        "preversion": "npm run build && git add -A dist",
         "postversion": "git push && git push --tags",
         "test-type-definitions": "tsc lib/index.d.ts"
     },
