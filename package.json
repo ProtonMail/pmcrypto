@@ -1,5 +1,5 @@
 {
-    "name": "pmcrypto",
+    "name": "@protontech/pmcrypto",
     "version": "6.7.1",
     "description": "",
     "main": "./lib/index.js",
