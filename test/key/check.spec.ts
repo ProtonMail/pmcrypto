@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import { checkKeyStrength } from '../../lib';
+import { checkKeyStrength } from '../../lib/pmcrypto';
 import { readKey } from '../../lib/openpgp';
 
 const ecc25519Key = `-----BEGIN PGP PUBLIC KEY BLOCK-----

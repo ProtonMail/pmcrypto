@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { decryptPrivateKey, decryptMessageLegacy } from '../../lib';
+import { decryptPrivateKey, decryptMessageLegacy } from '../../lib/pmcrypto';
 import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from './decryptMessageLegacy.data';
 
 describe('decryptMessageLegacy', () => {

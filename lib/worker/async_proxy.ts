@@ -1,5 +1,7 @@
 import { wrap } from 'comlink';
-import type { Api } from './api';
+import type { WorkerApi } from './worker';
 
-export const initWorker = (path: string) => wrap<typeof Api>(
+export const initWorker = (path: string) => wrap<typeof WorkerApi>(
   new Worker(path));
+
+// need this to transfer the data

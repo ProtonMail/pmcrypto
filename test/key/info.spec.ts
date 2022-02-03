@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 // @ts-ignore missing keyInfo typings
-import { keyInfo, generateKey, getKey } from '../../lib';
+import { keyInfo, generateKey, getKey } from '../../lib/pmcrypto';
 import { enums, PrivateKey, reformatKey } from '../../lib/openpgp';
 
 const publickey = `-----BEGIN PGP PUBLIC KEY BLOCK-----

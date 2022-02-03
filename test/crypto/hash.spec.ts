@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { unsafeMD5, unsafeSHA1, SHA256, SHA512, arrayToHexString, binaryStringToArray } from '../../lib';
+import { unsafeMD5, unsafeSHA1, SHA256, SHA512, arrayToHexString, binaryStringToArray } from '../../lib/pmcrypto';
 
 describe('hash functions', () => {
     it('md5 basic test', async () => {

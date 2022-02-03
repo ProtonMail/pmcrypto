@@ -3,8 +3,8 @@ import { expect } from 'chai';
 import { readToEnd, ReadableStream, WritableStream, toStream } from '@openpgp/web-stream-tools';
 import { config, readMessage, CompressedDataPacket, enums } from '../../lib/openpgp';
 
-import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage, decryptMessage, getSignature, stringToUtf8Array } from '../../lib';
-import type { WebStream } from '../../lib';
+import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage, decryptMessage, getSignature, stringToUtf8Array  } from '../../lib/pmcrypto';
+import type { WebStream } from '../../lib/pmcrypto';
 import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 import { hexToUint8Array, arrayToBinaryString } from '../../lib/utils';

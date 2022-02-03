@@ -16,6 +16,16 @@ module.exports = {
         fallback: {
             stream: false,
             buffer: false
-        }
+        },
+        extensions: ['', '.js', '.ts']
+    },
+    module: {
+        rules: [{
+            test: /\.ts?$/,
+            loader: 'ts-loader',
+            options: {
+                onlyCompileBundledFiles: true
+            }
+        }]
     }
 };

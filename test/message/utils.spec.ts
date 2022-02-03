@@ -2,9 +2,9 @@ import { expect } from 'chai';
 // @ts-ignore missing web-stream-tools types
 import { WritableStream, ReadableStream, readToEnd } from '@openpgp/web-stream-tools';
 import { readKey, readSignature, readCleartextMessage } from '../../lib/openpgp';
-import { verifyMessage, signMessage, getSignature, stringToUtf8Array, generateKey, verifyCleartextMessage } from '../../lib';
+import { verifyMessage, signMessage, getSignature, stringToUtf8Array, generateKey, verifyCleartextMessage } from '../../lib/pmcrypto';
 import { VERIFICATION_STATUS } from '../../lib/constants';
-import type { WebStream } from '../../lib';
+import type { WebStream } from '../../lib/pmcrypto';
 
 const detachedSignatureFromTwoKeys = `-----BEGIN PGP SIGNATURE-----
 

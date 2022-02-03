@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { decryptPrivateKey } from '../../lib';
+import { decryptPrivateKey } from '../../lib/pmcrypto';
 
 const testPrivateKeyMalicious = `-----BEGIN PGP PRIVATE KEY BLOCK-----
 Version: OpenPGP.js v4.7.0

@@ -16,7 +16,7 @@ import {
     stripArmor,
     // @ts-ignore missing keyCheck typings
     keyCheck
-} from '../../lib';
+} from '../../lib/pmcrypto';
 
 describe('key utils', () => {
     it('it can correctly encode base 64', async () => {
