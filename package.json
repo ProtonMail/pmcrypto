@@ -28,7 +28,7 @@
     "dependencies": {
         "@openpgp/asmcrypto.js": "^2.3.2",
         "@openpgp/tweetnacl": "^1.0.3",
-        "@openpgp/web-stream-tools": "0.0.6",
+        "@openpgp/web-stream-tools": "^0.0.10",
         "openpgp": "~5.3.0"
     },
     "devDependencies": {

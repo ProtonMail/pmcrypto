@@ -51,6 +51,7 @@
         "space-before-function-paren": "off",
         "operator-linebreak": "off",
         "implicit-arrow-linebreak": "off",
+        "no-underscore-dangle": "off",
         "import/no-unresolved": ["error", {
             "ignore": ["^react$", "ttag", ".data"]
         }],
