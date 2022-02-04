@@ -35,7 +35,7 @@ export type OpenPGPKey = Key;
 export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing streaming support
 export type OpenPGPSignature = Signature;
 
-export { generateKey, reformatKey }
+export { generateKey, reformatKey };
 
 export interface DecryptLegacyOptions extends Omit<DecryptOptions, 'message'> {
     message: string;
@@ -112,10 +112,10 @@ export interface DecryptOptionsPmcrypto extends DecryptOptions {
 }
 
 export type DecryptResultPmcrypto = Omit<DecryptMessageResult, 'signatures'> & {
-    signatures: (OpenPGPSignature)[]; // Promise if streamed input
+    signatures: OpenPGPSignature[]; // Promise if streamed input
     verified: VERIFICATION_STATUS; // Promise if streamed input
     errors?: Error[]; // Promise if streamed input
-}
+};
 
 export function decryptMessage(
     options: DecryptOptionsPmcrypto & { format: 'utf8' }
@@ -127,9 +127,7 @@ export function decryptMessage(options: DecryptOptionsPmcrypto): Promise<Decrypt
 
 export function decryptMessageLegacy(options: DecryptLegacyOptions): Promise<DecryptResultPmcrypto>;
 
-export function decryptMIMEMessage(
-    options: DecryptMimeOptions
-): Promise<{
+export function decryptMIMEMessage(options: DecryptMimeOptions): Promise<{
     getBody: () => Promise<{ body: string; mimetype: string } | undefined>;
     getAttachments: () => Promise<any>;
     getEncryptedSubject: () => Promise<string>;
@@ -227,9 +225,7 @@ export function getSignature(option: string | Uint8Array | OpenPGPSignature): Pr
 
 export function getMessage(message: OpenPGPMessage | Uint8Array | string): Promise<OpenPGPMessage>;
 
-export function splitMessage(
-    message: OpenPGPMessage | Uint8Array | string
-): Promise<{
+export function splitMessage(message: OpenPGPMessage | Uint8Array | string): Promise<{
     asymmetric: Uint8Array[];
     signature: Uint8Array[];
     symmetric: Uint8Array[];
@@ -241,7 +237,7 @@ export function splitMessage(
 
 export function armorBytes(value: Uint8Array | string): Promise<Uint8Array | string>;
 
-export interface algorithmInfo {
+export interface AlgorithmInfo {
     algorithm: string;
     bits?: number; // if algorithm == 'rsaEncryptSign' | 'rsaEncrypt' | 'rsaSign'
     curve?: string; // if algorithm == 'ecdh' | 'eddsa' | 'ecdsa'
@@ -267,7 +263,7 @@ export interface VerifyMessageResult {
     data: openpgp_VerifyMessageResult['data'];
     verified: VERIFICATION_STATUS;
     signatures: OpenPGPSignature[];
-    signatureTimestamp: Date|null,
+    signatureTimestamp: Date | null;
     errors?: Error[];
 }
 export function verifyMessage(options: VerifyOptionsPmcrypto): Promise<VerifyMessageResult>;
@@ -314,7 +310,7 @@ export function processMIME(options: ProcessMIMEOptions): Promise<ProcessMIMERes
 
 export function serverTime(): Date;
 
-export function getSHA256Fingerprints(key: OpenPGPKey): Promise<string[]>
+export function getSHA256Fingerprints(key: OpenPGPKey): Promise<string[]>;
 
 export function canKeyEncrypt(key: OpenPGPKey, date?: Date): Promise<boolean>;
 
