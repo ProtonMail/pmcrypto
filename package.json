@@ -13,7 +13,7 @@
         "build": "webpack --config webpack.config.js",
         "test": "npm run build && karma start karma.conf.js",
         "lint": "eslint lib test --quiet",
-        "pretty": "prettier --write $(find lib -type f -name '*.js')",
+        "pretty": "prettier --write lib",
         "preversion": "npm run build && git add -A dist",
         "postversion": "git push && git push --tags",
         "test-type-definitions": "tsc lib/index.d.ts"
@@ -69,7 +69,7 @@
         "lint-staged": "^11.2.6",
         "mocha": "^9.2.0",
         "openpgp": "~5.1.0",
-        "prettier": "^1.14.3",
+        "prettier": "^2.5.1",
         "ts-loader": "^9.2.6",
         "typescript": "^4.2.4",
         "webpack": "^5.66.0",
