@@ -1,0 +1,21 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "declaration": true,
+        "sourceMap": false,
+        "declarationDir": "dist/types",
+        "outDir": "dist/lib",
+        "emitDeclarationOnly": true
+    },
+    "exclude": [
+        "./test/**/*"
+    ],
+    "include": [
+        "./lib/**/*"
+    ]
+}
+
+// TODO:
+// - need to bundle index.ts with webpack, to not risk exposing openpgp?
+// - need to copy pmcrypto.d.ts as-is (otherwise overwritten), or automatically generate single bundle for all definitions
+// - webpack currently clears the dist folder every time
