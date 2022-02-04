@@ -4,9 +4,10 @@
         "moduleResolution": "node",
         "strict": true,
         "sourceMap": true,
-        "allowJs": true,
+        "allowJs": true
     },
     "include": [
         "./test/**/*"
-    ]
+    ],
+    "files": ["./lib/index.ts"]
 }
