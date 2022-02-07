@@ -12,7 +12,8 @@ import {
     generateKey,
     PrivateKey,
     SessionKey,
-    encryptSessionKey
+    encryptSessionKey,
+    WebStream
 } from 'openpgp/lightweight';
 
 export function init(): void;
@@ -45,8 +46,7 @@ export interface DecryptMimeOptions extends DecryptLegacyOptions {
 }
 
 // No reuse from OpenPGP's equivalent
-export interface EncryptResult<D = undefined, M = undefined, S = undefined, E = undefined> {
-    data: D;
+export interface EncryptResult<M = undefined, S = undefined, E = undefined> {
     message: M;
     signature: S;
     sessionKey: SessionKey;
@@ -117,10 +117,10 @@ export type DecryptResultPmcrypto = Omit<DecryptMessageResult, 'signatures'> & {
 
 export function decryptMessage(
     options: DecryptOptionsPmcrypto & { format: 'utf8' }
-): Promise<DecryptResultPmcrypto & { data: string | ReadableStream<string> }>;
+): Promise<DecryptResultPmcrypto & { data: string | WebStream<string> }>;
 export function decryptMessage(
     options: DecryptOptionsPmcrypto & { format: 'binary' }
-): Promise<DecryptResultPmcrypto & { data: Uint8Array | ReadableStream<Uint8Array> }>;
+): Promise<DecryptResultPmcrypto & { data: Uint8Array | WebStream<Uint8Array> }>;
 export function decryptMessage(options: DecryptOptionsPmcrypto): Promise<DecryptResultPmcrypto>;
 
 export function decryptMessageLegacy(options: DecryptLegacyOptions): Promise<DecryptResultPmcrypto>;
@@ -136,44 +136,56 @@ export function decryptMIMEMessage(
     signatures: OpenPGPSignature[];
 }>;
 
-type MaybeStream<T extends Uint8Array | string> = T | ReadableStream<T>;
-export interface EncryptOptionsPmcryptoWithTextData extends Omit<EncryptOptions, 'message'> {
-    textData: MaybeStream<string>;
+type MaybeStream<T extends Uint8Array | string> = T | WebStream<T>;
+type Data = string | Uint8Array;
+export interface EncryptOptionsPmcryptoWithTextData<T extends MaybeStream<string>> extends Omit<EncryptOptions, 'message'> {
+    textData: T;
     binaryData?: undefined;
     stripTrailingSpaces?: boolean;
 }
-export interface EncryptOptionsPmcryptoWithBinaryData extends Omit<EncryptOptions, 'message'> {
+export interface EncryptOptionsPmcryptoWithBinaryData<T extends MaybeStream<Uint8Array>> extends Omit<EncryptOptions, 'message'> {
     textData?: undefined;
-    binaryData: MaybeStream<Uint8Array>;
+    binaryData: T;
     stripTrailingSpaces?: undefined;
 }
-type EncryptOptionsPmcrypto = (EncryptOptionsPmcryptoWithBinaryData | EncryptOptionsPmcryptoWithTextData) & {
+type EncryptOptionsPmcryptoWithData<T extends MaybeStream<Data>> =
+    T extends MaybeStream<string> ? EncryptOptionsPmcryptoWithTextData<T> :
+    T extends MaybeStream<Uint8Array> ? EncryptOptionsPmcryptoWithBinaryData<T> :
+    never;
+
+type EncryptOptionsPmcrypto<T extends MaybeStream<Data>> = EncryptOptionsPmcryptoWithData<T> & {
     returnSessionKey?: boolean;
     detached?: boolean;
 };
 
-export function encryptMessage(
-    options: EncryptOptionsPmcrypto & { armor?: true; format?: 'armored'; detached?: false }
-): Promise<EncryptResult<string>>;
-export function encryptMessage(
-    options: EncryptOptionsPmcrypto & { armor?: true; format?: 'armored'; detached: true }
-): Promise<EncryptResult<string, undefined, string, string>>;
-export function encryptMessage(
-    options: EncryptOptionsPmcrypto & { armor: false; format?: 'object'; detached?: false }
-): Promise<EncryptResult<undefined, OpenPGPMessage>>;
-export function encryptMessage(
-    options: EncryptOptionsPmcrypto & { armor: false; format?: 'object'; detached: true }
-): Promise<EncryptResult<undefined, OpenPGPMessage, OpenPGPSignature, OpenPGPMessage>>;
-export function encryptMessage( // TODO what is this for? redundant -- declare maybe streams above
-    options: EncryptOptionsPmcrypto
-): Promise<
-    EncryptResult<
-        string | ReadableStream<string>,
-        OpenPGPMessage,
-        string | ReadableStream<string> | OpenPGPSignature,
-        string | ReadableStream<string> | OpenPGPMessage
-    >
+export function encryptMessage<T extends MaybeStream<Data>>(
+    options: EncryptOptionsPmcrypto<T> & { format?: 'armored'; detached?: false }
+): Promise<T extends WebStream<string> ? EncryptResult<WebStream<string>> : EncryptResult<string>>;
+export function encryptMessage<T extends MaybeStream<Data>>(
+    options: EncryptOptionsPmcrypto<T> & { format?: 'armored'; detached: true }
+): Promise<T extends WebStream<string> ?
+    EncryptResult<WebStream<string>, WebStream<string>, WebStream<string>> :
+    EncryptResult<string, string, string>
 >;
+export function encryptMessage<T extends MaybeStream<Data>>(
+    options: EncryptOptionsPmcrypto<T> & { format?: 'object'; detached?: false }
+): Promise<EncryptResult<OpenPGPMessage>>;
+export function encryptMessage<T extends MaybeStream<Data>>(
+    options: EncryptOptionsPmcrypto<T> & { format?: 'object'; detached: true }
+): Promise<EncryptResult<OpenPGPMessage, OpenPGPSignature, Uint8Array>>;
+export function encryptMessage<T extends MaybeStream<Data>>(
+    options: EncryptOptionsPmcrypto<T> & { format?: 'binary'; detached?: false }
+): Promise<T extends WebStream<Uint8Array> ?
+    EncryptResult<WebStream<Uint8Array>> :
+    EncryptResult<Uint8Array>
+>;
+export function encryptMessage<T extends MaybeStream<Data>>(
+    options: EncryptOptionsPmcrypto<T> & { format?: 'binary'; detached: true }
+): Promise<T extends WebStream<Uint8Array> ?
+    EncryptResult<WebStream<Uint8Array>, WebStream<Uint8Array>, WebStream<Uint8Array>> :
+    EncryptResult<Uint8Array, Uint8Array, Uint8Array>
+>;
+
 export function getMatchingKey(
     signature: OpenPGPSignature | OpenPGPMessage,
     publicKeys: OpenPGPKey[]

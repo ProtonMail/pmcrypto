@@ -8,7 +8,7 @@ import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 import { hexToUint8Array, arrayToBinaryString } from '../../lib/utils';
 
-const generateStreamOfData = () => ({
+const generateStreamOfData = (): { stream: ReadableStream<string>, data: string } => ({
     stream: new ReadableStream({ pull: (controller: WritableStream) => { for (let i = 0; i < 10000; i++ ) { controller.enqueue('string'); } controller.close() } }),
     data: 'string'.repeat(10000)
 });
@@ -24,7 +24,7 @@ describe('encryptMessage', () => {
 
     it('it can encrypt and decrypt a text message', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-        const { data: encrypted } = await encryptMessage({
+        const { message: encrypted } = await encryptMessage({
             textData: 'Hello world!',
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey]
@@ -40,7 +40,7 @@ describe('encryptMessage', () => {
 
     it('it can encrypt and decrypt a binary message', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-        const { data: encrypted } = await encryptMessage({
+        const { message: encrypted } = await encryptMessage({
             binaryData: stringToUtf8Array('Hello world!'),
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey]
@@ -57,7 +57,7 @@ describe('encryptMessage', () => {
 
     it('it can encrypt and decrypt a message with session keys', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-        const { data: encrypted, sessionKey } = await encryptMessage({
+        const { message: encrypted, sessionKey } = await encryptMessage({
             textData: 'Hello world!',
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey],
@@ -74,7 +74,7 @@ describe('encryptMessage', () => {
 
     it('it does not compress a message by default', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-        const { data: encrypted, sessionKey } = await encryptMessage({
+        const { message: encrypted, sessionKey } = await encryptMessage({
             textData: 'Hello world!',
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey],
@@ -87,7 +87,7 @@ describe('encryptMessage', () => {
 
     it('it compresses the message if the compression option is specified', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-        const { data: encrypted, sessionKey: sessionKeys } = await encryptMessage({
+        const { message: encrypted, sessionKey: sessionKeys } = await encryptMessage({
             textData: 'Hello world!',
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey],
@@ -107,7 +107,7 @@ describe('encryptMessage', () => {
 
     it('it can encrypt and decrypt a message with an unencrypted detached signature', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-        const { data: encrypted, signature } = await encryptMessage({
+        const { message: encrypted, signature } = await encryptMessage({
             textData: 'Hello world!',
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey],
@@ -131,7 +131,7 @@ describe('encryptMessage', () => {
 
     it('it can encrypt and decrypt a message with an encrypted detached signature', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-        const { data: encrypted, encryptedSignature } = await encryptMessage({
+        const { message: encrypted, encryptedSignature } = await encryptMessage({
             textData: 'Hello world!',
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey],
@@ -155,7 +155,7 @@ describe('encryptMessage', () => {
             signingKeys: [decryptedPrivateKey],
             returnSessionKey: true,
             detached: true,
-            armor: false
+            format: 'object'
         });
         const { data: decrypted, verified } = await decryptMessage({
             message: await getMessage(encrypted),
@@ -173,7 +173,7 @@ describe('encryptMessage', () => {
             data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
         };
-        const { data: encrypted } = await encryptMessage({
+        const { message: encrypted } = await encryptMessage({
             textData: 'Hello world!',
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey],
@@ -194,7 +194,7 @@ describe('encryptMessage', () => {
             data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
         };
-        const { data: encrypted, encryptedSignature } = await encryptMessage({
+        const { message: encrypted, encryptedSignature } = await encryptMessage({
             textData: 'Hello world!',
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey],
@@ -211,14 +211,14 @@ describe('encryptMessage', () => {
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
-    it('it can encrypt and decrypt a streamed message with an unencrypted detached signature (format = armor)', async () => {
+    it('it can encrypt and decrypt a streamed message with an unencrypted detached signature (format = armored)', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
         const { stream: inputStream, data: inputData }  = generateStreamOfData();
-        const { data: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
+        const { message: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
             textData: inputStream,
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey],
-            armor: true,
+            format: 'armored',
             returnSessionKey: true,
             detached: true
         });
@@ -233,14 +233,36 @@ describe('encryptMessage', () => {
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
-    it('it can encrypt and decrypt a binary streamed message with an encrypted detached signature', async () => {
+    it('it can encrypt and decrypt a streamed message with an unencrypted detached signature (format = binary)', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
         const { stream: inputStream, data: inputData }  = generateStreamOfData();
-        const { data: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
+        const { message: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
             textData: inputStream,
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey],
-            armor: true,
+            format: 'binary',
+            returnSessionKey: true,
+            detached: true
+        });
+        const { data: decrypted, verified } = await decryptMessage({
+            message: await readMessage({ binaryMessage: await readToEnd(encrypted) }),
+            encryptedSignature: await readMessage({ binaryMessage: encryptedSignature }),
+            sessionKeys,
+            verificationKeys: [decryptedPrivateKey.toPublic()],
+            format: 'binary'
+        });
+        expect(arrayToBinaryString(await readToEnd(decrypted))).to.equal(inputData);
+        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+    });
+
+    it('it can encrypt and decrypt a binary streamed message with an encrypted detached signature', async () => {
+        const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+        const { stream: inputStream, data: inputData }  = generateStreamOfData();
+        const { message: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
+            textData: inputStream,
+            encryptionKeys: [decryptedPrivateKey.toPublic()],
+            signingKeys: [decryptedPrivateKey],
+            format: 'armored',
             returnSessionKey: true,
             detached: true
         });
@@ -264,7 +286,7 @@ describe('encryptMessage', () => {
             textData: inputStream,
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey],
-            armor: false,
+            format: 'object',
             returnSessionKey: true
         });
         const { data: decrypted, verified } = await decryptMessage({
