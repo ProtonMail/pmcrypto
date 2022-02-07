@@ -191,29 +191,32 @@ export function getMatchingKey(
     publicKeys: OpenPGPKey[]
 ): OpenPGPKey | undefined;
 
-interface SignOptionsPmcryptoWithTextData extends Omit<SignOptions, 'message'> {
-    textData: MaybeStream<string>;
+interface SignOptionsPmcryptoWithTextData<T extends MaybeStream<string>> extends Omit<SignOptions, 'message'> {
+    textData: T;
     binaryData?: undefined;
     stripTrailingSpaces?: boolean;
 }
-interface SignOptionsPmcryptoWithBinaryData extends Omit<SignOptions, 'message'> {
+interface SignOptionsPmcryptoWithBinaryData<T extends MaybeStream<Uint8Array>> extends Omit<SignOptions, 'message'> {
     textData?: undefined;
-    binaryData: MaybeStream<Uint8Array>;
+    binaryData: T;
     stripTrailingSpaces?: undefined;
 }
-type SignOptionsPmcrypto = SignOptionsPmcryptoWithTextData | SignOptionsPmcryptoWithBinaryData
+type SignOptionsPmcrypto<T extends MaybeStream<Data>> =
+    T extends MaybeStream<string> ? SignOptionsPmcryptoWithTextData<T> :
+    T extends MaybeStream<Uint8Array> ? SignOptionsPmcryptoWithBinaryData<T> :
+    never;
 
-export function signMessage(
-    options: SignOptionsPmcrypto & { armor?: true; detached?: false }
-): Promise<string>;
-export function signMessage(
-    options: SignOptionsPmcrypto & { armor: false; detached?: false }
+export function signMessage<T extends MaybeStream<Data>>(
+    options: SignOptionsPmcrypto<T> & { format?: 'armored' }
+): Promise<T extends WebStream<string> ? WebStream<string> : string>;
+export function signMessage<T extends MaybeStream<Data>>(
+    options: SignOptionsPmcrypto<T> & { format: 'binary'; }
+): Promise<T extends WebStream<Uint8Array> ? WebStream<Uint8Array> : Uint8Array>;
+export function signMessage<T extends MaybeStream<Data>>(
+    options: SignOptionsPmcrypto<T> & { format: 'object'; detached?: false }
 ): Promise<OpenPGPMessage>;
-export function signMessage(
-    options: SignOptionsPmcrypto & { armor?: true; detached: true }
-): Promise<string>;
-export function signMessage(
-    options: SignOptionsPmcrypto & { armor: false; detached: true }
+export function signMessage<T extends MaybeStream<Data>>(
+    options: SignOptionsPmcrypto<T> & { format: 'object'; detached: true }
 ): Promise<OpenPGPSignature>;
 
 export function getSignature(option: string | Uint8Array | OpenPGPSignature): Promise<OpenPGPSignature>;

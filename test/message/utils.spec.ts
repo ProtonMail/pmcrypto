@@ -129,7 +129,7 @@ describe('message utils', () => {
         expect(signatureTimestamp).to.be.null;
     });
 
-    it('signMessage/verifyMessage - it verifies a text message it has signed', async () => {
+    it('signMessage/verifyMessage - it verifies a text message it has signed (format = armored)', async () => {
         const { privateKey, publicKey } = await generateKey({
             userIDs: [{ name: 'name', email: 'email@test.com' }],
             date: new Date(),
@@ -137,7 +137,7 @@ describe('message utils', () => {
             format: 'object'
         });
 
-        const signature = await signMessage({
+        const armoredSignature = await signMessage({
             textData: 'message',
             signingKeys: [privateKey],
             detached: true
@@ -145,7 +145,31 @@ describe('message utils', () => {
 
         const verificationResult = await verifyMessage({
             textData: 'message',
-            signature: await getSignature(signature),
+            signature: await readSignature({ armoredSignature }),
+            verificationKeys: [publicKey]
+        });
+
+        expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+    });
+
+    it('signMessage/verifyMessage - it verifies a text message it has signed (format = binary)', async () => {
+        const { privateKey, publicKey } = await generateKey({
+            userIDs: [{ name: 'name', email: 'email@test.com' }],
+            date: new Date(),
+            keyExpirationTime: 10000,
+            format: 'object'
+        });
+
+        const binarySignature = await signMessage({
+            textData: 'message',
+            signingKeys: [privateKey],
+            detached: true,
+            format: 'binary'
+        });
+
+        const verificationResult = await verifyMessage({
+            textData: 'message',
+            signature: await readSignature({ binarySignature }),
             verificationKeys: [publicKey]
         });
 
@@ -176,7 +200,7 @@ describe('message utils', () => {
     });
 
     it('signMessage/verifyMessage - it verifies a streamed message it has signed', async () => {
-        const inputStream = new ReadableStream({
+        const inputStream: ReadableStream<string> = new ReadableStream({
             pull: (controller: WritableStream) => { for (let i = 0; i < 10000; i++ ) { controller.enqueue('string'); } controller.close() }
         });
         const inputData = 'string'.repeat(10000);
