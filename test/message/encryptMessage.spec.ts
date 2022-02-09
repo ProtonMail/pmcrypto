@@ -1,9 +1,10 @@
 import { expect } from 'chai';
 // @ts-ignore missing web-stream-tools types
 import { readToEnd, ReadableStream, WritableStream, toStream } from '@openpgp/web-stream-tools';
-import { config, readMessage, CompressedDataPacket, enums, WebStream } from '../../lib/openpgp';
+import { config, readMessage, CompressedDataPacket, enums } from '../../lib/openpgp';
 
 import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage, decryptMessage, getSignature, stringToUtf8Array } from '../../lib';
+import type { WebStream } from '../../lib';
 import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 import { hexToUint8Array, arrayToBinaryString } from '../../lib/utils';

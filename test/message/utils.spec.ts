@@ -4,6 +4,7 @@ import { WritableStream, ReadableStream, readToEnd } from '@openpgp/web-stream-t
 import { readKey, readSignature } from '../../lib/openpgp';
 import { verifyMessage, signMessage, getSignature, stringToUtf8Array, generateKey } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
+import type { WebStream } from '../../lib';
 
 const detachedSignatureFromTwoKeys = `-----BEGIN PGP SIGNATURE-----
 
@@ -200,7 +201,7 @@ describe('message utils', () => {
     });
 
     it('signMessage/verifyMessage - it verifies a streamed message it has signed', async () => {
-        const inputStream: ReadableStream<string> = new ReadableStream({
+        const inputStream: WebStream<string> = new ReadableStream({
             pull: (controller: WritableStream) => { for (let i = 0; i < 10000; i++ ) { controller.enqueue('string'); } controller.close() }
         });
         const inputData = 'string'.repeat(10000);

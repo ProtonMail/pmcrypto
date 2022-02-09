@@ -138,6 +138,8 @@ export function decryptMIMEMessage(
 
 type MaybeStream<T extends Uint8Array | string> = T | WebStream<T>;
 type Data = string | Uint8Array;
+export { WebStream };
+
 export interface EncryptOptionsPmcryptoWithTextData<T extends MaybeStream<string>> extends Omit<EncryptOptions, 'message'> {
     textData: T;
     binaryData?: undefined;
