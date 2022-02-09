@@ -160,10 +160,10 @@ type EncryptOptionsPmcrypto<T extends MaybeStream<Data>> = EncryptOptionsPmcrypt
 
 export function encryptMessage<T extends MaybeStream<Data>>(
     options: EncryptOptionsPmcrypto<T> & { format?: 'armored'; detached?: false }
-): Promise<T extends WebStream<string> ? EncryptResult<WebStream<string>> : EncryptResult<string>>;
+): Promise<T extends WebStream<Data> ? EncryptResult<WebStream<string>> : EncryptResult<string>>;
 export function encryptMessage<T extends MaybeStream<Data>>(
     options: EncryptOptionsPmcrypto<T> & { format?: 'armored'; detached: true }
-): Promise<T extends WebStream<string> ?
+): Promise<T extends WebStream<Data> ?
     EncryptResult<WebStream<string>, WebStream<string>, WebStream<string>> :
     EncryptResult<string, string, string>
 >;
@@ -175,13 +175,13 @@ export function encryptMessage<T extends MaybeStream<Data>>(
 ): Promise<EncryptResult<OpenPGPMessage, OpenPGPSignature, Uint8Array>>;
 export function encryptMessage<T extends MaybeStream<Data>>(
     options: EncryptOptionsPmcrypto<T> & { format?: 'binary'; detached?: false }
-): Promise<T extends WebStream<Uint8Array> ?
+): Promise<T extends WebStream<Data> ?
     EncryptResult<WebStream<Uint8Array>> :
     EncryptResult<Uint8Array>
 >;
 export function encryptMessage<T extends MaybeStream<Data>>(
     options: EncryptOptionsPmcrypto<T> & { format?: 'binary'; detached: true }
-): Promise<T extends WebStream<Uint8Array> ?
+): Promise<T extends WebStream<Data> ?
     EncryptResult<WebStream<Uint8Array>, WebStream<Uint8Array>, WebStream<Uint8Array>> :
     EncryptResult<Uint8Array, Uint8Array, Uint8Array>
 >;
@@ -208,10 +208,10 @@ type SignOptionsPmcrypto<T extends MaybeStream<Data>> =
 
 export function signMessage<T extends MaybeStream<Data>>(
     options: SignOptionsPmcrypto<T> & { format?: 'armored' }
-): Promise<T extends WebStream<string> ? WebStream<string> : string>;
+): Promise<T extends WebStream<Data> ? WebStream<string> : string>;
 export function signMessage<T extends MaybeStream<Data>>(
     options: SignOptionsPmcrypto<T> & { format: 'binary'; }
-): Promise<T extends WebStream<Uint8Array> ? WebStream<Uint8Array> : Uint8Array>;
+): Promise<T extends WebStream<Data> ? WebStream<Uint8Array> : Uint8Array>;
 export function signMessage<T extends MaybeStream<Data>>(
     options: SignOptionsPmcrypto<T> & { format: 'object'; detached?: false }
 ): Promise<OpenPGPMessage>;
