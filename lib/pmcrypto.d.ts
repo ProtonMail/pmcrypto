@@ -1,6 +1,6 @@
 import {
     DecryptOptions,
-    DecryptMessageResult,
+    DecryptMessageResult as openpgp_DecryptMessageResult,
     Message,
     Key,
     Signature,
@@ -45,14 +45,6 @@ export interface DecryptLegacyOptions extends Omit<DecryptOptions, 'message'> {
 export interface DecryptMimeOptions extends DecryptLegacyOptions {
     headerFilename?: string;
     sender?: string;
-}
-
-// No reuse from OpenPGP's equivalent
-export interface EncryptResult<M = undefined, S = undefined, E = undefined> {
-    message: M;
-    signature: S;
-    sessionKey: SessionKey;
-    encryptedSignature: E;
 }
 
 export function encryptPrivateKey(key: OpenPGPKey, password: string): Promise<string>;
@@ -107,23 +99,32 @@ export function decryptSessionKey(options: {
     passwords?: string | string[];
 }): Promise<SessionKey | undefined>;
 
-export interface DecryptOptionsPmcrypto extends DecryptOptions {
+export interface DecryptOptionsPmcrypto<T extends MaybeStream<Data>> extends DecryptOptions {
+    message: Message<T>,
     encryptedSignature?: OpenPGPMessage;
 }
 
-export type DecryptResultPmcrypto = Omit<DecryptMessageResult, 'signatures'> & {
-    signatures: OpenPGPSignature[]; // Promise if streamed input
-    verified: VERIFICATION_STATUS; // Promise if streamed input
-    errors?: Error[]; // Promise if streamed input
-};
+export interface DecryptResultPmcrypto<T extends openpgp_DecryptMessageResult['data'] = MaybeStream<Data>> {
+    data: T,
+    signatures: T extends WebStream<Data> ? Promise<OpenPGPSignature[]> : OpenPGPSignature[];
+    filename: string;
+    verified: T extends WebStream<Data> ? Promise<VERIFICATION_STATUS> : VERIFICATION_STATUS;
+    errors?: T extends WebStream<Data> ? Promise<Error[]> : Error[];
+}
 
-export function decryptMessage(
-    options: DecryptOptionsPmcrypto & { format: 'utf8' }
-): Promise<DecryptResultPmcrypto & { data: string | WebStream<string> }>;
-export function decryptMessage(
-    options: DecryptOptionsPmcrypto & { format: 'binary' }
-): Promise<DecryptResultPmcrypto & { data: Uint8Array | WebStream<Uint8Array> }>;
-export function decryptMessage(options: DecryptOptionsPmcrypto): Promise<DecryptResultPmcrypto>;
+export function decryptMessage<T extends MaybeStream<Data>, F extends DecryptOptions['format'] = 'utf8'>(
+    options: DecryptOptionsPmcrypto<T> & { format?: F }
+): Promise<
+    F extends 'utf8' ?
+        T extends WebStream<Data> ?
+            DecryptResultPmcrypto<WebStream<string>> :
+            DecryptResultPmcrypto<string> :
+    F extends 'binary' ?
+        T extends WebStream<Data> ?
+            DecryptResultPmcrypto<WebStream<Uint8Array>> :
+            DecryptResultPmcrypto<Uint8Array> :
+    never
+>;
 
 export function decryptMessageLegacy(options: DecryptLegacyOptions): Promise<DecryptResultPmcrypto>;
 
@@ -136,56 +137,54 @@ export function decryptMIMEMessage(options: DecryptMimeOptions): Promise<{
     signatures: OpenPGPSignature[];
 }>;
 
-type MaybeStream<T extends Uint8Array | string> = T | WebStream<T>;
-type Data = string | Uint8Array;
+export type MaybeStream<T extends Uint8Array | string> = T | WebStream<T>;
+export type Data = string | Uint8Array;
 export { WebStream };
 
-export interface EncryptOptionsPmcryptoWithTextData<T extends MaybeStream<string>> extends Omit<EncryptOptions, 'message'> {
-    textData: T;
-    binaryData?: undefined;
-    stripTrailingSpaces?: boolean;
-}
-export interface EncryptOptionsPmcryptoWithBinaryData<T extends MaybeStream<Uint8Array>> extends Omit<EncryptOptions, 'message'> {
-    textData?: undefined;
-    binaryData: T;
-    stripTrailingSpaces?: undefined;
-}
-type EncryptOptionsPmcryptoWithData<T extends MaybeStream<Data>> =
-    T extends MaybeStream<string> ? EncryptOptionsPmcryptoWithTextData<T> :
-    T extends MaybeStream<Uint8Array> ? EncryptOptionsPmcryptoWithBinaryData<T> :
-    never;
-
-type EncryptOptionsPmcrypto<T extends MaybeStream<Data>> = EncryptOptionsPmcryptoWithData<T> & {
-    returnSessionKey?: boolean;
+export interface EncryptOptionsPmcrypto<T extends MaybeStream<Data>> extends Omit<EncryptOptions, 'message'> {
+    textData?: T extends MaybeStream<string> ? T : never,
+    binaryData?: T extends MaybeStream<Uint8Array> ? T : never;
+    stripTrailingSpaces?: T extends MaybeStream<string> ? boolean : never;
     detached?: boolean;
-};
+}
 
-export function encryptMessage<T extends MaybeStream<Data>>(
-    options: EncryptOptionsPmcrypto<T> & { format?: 'armored'; detached?: false }
-): Promise<T extends WebStream<Data> ? EncryptResult<WebStream<string>> : EncryptResult<string>>;
-export function encryptMessage<T extends MaybeStream<Data>>(
-    options: EncryptOptionsPmcrypto<T> & { format?: 'armored'; detached: true }
-): Promise<T extends WebStream<Data> ?
-    EncryptResult<WebStream<string>, WebStream<string>, WebStream<string>> :
-    EncryptResult<string, string, string>
->;
-export function encryptMessage<T extends MaybeStream<Data>>(
-    options: EncryptOptionsPmcrypto<T> & { format?: 'object'; detached?: false }
-): Promise<EncryptResult<OpenPGPMessage>>;
-export function encryptMessage<T extends MaybeStream<Data>>(
-    options: EncryptOptionsPmcrypto<T> & { format?: 'object'; detached: true }
-): Promise<EncryptResult<OpenPGPMessage, OpenPGPSignature, Uint8Array>>;
-export function encryptMessage<T extends MaybeStream<Data>>(
-    options: EncryptOptionsPmcrypto<T> & { format?: 'binary'; detached?: false }
-): Promise<T extends WebStream<Data> ?
-    EncryptResult<WebStream<Uint8Array>> :
-    EncryptResult<Uint8Array>
->;
-export function encryptMessage<T extends MaybeStream<Data>>(
-    options: EncryptOptionsPmcrypto<T> & { format?: 'binary'; detached: true }
-): Promise<T extends WebStream<Data> ?
-    EncryptResult<WebStream<Uint8Array>, WebStream<Uint8Array>, WebStream<Uint8Array>> :
-    EncryptResult<Uint8Array, Uint8Array, Uint8Array>
+// No reuse from OpenPGP's equivalent
+export interface EncryptResult<HasSessionKey extends boolean, M, S = undefined, E = undefined> {
+    sessionKey: HasSessionKey extends true ? SessionKey : undefined;
+    message: M;
+    signature: S;
+    encryptedSignature: E;
+}
+
+export function encryptMessage<
+    T extends MaybeStream<Data>,
+    F extends EncryptOptions["format"] = 'armored', // extends 'string' also works, but it gives unclear error if passed unexpected 'format' values
+    D extends boolean = false,
+    SK extends boolean = false
+>(
+    options: EncryptOptionsPmcrypto<T> & { format?: F; detached?: D; returnSessionKey?: SK }
+): Promise<
+    F extends 'armored' ?
+        D extends true ?
+            T extends WebStream<Data> ?
+                EncryptResult<SK, WebStream<string>, WebStream<string>, WebStream<string>> :
+                EncryptResult<SK, string, string, string> :
+            T extends WebStream<Data> ?
+                EncryptResult<SK, WebStream<string>> : EncryptResult<SK, string> :
+    F extends 'binary' ?
+        D extends true ?
+            T extends WebStream<Data> ?
+                EncryptResult<SK, WebStream<Uint8Array>, WebStream<Uint8Array>, WebStream<Uint8Array>> :
+                EncryptResult<SK, Uint8Array, Uint8Array, Uint8Array> :
+            T extends WebStream<Data> ?
+                EncryptResult<SK, WebStream<Uint8Array>> : EncryptResult<SK, Uint8Array> :
+    F extends 'object' ?
+        D extends true ?
+            T extends WebStream<Data> ?
+                never : // unsupported
+                EncryptResult<SK, OpenPGPMessage, OpenPGPSignature, Uint8Array> :
+            EncryptResult<SK, OpenPGPMessage> :
+    never
 >;
 
 export function getMatchingKey(
@@ -193,33 +192,27 @@ export function getMatchingKey(
     publicKeys: OpenPGPKey[]
 ): OpenPGPKey | undefined;
 
-interface SignOptionsPmcryptoWithTextData<T extends MaybeStream<string>> extends Omit<SignOptions, 'message'> {
-    textData: T;
-    binaryData?: undefined;
-    stripTrailingSpaces?: boolean;
+export interface SignOptionsPmcrypto<T extends MaybeStream<Data>> extends Omit<SignOptions, 'message'> {
+    textData?: T extends MaybeStream<string> ? T : never,
+    binaryData?: T extends MaybeStream<Uint8Array> ? T : never;
+    stripTrailingSpaces?: T extends MaybeStream<string> ? boolean : never;
 }
-interface SignOptionsPmcryptoWithBinaryData<T extends MaybeStream<Uint8Array>> extends Omit<SignOptions, 'message'> {
-    textData?: undefined;
-    binaryData: T;
-    stripTrailingSpaces?: undefined;
-}
-type SignOptionsPmcrypto<T extends MaybeStream<Data>> =
-    T extends MaybeStream<string> ? SignOptionsPmcryptoWithTextData<T> :
-    T extends MaybeStream<Uint8Array> ? SignOptionsPmcryptoWithBinaryData<T> :
-    never;
 
-export function signMessage<T extends MaybeStream<Data>>(
-    options: SignOptionsPmcrypto<T> & { format?: 'armored' }
-): Promise<T extends WebStream<Data> ? WebStream<string> : string>;
-export function signMessage<T extends MaybeStream<Data>>(
-    options: SignOptionsPmcrypto<T> & { format: 'binary'; }
-): Promise<T extends WebStream<Data> ? WebStream<Uint8Array> : Uint8Array>;
-export function signMessage<T extends MaybeStream<Data>>(
-    options: SignOptionsPmcrypto<T> & { format: 'object'; detached?: false }
-): Promise<OpenPGPMessage>;
-export function signMessage<T extends MaybeStream<Data>>(
-    options: SignOptionsPmcrypto<T> & { format: 'object'; detached: true }
-): Promise<OpenPGPSignature>;
+export function signMessage<
+    T extends MaybeStream<Data>,
+    F extends SignOptions["format"] = 'armored',
+    D extends boolean = false
+>(
+    options: SignOptionsPmcrypto<T> & { format?: F; detached?: D; }
+): Promise<
+    F extends 'armored' ?
+        T extends WebStream<Data> ? WebStream<string> : string :
+    F extends 'binary' ?
+        T extends WebStream<Data> ? WebStream<Uint8Array> : Uint8Array :
+    F extends 'object' ?
+        D extends true ? OpenPGPMessage : OpenPGPSignature :
+    never
+>;
 
 export function getSignature(option: string | Uint8Array | OpenPGPSignature): Promise<OpenPGPSignature>;
 
@@ -248,25 +241,29 @@ export function SHA512(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeMD5(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
 
-export interface VerifyOptionsPmcryptoWithTextData extends Omit<VerifyOptions, 'message'> {
-    textData: string; // streaming not supported when verifying detached signatures
-    binaryData?: undefined;
-    stripTrailingSpaces?: boolean;
+// Streaming not supported when verifying detached signatures
+export interface VerifyOptionsPmcrypto<T extends Data> extends Omit<VerifyOptions, 'message'> {
+    textData?: T extends string ? T : never,
+    binaryData?: T extends Uint8Array ? T : never;
+    stripTrailingSpaces?: T extends string? boolean : never;
 }
-export interface VerifyOptionsPmcryptoWithBinaryData extends Omit<VerifyOptions, 'message'> {
-    textData?: undefined;
-    binaryData: Uint8Array; // streaming not supported when verifying detached signatures
-    stripTrailingSpaces?: undefined;
-}
-type VerifyOptionsPmcrypto = VerifyOptionsPmcryptoWithTextData | VerifyOptionsPmcryptoWithBinaryData;
-export interface VerifyMessageResult {
-    data: openpgp_VerifyMessageResult['data'];
+
+export interface VerifyMessageResult<D extends openpgp_VerifyMessageResult['data'] = Data> {
+    data: D,
     verified: VERIFICATION_STATUS;
     signatures: OpenPGPSignature[];
     signatureTimestamp: Date | null;
     errors?: Error[];
 }
-export function verifyMessage(options: VerifyOptionsPmcrypto): Promise<VerifyMessageResult>;
+export function verifyMessage<T extends Data, F extends VerifyOptions['format'] = 'utf8'>(
+    options: VerifyOptionsPmcrypto<T> & { format?: F }
+): Promise<
+    F extends 'utf8' ?
+        VerifyMessageResult<string> :
+    F extends 'binary' ?
+        VerifyMessageResult<Uint8Array> :
+    never
+>;
 
 export interface VerifyCleartextOptionsPmcrypto extends Omit<VerifyOptions, 'message' | 'signature' | 'format'> {
     cleartextMessage: CleartextMessage

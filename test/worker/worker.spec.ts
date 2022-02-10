@@ -1,6 +1,5 @@
 import { expect, use as chaiUse } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
-import { readMessage } from '../../lib/openpgp';
 import { VERIFICATION_STATUS, WorkerProxy } from '../../lib';
 import { stringToUtf8Array } from '../../lib/pmcrypto';
 
@@ -60,7 +59,7 @@ GzGRkb+Rzb42pnKcuihith40374=
     expect(decryptionResult.data).to.equal('hello world');
     expect(decryptionResult.signatures).to.have.length(1);
     expect(decryptionResult.errors).to.have.length(1);
-    expect(decryptionResult.errors![0]).instanceOf(Error); // Errors should be automatically transferred by comlink
+    expect(decryptionResult.errors![0]).instanceOf(Error); // Errors should be automatically reconstructed by comlink
     expect(decryptionResult.errors![0]).to.match(/Could not find signing key/);
     expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID)
   });
@@ -82,4 +81,53 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
     expect(decryptionResult.errors).to.not.exist;
     expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED)
   });
+
+  it('encryptMessage - output binary message and signatures should be transferred', async () => {
+    const encryptionResult = await WorkerProxy.encryptMessage({
+      textData: 'hello world',
+      passwords: 'password',
+      format: 'binary'
+    });
+    expect(encryptionResult.message.length > 0).to.be.true;
+
+    const decryptionResult = await WorkerProxy.decryptMessage({
+      binaryMessage: encryptionResult.message,
+      passwords: 'password'
+    });
+    expect(decryptionResult.signatures).to.have.length(0);
+    expect(decryptionResult.errors).to.not.exist;
+    expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED)
+  });
+
+  it('signMessage/verifyMessage - output binary signature and data should be transferred', async () => {
+    const binarySignature = await WorkerProxy.signMessage({
+      textData: 'hello world',
+      format: 'binary',
+      detached: true
+    });
+    expect(binarySignature.length > 0).to.be.true;
+
+    const decryptionResult = await WorkerProxy.verifyMessage({
+      textData: 'hello world',
+      verificationKeys: [], // TODO replace once implemented
+      binarySignature
+    });
+    expect(decryptionResult.data).to.equal('hello world');
+    expect(decryptionResult.signatures).to.have.length(1);
+    expect(decryptionResult.errors).to.not.exist;
+    expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+
+    const invalidVerificationResult = await WorkerProxy.verifyMessage({
+      textData: 'not signed data',
+      verificationKeys: [], // TODO replace once implemented
+      binarySignature,
+      format: 'binary'
+    });
+    expect(invalidVerificationResult.data).to.deep.equal(stringToUtf8Array('not signed data'));
+    expect(invalidVerificationResult.signatures).to.have.length(1);
+    expect(invalidVerificationResult.errors).to.have.length(1);
+    expect(invalidVerificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID)
+  });
 });
+
+// });

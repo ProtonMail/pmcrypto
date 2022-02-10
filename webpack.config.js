@@ -3,7 +3,7 @@ const path = require('path');
 module.exports = {
     mode: 'production',
     entry: {
-        worker: './lib/worker/worker.js'
+        worker: './lib/worker/worker.ts'
     },
 
     output: {

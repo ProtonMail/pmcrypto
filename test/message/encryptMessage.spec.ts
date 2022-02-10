@@ -246,7 +246,7 @@ describe('encryptMessage', () => {
             detached: true
         });
         const { data: decrypted, verified } = await decryptMessage({
-            message: await readMessage({ binaryMessage: await readToEnd(encrypted) }),
+            message: await readMessage({ binaryMessage: await readToEnd(encrypted) as Uint8Array }),
             encryptedSignature: await readMessage({ binaryMessage: encryptedSignature }),
             sessionKeys,
             verificationKeys: [decryptedPrivateKey.toPublic()],
