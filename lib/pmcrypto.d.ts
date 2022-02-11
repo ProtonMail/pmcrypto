@@ -15,7 +15,8 @@ import {
     SessionKey,
     encryptSessionKey,
     WebStream,
-    CleartextMessage
+    CleartextMessage,
+    KeyOptions
 } from 'openpgp/lightweight';
 
 export function init(): void;
@@ -36,6 +37,7 @@ export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing strea
 export type OpenPGPSignature = Signature;
 
 export { generateKey, reformatKey };
+export type { PrivateKey, PublicKey, KeyOptions, Key }
 
 export interface DecryptLegacyOptions extends Omit<DecryptOptions, 'message'> {
     message: string;
@@ -48,7 +50,7 @@ export interface DecryptMimeOptions extends DecryptLegacyOptions {
 }
 
 export function encryptPrivateKey(key: OpenPGPKey, password: string): Promise<string>;
-export function decryptPrivateKey(armoredKey: string, password: string): Promise<PrivateKey>;
+export function decryptPrivateKey(serialisedKey: string | Uint8Array, password: string): Promise<PrivateKey>;
 
 export function encodeUtf8(str: string): string;
 export function encodeUtf8(str: undefined): undefined;

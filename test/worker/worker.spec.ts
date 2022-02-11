@@ -1,46 +1,51 @@
 import { expect, use as chaiUse } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
+import {
+    readPrivateKey as openpgp_readPrivateKey,
+    decryptKey as openpgp_decryptKey,
+    readKey as openpgp_readKey
+} from '../../lib/openpgp';
 import { VERIFICATION_STATUS, WorkerProxy } from '../../lib';
-import { stringToUtf8Array } from '../../lib/pmcrypto';
+import { stringToUtf8Array, generateKey } from '../../lib/pmcrypto';
 
 chaiUse(chaiAsPromised);
 const workerPath = '/dist/worker.js';
 
 before(() => {
-  WorkerProxy.init(workerPath);
+    WorkerProxy.init(workerPath);
 })
 
 describe('WorkerAPI and Proxy Integration', () => {
-  it('init - should throw if already initialised', async () => {
-    expect(() => WorkerProxy.init(workerPath)).to.throw(/already initialised/);
-  })
+    it('init - should throw if already initialised', async () => {
+        expect(() => WorkerProxy.init(workerPath)).to.throw(/already initialised/);
+    })
 
-  it('decryptMessage - should decrypt message with correct password', async () => {
-    const armoredMessage = `-----BEGIN PGP MESSAGE-----
+    it('decryptMessage - should decrypt message with correct password', async () => {
+        const armoredMessage = `-----BEGIN PGP MESSAGE-----
 
 wy4ECQMIxybp91nMWQIAa8pGeuXzR6zIs+uE6bUywPM4GKG8sve4lJoxGbVS
 /xN10jwBEsZQGe7OTWqxJ9NNtv6X6qFEkvABp4PD3xvi34lo2WUAaUN2wb0g
 tBiO7HKQxoGj3FnUTJnI52Y0pIg=
 =HJfc
------END PGP MESSAGE-----`
-    const decryptionResult = await WorkerProxy.decryptMessage({
-      armoredMessage,
-      passwords: 'password'
-    });
-    expect(decryptionResult.data).to.equal('hello world');
-    expect(decryptionResult.signatures).to.have.length(0);
-    expect(decryptionResult.errors).to.not.exist;
-    expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED)
+-----END PGP MESSAGE-----`;
+        const decryptionResult = await WorkerProxy.decryptMessage({
+            armoredMessage,
+            passwords: 'password'
+        });
+        expect(decryptionResult.data).to.equal('hello world');
+        expect(decryptionResult.signatures).to.have.length(0);
+        expect(decryptionResult.errors).to.not.exist;
+        expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED)
 
-    const decryptWithWrongPassword = WorkerProxy.decryptMessage({
-        armoredMessage,
-        passwords: 'wrong password'
+        const decryptWithWrongPassword = WorkerProxy.decryptMessage({
+            armoredMessage,
+            passwords: 'wrong password'
+        });
+        await expect(decryptWithWrongPassword).to.be.rejectedWith(/Error decrypting message/);
     });
-    await expect(decryptWithWrongPassword).to.be.rejectedWith(/Error decrypting message/);
-  });
 
-  it('decryptMessage - message with signature', async () => {
-    const messageWithSignature = `-----BEGIN PGP MESSAGE-----
+    it('decryptMessage - message with signature', async () => {
+        const messageWithSignature = `-----BEGIN PGP MESSAGE-----
 
 wy4ECQMIUxTg50RvG9EAMkSwKLgTqzpEMlGv1+IKf52HmId83iK4kku8nBzR
 FxcD0sACAc9hM9NVeaAhGQdsTqt9zRcRmMRhyWqoAsR0+uZukqPxGZfOw0+6
@@ -51,66 +56,66 @@ GzGRkb+Rzb42pnKcuihith40374=
 =ccav
 -----END PGP MESSAGE-----
 `;
-    const decryptionResult = await WorkerProxy.decryptMessage({
-      armoredMessage: messageWithSignature,
-      passwords: 'password'
+        const decryptionResult = await WorkerProxy.decryptMessage({
+            armoredMessage: messageWithSignature,
+            passwords: 'password'
+        });
+
+        expect(decryptionResult.data).to.equal('hello world');
+        expect(decryptionResult.signatures).to.have.length(1);
+        expect(decryptionResult.errors).to.have.length(1);
+        expect(decryptionResult.errors![0]).instanceOf(Error); // Errors should be automatically reconstructed by comlink
+        expect(decryptionResult.errors![0]).to.match(/Could not find signing key/);
+        expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID)
     });
 
-    expect(decryptionResult.data).to.equal('hello world');
-    expect(decryptionResult.signatures).to.have.length(1);
-    expect(decryptionResult.errors).to.have.length(1);
-    expect(decryptionResult.errors![0]).instanceOf(Error); // Errors should be automatically reconstructed by comlink
-    expect(decryptionResult.errors![0]).to.match(/Could not find signing key/);
-    expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID)
-  });
-
-  it('decryptMessage - output binary data should be transferred', async () => {
-    const decryptionResult = await WorkerProxy.decryptMessage({
-      armoredMessage: `-----BEGIN PGP MESSAGE-----
+    it('decryptMessage - output binary data should be transferred', async () => {
+        const decryptionResult = await WorkerProxy.decryptMessage({
+        armoredMessage: `-----BEGIN PGP MESSAGE-----
 
 wy4ECQMIxybp91nMWQIAa8pGeuXzR6zIs+uE6bUywPM4GKG8sve4lJoxGbVS
 /xN10jwBEsZQGe7OTWqxJ9NNtv6X6qFEkvABp4PD3xvi34lo2WUAaUN2wb0g
 tBiO7HKQxoGj3FnUTJnI52Y0pIg=
 =HJfc
 -----END PGP MESSAGE-----`,
-      passwords: 'password',
-      format: 'binary'
+            passwords: 'password',
+            format: 'binary'
+        });
+        expect(decryptionResult.data).to.deep.equal(stringToUtf8Array('hello world'));
+        expect(decryptionResult.signatures).to.have.length(0);
+        expect(decryptionResult.errors).to.not.exist;
+        expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED)
     });
-    expect(decryptionResult.data).to.deep.equal(stringToUtf8Array('hello world'));
-    expect(decryptionResult.signatures).to.have.length(0);
-    expect(decryptionResult.errors).to.not.exist;
-    expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED)
-  });
 
-  it('encryptMessage - output binary message and signatures should be transferred', async () => {
-    const encryptionResult = await WorkerProxy.encryptMessage({
-      textData: 'hello world',
-      passwords: 'password',
-      format: 'binary'
-    });
-    expect(encryptionResult.message.length > 0).to.be.true;
+    it('encryptMessage - output binary message and signatures should be transferred', async () => {
+        const encryptionResult = await WorkerProxy.encryptMessage({
+            textData: 'hello world',
+            passwords: 'password',
+            format: 'binary'
+        });
+        expect(encryptionResult.message.length > 0).to.be.true;
 
-    const decryptionResult = await WorkerProxy.decryptMessage({
-      binaryMessage: encryptionResult.message,
-      passwords: 'password'
+        const decryptionResult = await WorkerProxy.decryptMessage({
+            binaryMessage: encryptionResult.message,
+            passwords: 'password'
+        });
+        expect(decryptionResult.signatures).to.have.length(0);
+        expect(decryptionResult.errors).to.not.exist;
+        expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED)
     });
-    expect(decryptionResult.signatures).to.have.length(0);
-    expect(decryptionResult.errors).to.not.exist;
-    expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED)
-  });
 
   it('signMessage/verifyMessage - output binary signature and data should be transferred', async () => {
     const binarySignature = await WorkerProxy.signMessage({
-      textData: 'hello world',
-      format: 'binary',
-      detached: true
+        textData: 'hello world',
+        format: 'binary',
+        detached: true
     });
     expect(binarySignature.length > 0).to.be.true;
 
     const decryptionResult = await WorkerProxy.verifyMessage({
-      textData: 'hello world',
-      verificationKeys: [], // TODO replace once implemented
-      binarySignature
+        textData: 'hello world',
+        verificationKeys: [], // TODO replace once implemented
+        binarySignature
     });
     expect(decryptionResult.data).to.equal('hello world');
     expect(decryptionResult.signatures).to.have.length(1);
@@ -118,16 +123,100 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
     expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
 
     const invalidVerificationResult = await WorkerProxy.verifyMessage({
-      textData: 'not signed data',
-      verificationKeys: [], // TODO replace once implemented
-      binarySignature,
-      format: 'binary'
+        textData: 'not signed data',
+        verificationKeys: [], // TODO replace once implemented
+        binarySignature,
+        format: 'binary'
     });
     expect(invalidVerificationResult.data).to.deep.equal(stringToUtf8Array('not signed data'));
     expect(invalidVerificationResult.signatures).to.have.length(1);
     expect(invalidVerificationResult.errors).to.have.length(1);
     expect(invalidVerificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID)
   });
-});
 
-// });
+    describe('Key management API', () => {
+
+        it('can export a generated key', async () => {
+            const privateKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
+
+            const passphrase = 'passphrase';
+            const armoredKey = await WorkerProxy.exportPrivateKey({ keyReference: privateKeyRef, passphrase });
+            const binaryKey = await WorkerProxy.exportPrivateKey({ keyReference: privateKeyRef, passphrase, format: 'binary' });
+
+            const decryptedKeyFromArmored = await openpgp_decryptKey({
+                privateKey: await openpgp_readPrivateKey({ armoredKey }),
+                passphrase
+            });
+            expect(decryptedKeyFromArmored.isDecrypted()).to.be.true;
+
+            const decryptedKeyFromBinary = await openpgp_decryptKey({
+                privateKey: await openpgp_readPrivateKey({ binaryKey }),
+                passphrase
+            });
+            expect(decryptedKeyFromBinary.isDecrypted()).to.be.true;
+        });
+
+        it('can export an imported key', async () => {
+            const passphrase = 'passphrase';
+            const { privateKey: keyToImport } = await generateKey({ userIDs: { name: 'name', email: 'email@test.com' }, format: 'object', passphrase });
+
+            const importedKeyRef = await WorkerProxy.importPrivateKey({ armoredKey: keyToImport.armor(), passphrase });
+            const armoredPublicKey = await WorkerProxy.exportPublicKey({ keyReference: importedKeyRef });
+            const exportedPublicKey = await openpgp_readKey({ armoredKey: armoredPublicKey });
+            expect(exportedPublicKey.isPrivate()).to.be.false;
+            expect(exportedPublicKey.getKeyID().equals(keyToImport.getKeyID()))
+
+            const exportPassphrase = 'another passphrase';
+            const armoredPrivateKey = await WorkerProxy.exportPrivateKey({
+                keyReference: importedKeyRef, passphrase: exportPassphrase
+            });
+            const exportedPrivateKey = await openpgp_readPrivateKey({ armoredKey: armoredPrivateKey });
+            expect(exportedPrivateKey.getKeyID().equals(keyToImport.getKeyID()));
+            // make sure the exported key is encrypted with the new passphrase
+            const decryptedExportedKey = await openpgp_decryptKey({
+                privateKey: exportedPrivateKey,
+                passphrase: exportPassphrase
+            });
+            expect(decryptedExportedKey.isDecrypted()).to.be.true;
+        });
+
+        it('allows importing a key as long as it can be decrypted', async () => {
+            const passphrase = 'passphrase';
+            const { privateKey } = await generateKey({ userIDs: { name: 'name', email: 'email@test.com' }, passphrase, format: 'object' });
+
+            const importedKeyRef = await WorkerProxy.importPrivateKey({ armoredKey: privateKey.armor(), passphrase });
+            expect(importedKeyRef.isPrivate()).to.be.true;
+
+            await expect(
+                WorkerProxy.importPrivateKey({ armoredKey: privateKey.armor(), passphrase: 'wrong passphrase' })
+            ).to.be.rejectedWith(/Error decrypting private key: Incorrect key passphrase/);
+        });
+
+        it('allows importing a decrypted key only when given a null passphrase', async () => {
+            const decryptedArmoredKey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEYgQEWRYJKwYBBAHaRw8BAQdAhR6qir63dgL1bSt19bLFQfCIhvYnrk6f
+OmvFwcYNf4wAAQCV4uj6Pg+08r+ztuloyzTDAV7eC/jenjm7AdYikQ0MZxFC
+zQDCjAQQFgoAHQUCYgQEWQQLCQcIAxUICgQWAAIBAhkBAhsDAh4BACEJENDb
+nirC49EHFiEEDgVXCWrFg3oEwWgN0NueKsLj0QdayAD+O1Qq4UrAn1Tz67d7
+O3uWdpRWmbgfUr7XygeyWr57crYA/0/37SvtPoI6MHyrVYijXspJlVo0ZABb
+dueO4TQCpPkAx10EYgQEWRIKKwYBBAGXVQEFAQEHQCVlPjHtTH0KaiZmgAeQ
+f1tglgIeoZuT1fYWQMR5s0QkAwEIBwAA/1T9jghk9P2FAzix+Fst0go8OQ6l
+clnLKMx9jFlqLmqAD57CeAQYFggACQUCYgQEWQIbDAAhCRDQ254qwuPRBxYh
+BA4FVwlqxYN6BMFoDdDbnirC49EHobgA/R/1yGmo8/xrdipXIWTbL38sApGf
+XU0oD7GPQhGsaxZjAQCmjVBDdt+CgmU9NFYwtTIWNHxxJtyf7TX7DY9RH1t2
+DQ==
+=2Lb6
+-----END PGP PRIVATE KEY BLOCK-----`;
+            const importedKeyRef = await WorkerProxy.importPrivateKey({
+                armoredKey: decryptedArmoredKey,
+                passphrase: null
+            });
+            expect(importedKeyRef.isPrivate()).to.be.true;
+
+            await expect(
+                WorkerProxy.importPrivateKey({ armoredKey: decryptedArmoredKey, passphrase: 'passphrase' })
+            ).to.be.rejectedWith(/Key packet is already decrypted/);
+        });
+    });
+});

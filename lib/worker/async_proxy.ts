@@ -1,5 +1,6 @@
-import { wrap, Remote } from 'comlink';
+import { wrap, Remote, transferHandlers } from 'comlink';
 import type { WorkerApi } from './worker';
+import { customTransferHandlers } from './transferHandlers';
 
 type WorkerInterface = typeof WorkerApi;
 
@@ -29,6 +30,8 @@ interface WorkerProxyInterface extends WorkerInterface {
 export const WorkerProxy: WorkerProxyInterface = {
     init: (path) => {
         initWorker(path);
+        // @ts-ignore
+        customTransferHandlers.forEach(({ name, handler }) => transferHandlers.set(name, handler));
     },
     // TODO use Proxy to intercept all methods? to write non-method specific code (might be not possible, depending on key handling architecture we pick)
     // const handler = {
@@ -38,6 +41,7 @@ export const WorkerProxy: WorkerProxyInterface = {
     //   }
     // };
     // proxy = new Proxy(w, handler);
+
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface
     decryptMessage: (opts) => assertInitialised() && worker!.decryptMessage(opts),
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface, hence the resulting Remote type
@@ -46,5 +50,14 @@ export const WorkerProxy: WorkerProxyInterface = {
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface
     signMessage: (opts) => assertInitialised() && worker!.signMessage(opts),
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface
-    verifyMessage: (opts) => (assertInitialised() && worker!.verifyMessage(opts))
+    verifyMessage: (opts) => (assertInitialised() && worker!.verifyMessage(opts)),
+
+    importPrivateKey: (opts) => (assertInitialised() && worker!.importPrivateKey(opts)),
+    importPublicKey: (opts) => (assertInitialised() && worker!.importPublicKey(opts)),
+    generateKey: (opts) => (assertInitialised() && worker!.generateKey(opts)),
+    // @ts-ignore cannot forward type parameters through Comlink.Remote interface
+    exportPublicKey: (opts) => (assertInitialised() && worker!.exportPublicKey(opts)),
+    // @ts-ignore cannot forward type parameters through Comlink.Remote interface
+    exportPrivateKey: (opts) => (assertInitialised() && worker!.exportPrivateKey(opts))
+
 };
