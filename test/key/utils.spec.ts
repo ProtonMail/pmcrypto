@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { enums, generateKey, PrivateKey, readKey, revokeKey, sign, createMessage } from '../../lib/openpgp';
+import { enums, PrivateKey, readKey, revokeKey, sign, createMessage } from '../../lib/openpgp';
 import {
     concatArrays,
     decodeBase64,
@@ -8,6 +8,7 @@ import {
     isRevokedKey,
     reformatKey,
     getKey,
+    generateKey,
     getMatchingKey,
     generateSessionKey,
     generateSessionKeyFromKeyPreferences,
@@ -74,6 +75,15 @@ GAlY9rxVStLBrg0Hn+5gkhyHI9B85rM1BEYXQ8pP5CSFuTwbJ3O2s67dzQ==
         expect(
             () => keyCheck(info, 'jack.black@foo.com')
         ).to.throw(/UserID does not contain correct email address/);
+    });
+
+    it('generateKey - it has valid default creation time', async () => {
+        const { privateKey } = await generateKey({
+            userIDs: [{ name: 'name', email: 'email@test.com' }],
+            format: 'object'
+        });
+        const now = new Date();
+        expect(Math.abs(+privateKey.getCreationTime() - +now) < 24 * 3600).to.be.true;
     });
 
     it('reformatKey - it reformats a key using the key creation time', async () => {
