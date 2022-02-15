@@ -11,27 +11,12 @@ import {
     splitMessage,
     EncryptResult,
     verifyMessage,
-    getKey
+    getKey,
+    serverTime,
+    updateServerTime
 } from '../pmcrypto';
-import type { DecryptOptionsPmcrypto, DecryptResultPmcrypto, SignOptionsPmcrypto, EncryptOptionsPmcrypto, Data, MaybeStream, VerifyOptionsPmcrypto, VerifyMessageResult, PrivateKey, AlgorithmInfo, PublicKey, KeyOptions, Key } from '../pmcrypto';
-import { readPrivateKey, decryptKey, encryptKey } from '../openpgp';
-
-export type { MaybeStream, Data };
-const armoredKeyTest = `-----BEGIN PGP PRIVATE KEY BLOCK-----
-
-xVgEYgQEWRYJKwYBBAHaRw8BAQdAhR6qir63dgL1bSt19bLFQfCIhvYnrk6f
-OmvFwcYNf4wAAQCV4uj6Pg+08r+ztuloyzTDAV7eC/jenjm7AdYikQ0MZxFC
-zQDCjAQQFgoAHQUCYgQEWQQLCQcIAxUICgQWAAIBAhkBAhsDAh4BACEJENDb
-nirC49EHFiEEDgVXCWrFg3oEwWgN0NueKsLj0QdayAD+O1Qq4UrAn1Tz67d7
-O3uWdpRWmbgfUr7XygeyWr57crYA/0/37SvtPoI6MHyrVYijXspJlVo0ZABb
-dueO4TQCpPkAx10EYgQEWRIKKwYBBAGXVQEFAQEHQCVlPjHtTH0KaiZmgAeQ
-f1tglgIeoZuT1fYWQMR5s0QkAwEIBwAA/1T9jghk9P2FAzix+Fst0go8OQ6l
-clnLKMx9jFlqLmqAD57CeAQYFggACQUCYgQEWQIbDAAhCRDQ254qwuPRBxYh
-BA4FVwlqxYN6BMFoDdDbnirC49EHobgA/R/1yGmo8/xrdipXIWTbL38sApGf
-XU0oD7GPQhGsaxZjAQCmjVBDdt+CgmU9NFYwtTIWNHxxJtyf7TX7DY9RH1t2
-DQ==
-=2Lb6
------END PGP PRIVATE KEY BLOCK-----`;
+import type { DecryptOptionsPmcrypto, DecryptResultPmcrypto, SignOptionsPmcrypto, EncryptOptionsPmcrypto, Data, VerifyOptionsPmcrypto, VerifyMessageResult, PrivateKey, AlgorithmInfo, PublicKey, KeyOptions, Key } from '../pmcrypto';
+import { decryptKey, encryptKey, MaybeArray, readPrivateKey } from '../openpgp';
 
 // @ts-ignore
 customTransferHandlers.forEach(({ name, handler }) => transferHandlers.set(name, handler));
@@ -47,35 +32,43 @@ const getSignatureIfDefined = (serializedData?: string | Uint8Array) =>
 const getMessageIfDefined = (serializedData?: string | Uint8Array) =>
     serializedData !== undefined ? getMessage(serializedData) : undefined;
 
+const toArray = <T>(maybeArray: MaybeArray<T>) => (Array.isArray(maybeArray) ? maybeArray : [maybeArray]);
+
 // TODO TS: do not allow mutually exclusive properties
 export interface WorkerDecryptionOptions
-    extends Omit<DecryptOptionsPmcrypto<Data>, 'message' | 'signature' | 'encryptedSignature'> {
+    extends Omit<DecryptOptionsPmcrypto<Data>, 'message' | 'signature' | 'encryptedSignature' | 'verificationKeys' | 'decryptionKeys'> {
     armoredSignature?: string;
     binarySignature?: Uint8Array;
     armoredMessage?: string;
     binaryMessage?: Uint8Array;
     armoredEncryptedSignature?: string;
     binaryEncryptedSignature?: Uint8Array;
+    verificationKeys?: MaybeArray<PublicKeyReference>;
+    decryptionKeys?: MaybeArray<PrivateKeyReference>;
 }
 export interface WorkerDecryptionResult<T extends Data> extends Omit<DecryptResultPmcrypto<T>, 'signatures'> {
     signatures: Uint8Array[]
 }
 // TODO to make Option interfaces easy to use for the user, might be best to set default param types (e.g. T extends Data = Data).
-export interface WorkerVerifyOptions<T extends Data> extends Omit<VerifyOptionsPmcrypto<T>, 'signature'> {
+export interface WorkerVerifyOptions<T extends Data> extends Omit<VerifyOptionsPmcrypto<T>, 'signature' | 'verificationKeys'> {
     armoredSignature?: string;
     binarySignature?: Uint8Array;
+    verificationKeys: MaybeArray<PublicKeyReference>;
 }
 export interface WorkerVerificationResult<D extends Data = Data> extends Omit<VerifyMessageResult<D>, 'signatures'> {
     signatures: Uint8Array[]
 }
 
-export interface WorkerSignOptions<T extends Data> extends SignOptionsPmcrypto<T> {
-    format?: 'armored' | 'binary'
+export interface WorkerSignOptions<T extends Data> extends Omit<SignOptionsPmcrypto<T>, 'signingKeys'> {
+    format?: 'armored' | 'binary',
+    signingKeys?: MaybeArray<PrivateKeyReference>
 };
-export interface WorkerEncryptOptions<T extends Data> extends Omit<EncryptOptionsPmcrypto<T>, 'signature'> {
+export interface WorkerEncryptOptions<T extends Data> extends Omit<EncryptOptionsPmcrypto<T>, 'signature' | 'signingKeys' | 'encryptionKeys'> {
     format?: 'armored' | 'binary'
     armoredSignature?: string,
-    binarySignature?: Uint8Array
+    binarySignature?: Uint8Array,
+    encryptionKeys?: MaybeArray<PublicKeyReference>,
+    signingKeys?: MaybeArray<PrivateKeyReference>
 };
 
 export type WorkerExportedKey<F extends 'armored' | 'binary' | undefined = 'armored'> = F extends 'armored' ? string : Uint8Array;
@@ -138,7 +131,7 @@ export interface KeyReference {
     // readonly armor: () => string
 }
 export interface PublicKeyReference extends KeyReference {
-    isPrivate: () => false
+    // isPrivate: () => false
 }
 export interface PrivateKeyReference extends KeyReference {
     isPrivate: () => true;
@@ -178,15 +171,21 @@ const getPrivateKeyReference = async (privateKey: PrivateKey, keyStoreID: number
 }
 
 class KeyStore {
-    private store = new Map<number, Key>(); // TODO separate private and public?
+    private store = new Map<number, Key>();
 
-    private idx = 0; // TODO use random uids?
+    /**
+     * Monotonic counter keeping track of the next unique identifier to index a newly added key.
+     * The starting counter value is picked at random to minimize the changes of collisions between different keys during a user session.
+     * NB: key references may be stored by webapps even after the worker has been destroyed (e.g. after closing the browser window),
+     * hence we want to keep using different identifiers even after restarting the worker, to also invalidate those stale key references.
+     */
+    private nextIdx = Math.floor(Math.random() * (Number.MAX_SAFE_INTEGER / 2));
 
     add(key: Key) {
-        const uid = this.idx;
-        this.store.set(uid, key);
-        this.idx++
-        return uid;
+        const idx = this.nextIdx;
+        this.store.set(idx, key);
+        this.nextIdx++;
+        return idx;
     }
 
     get(idx: number) {
@@ -201,7 +200,7 @@ class KeyStore {
             if (key.isPrivate()) key.clearPrivateParams();
         });
         this.store.clear();
-        // TODO what about idx? better not to reset to 0, in case the store is used again
+        // no need to reset index
     }
 
     clear(idx: number) {
@@ -262,7 +261,9 @@ const KeyManagementApi = {
         armoredKey, binaryKey, passphrase
     }: WorkerImportPrivateKeyOptions<T>) => {
         const expectDecrypted = passphrase === null;
-        const maybeEncryptedKey = await getKey(binaryKey || armoredKey!) as PrivateKey;
+        const maybeEncryptedKey = binaryKey ?
+            await readPrivateKey({ binaryKey }) :
+            await readPrivateKey({ armoredKey: armoredKey! });
         if (expectDecrypted && !maybeEncryptedKey.isDecrypted()) throw new Error('Provide passphrase to import an encrypted private key');
         const decryptedKey = expectDecrypted ?
             maybeEncryptedKey :
@@ -282,7 +283,12 @@ const KeyManagementApi = {
     exportPublicKey: async <F extends SerialisedOutputFormat = 'armored' >({ format = 'armored', keyReference }: { keyReference: KeyReference, format?: F }): Promise<SerialisedOutputTypeFromFormat<F>> => {
         const maybePrivateKey = keyStore.get(keyReference._idx);
         const publicKey = maybePrivateKey.isPrivate() ? maybePrivateKey.toPublic() : maybePrivateKey;
-        return (format === 'armored' ? publicKey.armor() : publicKey.write()) as SerialisedOutputTypeFromFormat<F>;
+
+        if (format === 'binary') {
+            const binaryKey = publicKey.write();
+            return transfer(binaryKey, [binaryKey.buffer]) as SerialisedOutputTypeFromFormat<F>;
+        }
+        return publicKey.armor() as SerialisedOutputTypeFromFormat<F>;
     },
 
     // // TODO is this needed? if not, remove and rename "exportEncryptedPrivateKey" -> "exportPrivateKey"
@@ -305,7 +311,12 @@ const KeyManagementApi = {
         const { keyReference, passphrase } = options;
         const privateKey = keyStore.get(keyReference._idx) as PrivateKey;
         const encryptedKey = await encryptKey({ privateKey, passphrase });
-        return (format === 'armored' ? encryptedKey.armor() : encryptedKey.write()) as SerialisedOutputTypeFromFormat<F>;
+
+        if (format === 'binary') {
+            const binaryKey = encryptedKey.write();
+            return transfer(binaryKey, [binaryKey.buffer]) as SerialisedOutputTypeFromFormat<F>;
+        }
+        return encryptedKey.armor() as SerialisedOutputTypeFromFormat<F>;
     }
 
 }
@@ -313,19 +324,36 @@ const KeyManagementApi = {
 export const WorkerApi = {
     ...KeyManagementApi, // TODO split to separate worker?
 
+    // these are declared async so that exported type is a Promise and can be directly exposed by async proxy
+    serverTime: async () => serverTime(),
+    updateServerTime: async (serverDate: Date) => updateServerTime(serverDate),
+
     encryptMessage: async <
         T extends Data,
         F extends WorkerEncryptOptions<T>['format'] = 'armored',
         D extends boolean = false,
         SK extends boolean = false
     >({
+        encryptionKeys: encryptionKeyRefs = [],
+        signingKeys: signingKeyRefs = [],
         armoredSignature,
         binarySignature,
         ...options
     }: WorkerEncryptOptions<T> & { format?: F; detached?: D; returnSessionKey?: SK }) => {
+        const signingKeys = await Promise.all(
+            toArray(signingKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PrivateKey
+        ));
+        const encryptionKeys = await Promise.all(
+            toArray(encryptionKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PublicKey
+        ));
         const inputSignature = await getSignatureIfDefined(binarySignature || armoredSignature);
 
-        const encryptionResult = await encryptMessage<T, F, D, SK>({ signature: inputSignature, ...options });
+        const encryptionResult = await encryptMessage<T, F, D, SK>({
+            encryptionKeys,
+            signingKeys,
+            signature: inputSignature,
+            ...options
+        });
 
         const buffers = [];
         if (options.format === 'binary') {
@@ -345,10 +373,15 @@ export const WorkerApi = {
     signMessage: async <
         T extends Data,
         F extends WorkerSignOptions<T>['format'] = 'armored'
-        // inferring D is unnecessary since the result type does not depend on it for format !== 'object'
-    >(options: WorkerSignOptions<T> & { format?: F; }) => {
-        options.signingKeys = await readPrivateKey({ armoredKey: armoredKeyTest }); // TODO remove once there is a way to pass keys
-        const signResult = await signMessage<T, F, boolean>(options);
+        // inferring D (detached signature type) is unnecessary since the result type does not depend on it for format !== 'object'
+    >({ signingKeys: signingKeyRefs = [], ...options }: WorkerSignOptions<T> & { format?: F; }) => {
+        const signingKeys = await Promise.all(
+            toArray(signingKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PrivateKey
+        ));
+        const signResult = await signMessage<T, F, boolean>({
+            ...options,
+            signingKeys
+        });
 
         const buffers = [];
         if (options.format === 'binary') {
@@ -364,15 +397,17 @@ export const WorkerApi = {
     >({
         armoredSignature,
         binarySignature,
+        verificationKeys: verificationKeyRefs = [],
         ...options
     }: WorkerVerifyOptions<T> & { format?: F }) => {
-        options.verificationKeys = await readPrivateKey({ armoredKey: armoredKeyTest }); // TODO remove once there is a way to pass keys
-
+        const verificationKeys = await Promise.all(
+            toArray(verificationKeyRefs).map((keyReference) => keyStore.get(keyReference._idx)
+        ));
         const signature = await getSignature(binarySignature || armoredSignature!);
         const {
             signatures: signatureObjects, // extracting this is needed for proper type inference of `serialisedResult.signatures`
             ...verificationResultWithoutSignatures
-        } = await verifyMessage<T, F>({ signature, ...options });
+        } = await verifyMessage<T, F>({ signature, verificationKeys, ...options });
 
         const serialisedResult = {
             ...verificationResultWithoutSignatures,
@@ -389,14 +424,23 @@ export const WorkerApi = {
     },
     splitMessage,
     decryptMessage: async <F extends WorkerDecryptionOptions['format'] = 'utf8'>({
+        decryptionKeys: decryptionKeyRefs = [],
+        verificationKeys: verificationKeyRefs = [],
+        binaryEncryptedSignature,
         armoredMessage,
         binaryMessage,
         armoredSignature,
         binarySignature,
         armoredEncryptedSignature,
-        binaryEncryptedSignature,
         ...options
     }: WorkerDecryptionOptions & { format?: F }) => {
+        const decryptionKeys = await Promise.all(
+            toArray(decryptionKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PrivateKey
+        ));
+        const verificationKeys = await Promise.all(
+            toArray(verificationKeyRefs).map((keyReference) => keyStore.get(keyReference._idx)
+        ));
+
         const message = await getMessage(binaryMessage || armoredMessage!); // TODO check if defined too?
         const signature = await getSignatureIfDefined(binarySignature || armoredSignature);
         const encryptedSignature = await getMessageIfDefined(binaryEncryptedSignature || armoredEncryptedSignature);
@@ -408,7 +452,9 @@ export const WorkerApi = {
             ...options,
             message,
             signature,
-            encryptedSignature
+            encryptedSignature,
+            decryptionKeys,
+            verificationKeys
         });
 
         const serialisedResult = {

@@ -33,14 +33,6 @@ export const WorkerProxy: WorkerProxyInterface = {
         // @ts-ignore
         customTransferHandlers.forEach(({ name, handler }) => transferHandlers.set(name, handler));
     },
-    // TODO use Proxy to intercept all methods? to write non-method specific code (might be not possible, depending on key handling architecture we pick)
-    // const handler = {
-    //   get(obj: any, prop: any) {
-    //     if (prop in obj) return obj[prop];
-    //     throw new Error(`${prop} is not a function`);
-    //   }
-    // };
-    // proxy = new Proxy(w, handler);
 
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface
     decryptMessage: (opts) => assertInitialised() && worker!.decryptMessage(opts),
@@ -58,6 +50,8 @@ export const WorkerProxy: WorkerProxyInterface = {
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface
     exportPublicKey: (opts) => (assertInitialised() && worker!.exportPublicKey(opts)),
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface
-    exportPrivateKey: (opts) => (assertInitialised() && worker!.exportPrivateKey(opts))
+    exportPrivateKey: (opts) => (assertInitialised() && worker!.exportPrivateKey(opts)),
+    clearKeyStore: () => (assertInitialised() && worker!.clearKeyStore()),
+    clearKey: (opts) => (assertInitialised() && worker!.clearKey(opts))
 
 };
