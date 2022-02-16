@@ -220,7 +220,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         const {
             message: encryptedBinaryMessage,
             signature: detachedBinarySignature,
-            encryptedSignature: encryptedBinarySignature,
+            encryptedSignature: encryptedBinarySignature
         } = await WorkerProxy.encryptMessage({
             binaryData: plaintext,
             encryptionKeys: bobKeyRef,

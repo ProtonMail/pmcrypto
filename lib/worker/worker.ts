@@ -135,8 +135,6 @@ export interface PublicKeyReference extends KeyReference {
 }
 export interface PrivateKeyReference extends KeyReference {
     isPrivate: () => true;
-    // readonly isDecrypted: boolean, //  is this needed?
-    // readonly toPublic: () => PublicKeyReference;
     // TODO add isStoredEncrypted? to allow importing encrypted keys without passphrase
 
 }
@@ -165,8 +163,6 @@ const getPrivateKeyReference = async (privateKey: PrivateKey, keyStoreID: number
     return {
         ...publicKeyReference,
         isPrivate: () => true
-        // toPublic: () => publicKeyObject
-        // armor: () => encryptedArmoredKey
     };
 }
 
@@ -227,27 +223,6 @@ const KeyManagementApi = {
         return getPrivateKeyReference(privateKey, keyStoreID);
     },
 
-    // importDecryptedPrivateKey: async <T extends Data>({
-    //     armoredKey, binaryKey
-    // }: WorkerImportDecryptedPrivateKeyOptions<T>) => {
-    //     // TODOoooo ask for password (to be cached on import/reformat) as further safety measure?
-    //     const decryptedKey = await getKey(binaryKey || armoredKey!) as PrivateKey;
-    //     if(!decryptedKey.isDecrypted()) throw new Error('Key is not decrypted');
-    //     const keyStoreID = keyStore.add(decryptedKey);
-
-    //     return getPrivateKeyReference(decryptedKey, keyStoreID);
-    // },
-
-    // importEncryptedPrivateKey: async <T extends Data>({
-    //     armoredKey, binaryKey, passphrase
-    // }: WorkerImportEncryptedPrivateKeyOptions<T>) => {
-    //     const encryptedKey = await getKey(binaryKey || armoredKey!) as PrivateKey;
-    //     const decryptedKey = await decryptKey({ privateKey: encryptedKey, passphrase });
-    //     const keyStoreID = keyStore.add(decryptedKey);
-
-    //     return getPrivateKeyReference(encryptedKey, keyStoreID);
-    // },
-
     /**
      * Import a private key, which is either already decrypted, or that can be decrypted with the given passphrase.
      * If a passphrase is given, but the key is already decrypted, importing fails.
@@ -290,22 +265,6 @@ const KeyManagementApi = {
         }
         return publicKey.armor() as SerialisedOutputTypeFromFormat<F>;
     },
-
-    // // TODO is this needed? if not, remove and rename "exportEncryptedPrivateKey" -> "exportPrivateKey"
-    // exportDecryptedPrivateKey: async <F extends WorkerExportDecryptedPrivateKeyOptions['format'] = 'armored' >(options: WorkerExportDecryptedPrivateKeyOptions & { format?: F }) => {
-    //     const { format = 'armored', keyReference } = options;
-    //     const privateKey = keyStore.get(keyReference._idx) as PrivateKey;
-    //     if (!privateKey.isPrivate()) throw new Error('Cannot export a PublicKey as PrivateKey'); // sanity check
-    //     if (!privateKey.isDecrypted()) throw new Error('Internal error: PrivateKey is not decrypted');
-    //     return format === 'armored' ? privateKey.armor() : privateKey.write();
-    // },
-
-    // exportEncryptedPrivateKey: async <F extends WorkerExportEncryptedPrivateKeyOptions['format'] = 'armored' >(options: WorkerExportEncryptedPrivateKeyOptions & { format?: F }) => {
-    //     const { format = 'armored', keyReference, passphrase } = options;
-    //     const privateKey = keyStore.get(keyReference._idx) as PrivateKey;
-    //     const encryptedKey = await encryptKey({ privateKey, passphrase });
-    //     return format === 'armored' ? encryptedKey.armor() : encryptedKey.write();
-    // },
 
     exportPrivateKey: async <F extends SerialisedOutputFormat = 'armored' >({ format = 'armored', ...options }: { keyReference: PrivateKeyReference, passphrase: string, format?: F }): Promise<SerialisedOutputTypeFromFormat<F>> => {
         const { keyReference, passphrase } = options;
