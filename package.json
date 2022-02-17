@@ -10,8 +10,9 @@
         "stream": false
     },
     "scripts": {
-        "build": "webpack --config webpack.config.js",
-        "test": "npm run build && karma start karma.conf.js",
+        "build-worker": "webpack --config webpack.worker.js",
+        "build": "npm run build-worker",
+        "test": "npm run build-worker && karma start karma.conf.js",
         "lint": "eslint lib test --quiet",
         "pretty": "prettier --write lib",
         "preversion": "npm run build && git add -A dist",

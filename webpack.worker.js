@@ -9,9 +9,12 @@ module.exports = {
     output: {
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
+        chunkFilename: 'worker.chunk.[name].js',
         clean: true
     },
-
+    optimization: {
+        chunkIds: 'named' // keep intelligible chunk names to identify which dep libraries they are from
+    },
     resolve: {
         fallback: {
             stream: false,
