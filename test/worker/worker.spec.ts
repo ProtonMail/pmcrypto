@@ -7,6 +7,7 @@ import {
 } from '../../lib/openpgp';
 import { VERIFICATION_STATUS, WorkerProxy } from '../../lib';
 import { stringToUtf8Array, generateKey, SessionKey } from '../../lib/pmcrypto';
+import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from '../message/decryptMessageLegacy.data';
 
 chaiUse(chaiAsPromised);
 const workerPath = '/dist/worker.js';
@@ -88,7 +89,36 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         expect(decryptionResult.data).to.deep.equal(stringToUtf8Array('hello world'));
         expect(decryptionResult.signatures).to.have.length(0);
         expect(decryptionResult.errors).to.not.exist;
-        expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED)
+        expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
+    });
+
+    it('decryptMessageLegacy - it can decrypt a legacy message', async () => {
+        const privateKeyRef = await WorkerProxy.importPrivateKey({ armoredKey: testPrivateKeyLegacy, passphrase: '123' });
+
+        const decryptionResult = await WorkerProxy.decryptMessageLegacy({
+            armoredMessage: testMessageEncryptedLegacy,
+            decryptionKeys: privateKeyRef,
+            messageDate: new Date('2015-01-01')
+        });
+        expect(decryptionResult.data).to.equal(testMessageResult);
+        expect(decryptionResult.signatures).to.have.length(0);
+        expect(decryptionResult.errors).to.not.exist;
+        expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
+    });
+
+    it('decryptMessageLegacy - it can decrypt a non-legacy armored message', async () => {
+        const privateKeyRef = await WorkerProxy.importPrivateKey({ armoredKey: testPrivateKeyLegacy, passphrase: '123' });
+
+        const decryptionResult = await WorkerProxy.decryptMessageLegacy({
+            armoredMessage: testMessageEncryptedStandard,
+            decryptionKeys: privateKeyRef,
+            verificationKeys: privateKeyRef,
+            messageDate: new Date('2015-01-01')
+        });
+        expect(decryptionResult.data).to.equal(testMessageResult);
+        expect(decryptionResult.signatures).to.have.length(1);
+        expect(decryptionResult.errors).to.not.exist;
+        expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('encryptMessage - output binary message and signatures should be transferred', async () => {

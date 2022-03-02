@@ -134,7 +134,22 @@ export function decryptMessage<T extends MaybeStream<Data>, F extends DecryptOpt
     never
 >;
 
-export function decryptMessageLegacy(options: DecryptLegacyOptions): Promise<DecryptResultPmcrypto>;
+export function decryptMessageLegacy<
+    T extends MaybeStream<Data> = MaybeStream<Data>,
+    F extends DecryptLegacyOptions['format'] = 'utf8'
+>(options: DecryptLegacyOptions & { format?: F }): Promise<
+    // output type cannot be statically determined:
+    // string for legacy messages, but either string or Uint8Array output for non-legacy ones (depending on options.format)
+    F extends 'utf8' ?
+        T extends WebStream<Data> ?
+            DecryptResultPmcrypto<WebStream<string>> :
+            DecryptResultPmcrypto<string> :
+    F extends 'binary' ?
+        T extends WebStream<Data> ?
+            DecryptResultPmcrypto<WebStream<Uint8Array | string>> :
+            DecryptResultPmcrypto<Uint8Array | string> :
+    never
+>;
 
 export function decryptMIMEMessage(options: DecryptMimeOptions): Promise<{
     getBody: () => Promise<{ body: string; mimetype: string } | undefined>;

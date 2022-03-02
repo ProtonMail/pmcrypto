@@ -39,6 +39,8 @@ export const WorkerProxy: WorkerProxyInterface = {
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface
     decryptMessage: (opts) => assertInitialised() && worker!.decryptMessage(opts),
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface
+    decryptMessageLegacy: (opts) => assertInitialised() && worker!.decryptMessageLegacy(opts),
+    // @ts-ignore cannot forward type parameters through Comlink.Remote interface
     signMessage: (opts) => assertInitialised() && worker!.signMessage(opts),
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface
     verifyMessage: (opts) => assertInitialised() && worker!.verifyMessage(opts),

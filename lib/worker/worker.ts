@@ -6,6 +6,7 @@ import {
     encryptMessage,
     signMessage,
     decryptMessage,
+    decryptMessageLegacy,
     getSignature,
     getMessage,
     encryptSessionKey,
@@ -32,7 +33,8 @@ import type {
     Key,
     EncryptResult,
     EncryptSessionKeyOptionsPmcrypto,
-    DecryptSessionKeyOptionsPmcrypto
+    DecryptSessionKeyOptionsPmcrypto,
+    DecryptLegacyOptions
 } from '../pmcrypto';
 import { decryptKey, encryptKey, MaybeArray, readPrivateKey } from '../openpgp';
 
@@ -66,6 +68,16 @@ export interface WorkerDecryptionOptions
 export interface WorkerDecryptionResult<T extends Data> extends Omit<DecryptResultPmcrypto<T>, 'signatures'> {
     signatures: Uint8Array[]
 }
+
+export interface WorkerDecryptLegacyOptions
+    extends Omit<DecryptLegacyOptions, 'message' | 'signature' | 'encryptedSignature' | 'verificationKeys' | 'decryptionKeys'> {
+    armoredMessage: string;
+    armoredSignature?: string;
+    binarySignature?: Uint8Array;
+    verificationKeys?: MaybeArray<PublicKeyReference>;
+    decryptionKeys?: MaybeArray<PrivateKeyReference>;
+}
+
 // TODO to make Option interfaces easy to use for the user, might be best to set default param types (e.g. T extends Data = Data).
 export interface WorkerVerifyOptions<T extends Data> extends Omit<VerifyOptionsPmcrypto<T>, 'signature' | 'verificationKeys'> {
     armoredSignature?: string;
@@ -485,6 +497,52 @@ export const WorkerApi = {
         // the decrypted signatures after decryption.
         // Note: asking the apps to call `verifyMessage` separately is not an option, since
         // the verification result is to be considered invalid outside of the encryption context if the intended recipient is present, see: https://datatracker.ietf.org/doc/html/draft-ietf-openpgp-crypto-refresh#section-5.2.3.32
+    },
+
+    /**
+     * Backwards-compatible decrypt message function, to be only used for email messages that might be of legacy format.
+     * For all other cases, use `decryptMessage`.
+     */
+    decryptMessageLegacy: async <F extends WorkerDecryptLegacyOptions['format'] = 'utf8'>({
+        decryptionKeys: decryptionKeyRefs = [],
+        verificationKeys: verificationKeyRefs = [],
+        armoredMessage,
+        armoredSignature,
+        binarySignature,
+        ...options
+    }: WorkerDecryptLegacyOptions & { format?: F }) => {
+        const decryptionKeys = await Promise.all(
+            toArray(decryptionKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PrivateKey)
+        );
+        const verificationKeys = await Promise.all(
+            toArray(verificationKeyRefs).map((keyReference) => keyStore.get(keyReference._idx))
+        );
+
+        const signature = await getSignatureIfDefined(binarySignature || armoredSignature);
+
+        const {
+            signatures: signatureObjects,
+            ...decryptionResultWithoutSignatures
+        } = await decryptMessageLegacy<Data, F>({
+            ...options,
+            message: armoredMessage,
+            signature,
+            decryptionKeys,
+            verificationKeys
+        });
+
+        const serialisedResult = {
+            ...decryptionResultWithoutSignatures,
+            signatures: signatureObjects.map((sig) => sig.write() as Uint8Array) // no support for streamed input for now
+        };
+
+        const buffers = serialisedResult.signatures.map((sig) => sig.buffer);
+        if (options.format === 'binary' && serialisedResult.data instanceof Uint8Array) { // even with 'format: binary', string data is returned for legacy messages
+            const decryptedData = serialisedResult.data;
+            buffers.push(decryptedData.buffer);
+        }
+
+        return transfer(serialisedResult, buffers);
     },
     /**
      * Generating a session key for the specified symmetric algorithm.
