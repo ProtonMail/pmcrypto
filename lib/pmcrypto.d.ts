@@ -182,9 +182,7 @@ export function encryptMessage<
                 EncryptResult<SK, WebStream<Uint8Array>> : EncryptResult<SK, Uint8Array> :
     F extends 'object' ?
         D extends true ?
-            T extends WebStream<Data> ?
-                never : // unsupported
-                EncryptResult<SK, OpenPGPMessage, OpenPGPSignature, Uint8Array> :
+            never : // unsupported
             EncryptResult<SK, OpenPGPMessage> :
     never
 >;
