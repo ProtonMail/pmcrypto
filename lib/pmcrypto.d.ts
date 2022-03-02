@@ -105,7 +105,7 @@ export function encryptSessionKey<F extends EncryptSessionKeyOptionsPmcrypto['fo
 
 export type DecryptSessionKeyOptionsPmcrypto = Parameters<typeof openpgp_decryptSessionKeys>[0];
 // This differs from `openpgp.decryptSessionKeys` in the return type
-export function decryptSessionKey(options: DecryptSessionKeyOptionsPmcrypto): Promise<SessionKey | undefined>; 
+export function decryptSessionKey(options: DecryptSessionKeyOptionsPmcrypto): Promise<SessionKey | undefined>;
 
 export interface DecryptOptionsPmcrypto<T extends MaybeStream<Data>> extends DecryptOptions {
     message: Message<T>;
