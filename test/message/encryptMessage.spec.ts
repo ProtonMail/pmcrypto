@@ -148,26 +148,6 @@ describe('encryptMessage', () => {
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
-    it('it can encrypt a message and decrypt it unarmored using session keys along with an encrypted detached signature', async () => {
-        const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-        const { message: encrypted, sessionKey: sessionKeys, encryptedSignature } = await encryptMessage({
-            textData: 'Hello world!',
-            encryptionKeys: [decryptedPrivateKey.toPublic()],
-            signingKeys: [decryptedPrivateKey],
-            returnSessionKey: true,
-            detached: true,
-            format: 'object'
-        });
-        const { data: decrypted, verified } = await decryptMessage({
-            message: await getMessage(encrypted),
-            verificationKeys: [decryptedPrivateKey.toPublic()],
-            encryptedSignature: await getMessage(encryptedSignature),
-            sessionKeys
-        });
-        expect(decrypted).to.equal('Hello world!');
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
-    });
-
     it('it can encrypt and decrypt a message with session key without setting returnSessionKey', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
         const sessionKey = {
