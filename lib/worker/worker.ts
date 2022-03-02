@@ -41,8 +41,7 @@ customTransferHandlers.forEach(({ name, handler }) => transferHandlers.set(name,
 
 // Note:
 // - streams are currently not supported since they are not Transferable (not in all browsers).
-// - when returning binary data, the values are always transferred. TODO: check that there is no (time) performance regression due to this
-//      if large binary data is transferred.
+// - when returning binary data, the values are always transferred.
 
 const getSignatureIfDefined = (serializedData?: string | Uint8Array) =>
     serializedData !== undefined ? getSignature(serializedData) : undefined;
@@ -374,8 +373,8 @@ export const WorkerApi = {
             // if options.detached
             signature && buffers.push(signature.buffer);
             encryptedSignature && buffers.push(encryptedSignature.buffer);
-            // TODO transfer session keys? probably not worth it, since they are short
         }
+        encryptionResult.sessionKey && buffers.push(encryptionResult.sessionKey.data.buffer)
 
         return transfer(encryptionResult, buffers);
     },

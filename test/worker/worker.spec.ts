@@ -141,6 +141,22 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         expect(binaryDecryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
     });
 
+    it('encryptMessage/decryptMessage - with returned session key', async () => {
+        const { message: encryptedArmoredMessage, sessionKey } = await WorkerProxy.encryptMessage({
+            textData: 'hello world',
+            returnSessionKey: true
+        });
+
+        const textDecryptionResult = await WorkerProxy.decryptMessage({
+            armoredMessage: encryptedArmoredMessage,
+            sessionKeys: sessionKey
+        });
+        expect(textDecryptionResult.data).to.equal('hello world');
+        expect(textDecryptionResult.signatures).to.have.length(0);
+        expect(textDecryptionResult.errors).to.not.exist;
+        expect(textDecryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
+    });
+
   it('signMessage/verifyMessage - output binary signature and data should be transferred', async () => {
         const privateKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
         const binarySignature = await WorkerProxy.signMessage({
