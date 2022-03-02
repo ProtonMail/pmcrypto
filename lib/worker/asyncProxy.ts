@@ -33,25 +33,31 @@ export const WorkerProxy: WorkerProxyInterface = {
         // @ts-ignore
         customTransferHandlers.forEach(({ name, handler }) => transferHandlers.set(name, handler));
     },
-
-    // @ts-ignore cannot forward type parameters through Comlink.Remote interface
-    decryptMessage: (opts) => assertInitialised() && worker!.decryptMessage(opts),
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface, hence the resulting Remote type
     // cannot infer the output signature dynamically based on the input.
     encryptMessage: (opts) => assertInitialised() && worker!.encryptMessage(opts),
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface
+    decryptMessage: (opts) => assertInitialised() && worker!.decryptMessage(opts),
+    // @ts-ignore cannot forward type parameters through Comlink.Remote interface
     signMessage: (opts) => assertInitialised() && worker!.signMessage(opts),
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface
-    verifyMessage: (opts) => (assertInitialised() && worker!.verifyMessage(opts)),
+    verifyMessage: (opts) => assertInitialised() && worker!.verifyMessage(opts),
 
-    importPrivateKey: (opts) => (assertInitialised() && worker!.importPrivateKey(opts)),
-    importPublicKey: (opts) => (assertInitialised() && worker!.importPublicKey(opts)),
-    generateKey: (opts) => (assertInitialised() && worker!.generateKey(opts)),
+    generateSessionKey: (opts) => assertInitialised() && worker!.generateSessionKey(opts),
+    generateSessionKeyFromKeyPreferences: (opts) => (
+        assertInitialised() && worker!.generateSessionKeyFromKeyPreferences(opts)
+    ),
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface
-    exportPublicKey: (opts) => (assertInitialised() && worker!.exportPublicKey(opts)),
-    // @ts-ignore cannot forward type parameters through Comlink.Remote interface
-    exportPrivateKey: (opts) => (assertInitialised() && worker!.exportPrivateKey(opts)),
-    clearKeyStore: () => (assertInitialised() && worker!.clearKeyStore()),
-    clearKey: (opts) => (assertInitialised() && worker!.clearKey(opts))
+    encryptSessionKey: (opts) => assertInitialised() && worker!.encryptSessionKey(opts),
+    decryptSessionKey: (opts) => assertInitialised() && worker!.decryptSessionKey(opts),
 
+    importPrivateKey: (opts) => assertInitialised() && worker!.importPrivateKey(opts),
+    importPublicKey: (opts) => assertInitialised() && worker!.importPublicKey(opts),
+    generateKey: (opts) => assertInitialised() && worker!.generateKey(opts),
+    // @ts-ignore cannot forward type parameters through Comlink.Remote interface
+    exportPublicKey: (opts) => assertInitialised() && worker!.exportPublicKey(opts),
+    // @ts-ignore cannot forward type parameters through Comlink.Remote interface
+    exportPrivateKey: (opts) => assertInitialised() && worker!.exportPrivateKey(opts),
+    clearKeyStore: () => assertInitialised() && worker!.clearKeyStore(),
+    clearKey: (opts) => assertInitialised() && worker!.clearKey(opts)
 };

@@ -8,14 +8,32 @@ import {
     decryptMessage,
     getSignature,
     getMessage,
-    splitMessage,
-    EncryptResult,
+    encryptSessionKey,
+    generateSessionKey,
+    generateSessionKeyFromKeyPreferences,
     verifyMessage,
     getKey,
     serverTime,
-    updateServerTime
+    updateServerTime,
+    decryptSessionKey
 } from '../pmcrypto';
-import type { DecryptOptionsPmcrypto, DecryptResultPmcrypto, SignOptionsPmcrypto, EncryptOptionsPmcrypto, Data, VerifyOptionsPmcrypto, VerifyMessageResult, PrivateKey, AlgorithmInfo, PublicKey, KeyOptions, Key } from '../pmcrypto';
+import type {
+    DecryptOptionsPmcrypto,
+    DecryptResultPmcrypto,
+    SignOptionsPmcrypto,
+    EncryptOptionsPmcrypto,
+    Data,
+    VerifyOptionsPmcrypto,
+    VerifyMessageResult,
+    PrivateKey,
+    AlgorithmInfo,
+    PublicKey,
+    KeyOptions,
+    Key,
+    EncryptResult,
+    EncryptSessionKeyOptionsPmcrypto,
+    DecryptSessionKeyOptionsPmcrypto
+} from '../pmcrypto';
 import { decryptKey, encryptKey, MaybeArray, readPrivateKey } from '../openpgp';
 
 // @ts-ignore
@@ -109,9 +127,20 @@ export interface WorkerExportDecryptedPrivateKeyOptions {
     format?: 'armored' | 'binary',
 }
 
-export interface WorkerGenerateKeyOptions extends Omit<KeyOptions, 'format' | 'passphrase'>{
+export interface WorkerGenerateKeyOptions extends Omit<KeyOptions, 'format' | 'passphrase'> {
     // passphrase: string; the key can be encrypted on export, no need/reason to do so on generation (based on current key store API)
 }
+
+export interface WorkerEncryptSessionKeyOptions extends Omit<EncryptSessionKeyOptionsPmcrypto, 'encryptionKeys'> {
+    format?: 'armored' | 'binary',
+    encryptionKeys?: MaybeArray<PublicKeyReference>
+};
+
+export interface WorkerDecryptSessionKeyOptions extends Omit<DecryptSessionKeyOptionsPmcrypto, 'message' | 'decryptionKeys'> {
+    armoredMessage?: string;
+    binaryMessage?: Uint8Array;
+    decryptionKeys?: MaybeArray<PrivateKeyReference>;
+};
 
 export type WorkerPublicKeyImport = { armoredKey?: string, binaryKey?: Uint8Array };
 
@@ -136,7 +165,6 @@ export interface PublicKeyReference extends KeyReference {
 export interface PrivateKeyReference extends KeyReference {
     isPrivate: () => true;
     // TODO add isStoredEncrypted? to allow importing encrypted keys without passphrase
-
 }
 
 const getPublicKeyReference = async (key: PublicKey, keyStoreID: number): Promise<PublicKeyReference> => {
@@ -153,7 +181,7 @@ const getPublicKeyReference = async (key: PublicKey, keyStoreID: number): Promis
         userIDs: publicKey.getUserIDs(),
         subkeys: publicKey.getSubkeys().map((subkey) => ({ algorithmInfo: subkey.getAlgorithmInfo() }))
         // armor: () => armoredKey
-    }
+    };
 };
 
 const getPrivateKeyReference = async (privateKey: PrivateKey, keyStoreID: number): Promise<PrivateKeyReference> => {
@@ -164,7 +192,7 @@ const getPrivateKeyReference = async (privateKey: PrivateKey, keyStoreID: number
         ...publicKeyReference,
         isPrivate: () => true
     };
-}
+};
 
 class KeyStore {
     private store = new Map<number, Key>();
@@ -210,11 +238,16 @@ class KeyStore {
 type SerialisedOutputFormat = 'armored' | 'binary' | undefined;
 type SerialisedOutputTypeFromFormat<F extends SerialisedOutputFormat> = F extends 'armored' ? string : F extends 'binary' ? Uint8Array : never;
 
-const keyStore = new KeyStore()
+const keyStore = new KeyStore();
 const KeyManagementApi = {
-    clearKeyStore: async () => { keyStore.clearAll() },
-    clearKey: async (keyReference: KeyReference)  => { keyStore.clear(keyReference._idx) },
-    generateKey: async (options: WorkerGenerateKeyOptions) => { // TODO is passphrase needed?
+    clearKeyStore: async () => {
+        keyStore.clearAll();
+    },
+    clearKey: async (keyReference: KeyReference) => {
+        keyStore.clear(keyReference._idx);
+    },
+    generateKey: async (options: WorkerGenerateKeyOptions) => {
+        // TODO is passphrase needed?
         const { privateKey } = await generateKey({ ...options, format: 'object' });
         // Typescript guards against a passphrase input, but it's best to ensure the option wasn't given since for API simplicity we assume any PrivateKeyReference points to a decrypted key.
         if (!privateKey.isDecrypted()) throw new Error('Unexpected "passphrase" option on key generation. Use "exportPrivateKey" after key generation to obtain a transferable encrypted key.')
@@ -233,7 +266,9 @@ const KeyManagementApi = {
      * @throws {Error} if the key cannot be decrypted or importing fails
      */
     importPrivateKey: async <T extends Data>({
-        armoredKey, binaryKey, passphrase
+        armoredKey,
+        binaryKey,
+        passphrase
     }: WorkerImportPrivateKeyOptions<T>) => {
         const expectDecrypted = passphrase === null;
         const maybeEncryptedKey = binaryKey ?
@@ -255,7 +290,13 @@ const KeyManagementApi = {
         return getPublicKeyReference(publicKey, keyStoreID);
     },
 
-    exportPublicKey: async <F extends SerialisedOutputFormat = 'armored' >({ format = 'armored', keyReference }: { keyReference: KeyReference, format?: F }): Promise<SerialisedOutputTypeFromFormat<F>> => {
+    exportPublicKey: async <F extends SerialisedOutputFormat = 'armored'>({
+        format = 'armored',
+        keyReference
+    }: {
+        keyReference: KeyReference;
+        format?: F;
+    }): Promise<SerialisedOutputTypeFromFormat<F>> => {
         const maybePrivateKey = keyStore.get(keyReference._idx);
         const publicKey = maybePrivateKey.isPrivate() ? maybePrivateKey.toPublic() : maybePrivateKey;
 
@@ -266,7 +307,14 @@ const KeyManagementApi = {
         return publicKey.armor() as SerialisedOutputTypeFromFormat<F>;
     },
 
-    exportPrivateKey: async <F extends SerialisedOutputFormat = 'armored' >({ format = 'armored', ...options }: { keyReference: PrivateKeyReference, passphrase: string, format?: F }): Promise<SerialisedOutputTypeFromFormat<F>> => {
+    exportPrivateKey: async <F extends SerialisedOutputFormat = 'armored'>({
+        format = 'armored',
+        ...options
+    }: {
+        keyReference: PrivateKeyReference;
+        passphrase: string;
+        format?: F;
+    }): Promise<SerialisedOutputTypeFromFormat<F>> => {
         const { keyReference, passphrase } = options;
         const privateKey = keyStore.get(keyReference._idx) as PrivateKey;
         const encryptedKey = await encryptKey({ privateKey, passphrase });
@@ -277,8 +325,7 @@ const KeyManagementApi = {
         }
         return encryptedKey.armor() as SerialisedOutputTypeFromFormat<F>;
     }
-
-}
+};
 
 export const WorkerApi = {
     ...KeyManagementApi, // TODO split to separate worker?
@@ -300,25 +347,28 @@ export const WorkerApi = {
         ...options
     }: WorkerEncryptOptions<T> & { format?: F; detached?: D; returnSessionKey?: SK }) => {
         const signingKeys = await Promise.all(
-            toArray(signingKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PrivateKey
-        ));
+            toArray(signingKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PrivateKey)
+        );
         const encryptionKeys = await Promise.all(
-            toArray(encryptionKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PublicKey
-        ));
+            toArray(encryptionKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PublicKey)
+        );
         const inputSignature = await getSignatureIfDefined(binarySignature || armoredSignature);
 
         const encryptionResult = await encryptMessage<T, F, D, SK>({
+            ...options,
             encryptionKeys,
             signingKeys,
-            signature: inputSignature,
-            ...options
+            signature: inputSignature
         });
 
         const buffers = [];
         if (options.format === 'binary') {
-            const {
-                message, signature, encryptedSignature
-            } = encryptionResult as EncryptResult<SK, Uint8Array, Uint8Array | undefined, Uint8Array | undefined>;
+            const { message, signature, encryptedSignature } = encryptionResult as EncryptResult<
+                SK,
+                Uint8Array,
+                Uint8Array | undefined,
+                Uint8Array | undefined
+            >;
 
             buffers.push(message.buffer);
             // if options.detached
@@ -333,10 +383,13 @@ export const WorkerApi = {
         T extends Data,
         F extends WorkerSignOptions<T>['format'] = 'armored'
         // inferring D (detached signature type) is unnecessary since the result type does not depend on it for format !== 'object'
-    >({ signingKeys: signingKeyRefs = [], ...options }: WorkerSignOptions<T> & { format?: F; }) => {
+    >({
+        signingKeys: signingKeyRefs = [],
+        ...options
+    }: WorkerSignOptions<T> & { format?: F }) => {
         const signingKeys = await Promise.all(
-            toArray(signingKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PrivateKey
-        ));
+            toArray(signingKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PrivateKey)
+        );
         const signResult = await signMessage<T, F, boolean>({
             ...options,
             signingKeys
@@ -360,8 +413,8 @@ export const WorkerApi = {
         ...options
     }: WorkerVerifyOptions<T> & { format?: F }) => {
         const verificationKeys = await Promise.all(
-            toArray(verificationKeyRefs).map((keyReference) => keyStore.get(keyReference._idx)
-        ));
+            toArray(verificationKeyRefs).map((keyReference) => keyStore.get(keyReference._idx))
+        );
         const signature = await getSignature(binarySignature || armoredSignature!);
         const {
             signatures: signatureObjects, // extracting this is needed for proper type inference of `serialisedResult.signatures`
@@ -379,9 +432,8 @@ export const WorkerApi = {
             buffers.push(data.buffer);
         }
 
-        return transfer(serialisedResult, buffers)
+        return transfer(serialisedResult, buffers);
     },
-    splitMessage,
     decryptMessage: async <F extends WorkerDecryptionOptions['format'] = 'utf8'>({
         decryptionKeys: decryptionKeyRefs = [],
         verificationKeys: verificationKeyRefs = [],
@@ -394,11 +446,11 @@ export const WorkerApi = {
         ...options
     }: WorkerDecryptionOptions & { format?: F }) => {
         const decryptionKeys = await Promise.all(
-            toArray(decryptionKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PrivateKey
-        ));
+            toArray(decryptionKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PrivateKey)
+        );
         const verificationKeys = await Promise.all(
-            toArray(verificationKeyRefs).map((keyReference) => keyStore.get(keyReference._idx)
-        ));
+            toArray(verificationKeyRefs).map((keyReference) => keyStore.get(keyReference._idx))
+        );
 
         const message = await getMessage(binaryMessage || armoredMessage!); // TODO check if defined too?
         const signature = await getSignatureIfDefined(binarySignature || armoredSignature);
@@ -427,13 +479,76 @@ export const WorkerApi = {
             buffers.push(decryptedData.buffer);
         }
 
-        return transfer(serialisedResult, buffers)
+        return transfer(serialisedResult, buffers);
 
         // TODO: once we have support for the intendedRecipient verification, we should add the
         // a `verify(publicKeys)` function to the decryption result, that allows verifying
         // the decrypted signatures after decryption.
         // Note: asking the apps to call `verifyMessage` separately is not an option, since
         // the verification result is to be considered invalid outside of the encryption context if the intended recipient is present, see: https://datatracker.ietf.org/doc/html/draft-ietf-openpgp-crypto-refresh#section-5.2.3.32
+    },
+    /**
+     * Generating a session key for the specified symmetric algorithm.
+     * To generate a session key based on some recipient's public key preferences,
+     * use `generateSessionKeyFromKeyPreferences()` instead.
+     */
+    generateSessionKey: async (algoName: Parameters<typeof generateSessionKey>[0]) => {
+        const sessionKeyBytes = await generateSessionKey(algoName);
+        return transfer(sessionKeyBytes, [sessionKeyBytes.buffer]);
+    },
+    /**
+     * Generate a session key compatible with the given recipient keys.
+     * To get a session key for a specific symmetric algorithm, use `generateSessionKey` instead.
+     */
+    generateSessionKeyFromKeyPreferences: async ({ targetKeys: targetKeyRefs = [] }: {
+        targetKeys: MaybeArray<PublicKeyReference>;
+    }) => {
+        const targetKeys = await Promise.all(
+            toArray(targetKeyRefs).map((keyReference) => keyStore.get(keyReference._idx))
+        );
+        const sessionKey = await generateSessionKeyFromKeyPreferences(targetKeys);
+        return transfer(sessionKey, [sessionKey.data.buffer]);
+    },
+
+    encryptSessionKey: async <F extends WorkerEncryptSessionKeyOptions['format'] = 'armored'>({
+        encryptionKeys: encryptionKeyRefs = [],
+        ...options
+    }: WorkerEncryptSessionKeyOptions & { format?: F }): Promise<SerialisedOutputTypeFromFormat<F>> => {
+        const encryptionKeys = await Promise.all(
+            toArray(encryptionKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PublicKey)
+        );
+        const encryptedData = await encryptSessionKey<F>({
+            ...options,
+            encryptionKeys
+        })
+
+        if (options.format === 'binary') {
+            const binaryData = encryptedData as Uint8Array;
+            return transfer(binaryData, [binaryData.buffer]) as SerialisedOutputTypeFromFormat<F>;
+        }
+
+        return encryptedData as SerialisedOutputTypeFromFormat<F>;
+    },
+
+    decryptSessionKey: async ({
+        decryptionKeys: decryptionKeyRefs = [],
+        armoredMessage,
+        binaryMessage,
+        ...options
+    }: WorkerDecryptionOptions) => {
+        const decryptionKeys = await Promise.all(
+            toArray(decryptionKeyRefs).map((keyReference) => keyStore.get(keyReference._idx) as PrivateKey)
+        );
+
+        const message = await getMessage(binaryMessage || armoredMessage!); // TODO check if defined?
+
+        const sessionKey = await decryptSessionKey({
+            ...options,
+            message,
+            decryptionKeys
+        });
+
+        return sessionKey ? transfer(sessionKey, [sessionKey.data.buffer]) : undefined;
     }
 };
 

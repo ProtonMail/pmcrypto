@@ -6,7 +6,7 @@ import {
     readKey as openpgp_readKey
 } from '../../lib/openpgp';
 import { VERIFICATION_STATUS, WorkerProxy } from '../../lib';
-import { stringToUtf8Array, generateKey } from '../../lib/pmcrypto';
+import { stringToUtf8Array, generateKey, SessionKey } from '../../lib/pmcrypto';
 
 chaiUse(chaiAsPromised);
 const workerPath = '/dist/worker.js';
@@ -252,6 +252,72 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         expect(decryptionResultWithEncryptedSignature.signatures).to.have.length(1);
         expect(decryptionResultWithEncryptedSignature.errors).to.not.exist;
         expect(decryptionResultWithEncryptedSignature.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+    });
+
+    it('generateSessionKey - should return session key of expected size', async () => {
+        const sessionKey128 = await WorkerProxy.generateSessionKey('aes128');
+        expect(sessionKey128.length).to.equal(16);
+        const sessionKey192 = await WorkerProxy.generateSessionKey('aes192');
+        expect(sessionKey192.length).to.equal(24);
+        const sessionKey256 = await WorkerProxy.generateSessionKey('aes256');
+        expect(sessionKey256.length).to.equal(32);
+    });
+
+    it('generateSessionKeyFromKeyPreferences - should return shared algo preference', async () => {
+        const aliceKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'alice', email: 'alice@test.com' } });
+        const bobKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'bob', email: 'bob@test.com' } });
+
+        const sessionKey = await WorkerProxy.generateSessionKeyFromKeyPreferences({
+            targetKeys: [aliceKeyRef, bobKeyRef]
+        });
+        expect(sessionKey.algorithm).to.equal('aes256');
+    });
+
+    it('generate/encrypt/decryptSessionKey - should encrypt and decrypt with key and password', async () => {
+        const privateKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'test', email: 'test@test.com' } });
+        const password = 'password';
+
+        const sessionKey: SessionKey = {
+            data: new Uint8Array(16).fill(123),
+            algorithm: 'aes128'
+        };
+
+        // armored result
+        await WorkerProxy.encryptSessionKey({
+            ...sessionKey,
+            encryptionKeys: privateKeyRef,
+            passwords: password
+        }).then(async (armoredEncryptedSessionKey) => {
+            const decryptedSessionKeyWithPassword = await WorkerProxy.decryptSessionKey({
+                armoredMessage: armoredEncryptedSessionKey,
+                passwords: password
+            });
+            expect(decryptedSessionKeyWithPassword).to.deep.equal(sessionKey);
+            const decryptedSessionKeyWithKey = await WorkerProxy.decryptSessionKey({
+                armoredMessage: armoredEncryptedSessionKey,
+                decryptionKeys: privateKeyRef
+            });
+            expect(decryptedSessionKeyWithKey).to.deep.equal(sessionKey);
+        });
+
+        // binary result
+        await WorkerProxy.encryptSessionKey({
+            ...sessionKey,
+            encryptionKeys: privateKeyRef,
+            passwords: password,
+            format: 'binary'
+        }).then(async (binaryEncryptedSessionKey) => {
+            const decryptedSessionKeyWithPassword = await WorkerProxy.decryptSessionKey({
+                binaryMessage: binaryEncryptedSessionKey,
+                passwords: password
+            });
+            expect(decryptedSessionKeyWithPassword).to.deep.equal(sessionKey);
+            const decryptedSessionKeyWithKey = await WorkerProxy.decryptSessionKey({
+                binaryMessage: binaryEncryptedSessionKey,
+                decryptionKeys: privateKeyRef
+            });
+            expect(decryptedSessionKeyWithKey).to.deep.equal(sessionKey);
+        });
     });
 
     describe('Key management API', () => {

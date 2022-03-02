@@ -1,1 +1,1 @@
-/*! OpenPGP.js v5.1.0 - 2022-01-24 - this is LGPL licensed code, see LICENSE/our website https://openpgpjs.org/ for more information. */
+/*! OpenPGP.js v5.1.0 - 2022-03-01 - this is LGPL licensed code, see LICENSE/our website https://openpgpjs.org/ for more information. */

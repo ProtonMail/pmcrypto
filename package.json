@@ -46,7 +46,7 @@
     "devDependencies": {
         "@openpgp/asmcrypto.js": "^2.3.2",
         "@openpgp/tweetnacl": "^1.0.3",
-        "@openpgp/web-stream-tools": "0.0.6",
+        "@openpgp/web-stream-tools": "github:larabr/web-stream-tools#ts-definitions",
         "@types/chai": "^4.3.0",
         "@types/chai-as-promised": "^7.1.4",
         "@types/mocha": "^9.0.0",
@@ -69,7 +69,7 @@
         "karma-webpack": "^5.0.0",
         "lint-staged": "^11.2.6",
         "mocha": "^9.2.0",
-        "openpgp": "~5.1.0",
+        "openpgp": "github:larabr/openpgpjs#ts-update-stream-types-and-other-options",
         "prettier": "^2.5.1",
         "ts-loader": "^9.2.6",
         "typescript": "^4.2.4",
