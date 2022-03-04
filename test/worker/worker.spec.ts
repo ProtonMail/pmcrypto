@@ -5,7 +5,7 @@ import {
     decryptKey as openpgp_decryptKey,
     readKey as openpgp_readKey
 } from '../../lib/openpgp';
-import { VERIFICATION_STATUS, WorkerProxy } from '../../lib';
+import { VERIFICATION_STATUS, CryptoWorker } from '../../lib';
 import { stringToUtf8Array, generateKey, SessionKey } from '../../lib/pmcrypto';
 import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from '../message/decryptMessageLegacy.data';
 
@@ -13,16 +13,16 @@ chaiUse(chaiAsPromised);
 const workerPath = '/dist/worker.js';
 
 before(() => {
-    WorkerProxy.init(workerPath);
+    CryptoWorker.init(workerPath);
 });
 
 afterEach(() => {
-    WorkerProxy.clearKeyStore();
+    CryptoWorker.clearKeyStore();
 })
 
 describe('WorkerAPI and Proxy Integration', () => {
     it('init - should throw if already initialised', async () => {
-        expect(() => WorkerProxy.init(workerPath)).to.throw(/already initialised/);
+        expect(() => CryptoWorker.init(workerPath)).to.throw(/already initialised/);
     })
 
     it('decryptMessage - should decrypt message with correct password', async () => {
@@ -33,7 +33,7 @@ wy4ECQMIxybp91nMWQIAa8pGeuXzR6zIs+uE6bUywPM4GKG8sve4lJoxGbVS
 tBiO7HKQxoGj3FnUTJnI52Y0pIg=
 =HJfc
 -----END PGP MESSAGE-----`;
-        const decryptionResult = await WorkerProxy.decryptMessage({
+        const decryptionResult = await CryptoWorker.decryptMessage({
             armoredMessage,
             passwords: 'password'
         });
@@ -42,7 +42,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         expect(decryptionResult.errors).to.not.exist;
         expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED)
 
-        const decryptWithWrongPassword = WorkerProxy.decryptMessage({
+        const decryptWithWrongPassword = CryptoWorker.decryptMessage({
             armoredMessage,
             passwords: 'wrong password'
         });
@@ -61,7 +61,7 @@ GzGRkb+Rzb42pnKcuihith40374=
 =ccav
 -----END PGP MESSAGE-----
 `;
-        const decryptionResult = await WorkerProxy.decryptMessage({
+        const decryptionResult = await CryptoWorker.decryptMessage({
             armoredMessage: messageWithSignature,
             passwords: 'password'
         });
@@ -75,7 +75,7 @@ GzGRkb+Rzb42pnKcuihith40374=
     });
 
     it('decryptMessage - output binary data should be transferred', async () => {
-        const decryptionResult = await WorkerProxy.decryptMessage({
+        const decryptionResult = await CryptoWorker.decryptMessage({
         armoredMessage: `-----BEGIN PGP MESSAGE-----
 
 wy4ECQMIxybp91nMWQIAa8pGeuXzR6zIs+uE6bUywPM4GKG8sve4lJoxGbVS
@@ -93,9 +93,9 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
     });
 
     it('decryptMessageLegacy - it can decrypt a legacy message', async () => {
-        const privateKeyRef = await WorkerProxy.importPrivateKey({ armoredKey: testPrivateKeyLegacy, passphrase: '123' });
+        const privateKeyRef = await CryptoWorker.importPrivateKey({ armoredKey: testPrivateKeyLegacy, passphrase: '123' });
 
-        const decryptionResult = await WorkerProxy.decryptMessageLegacy({
+        const decryptionResult = await CryptoWorker.decryptMessageLegacy({
             armoredMessage: testMessageEncryptedLegacy,
             decryptionKeys: privateKeyRef,
             messageDate: new Date('2015-01-01')
@@ -107,9 +107,9 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
     });
 
     it('decryptMessageLegacy - it can decrypt a non-legacy armored message', async () => {
-        const privateKeyRef = await WorkerProxy.importPrivateKey({ armoredKey: testPrivateKeyLegacy, passphrase: '123' });
+        const privateKeyRef = await CryptoWorker.importPrivateKey({ armoredKey: testPrivateKeyLegacy, passphrase: '123' });
 
-        const decryptionResult = await WorkerProxy.decryptMessageLegacy({
+        const decryptionResult = await CryptoWorker.decryptMessageLegacy({
             armoredMessage: testMessageEncryptedStandard,
             decryptionKeys: privateKeyRef,
             verificationKeys: privateKeyRef,
@@ -122,14 +122,14 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
     });
 
     it('encryptMessage - output binary message and signatures should be transferred', async () => {
-        const encryptionResult = await WorkerProxy.encryptMessage({
+        const encryptionResult = await CryptoWorker.encryptMessage({
             textData: 'hello world',
             passwords: 'password',
             format: 'binary'
         });
         expect(encryptionResult.message.length > 0).to.be.true;
 
-        const decryptionResult = await WorkerProxy.decryptMessage({
+        const decryptionResult = await CryptoWorker.decryptMessage({
             binaryMessage: encryptionResult.message,
             passwords: 'password'
         });
@@ -139,13 +139,13 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
     });
 
     it('encryptMessage/decryptMessage - should encrypt and decrypt text and binary data', async () => {
-        const privateKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
-        const { message: encryptedArmoredMessage } = await WorkerProxy.encryptMessage({
+        const privateKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
+        const { message: encryptedArmoredMessage } = await CryptoWorker.encryptMessage({
             textData: 'hello world',
             encryptionKeys: privateKeyRef
         });
 
-        const textDecryptionResult = await WorkerProxy.decryptMessage({
+        const textDecryptionResult = await CryptoWorker.decryptMessage({
             armoredMessage: encryptedArmoredMessage,
             decryptionKeys: privateKeyRef
         });
@@ -154,13 +154,13 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         expect(textDecryptionResult.errors).to.not.exist;
         expect(textDecryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
 
-        const { message: encryptedBinaryMessage } = await WorkerProxy.encryptMessage({
+        const { message: encryptedBinaryMessage } = await CryptoWorker.encryptMessage({
             binaryData: new Uint8Array([1, 2, 3]),
             encryptionKeys: privateKeyRef,
             format: 'binary'
         });
 
-        const binaryDecryptionResult = await WorkerProxy.decryptMessage({
+        const binaryDecryptionResult = await CryptoWorker.decryptMessage({
             binaryMessage: encryptedBinaryMessage,
             decryptionKeys: privateKeyRef,
             format: 'binary'
@@ -172,12 +172,12 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
     });
 
     it('encryptMessage/decryptMessage - with returned session key', async () => {
-        const { message: encryptedArmoredMessage, sessionKey } = await WorkerProxy.encryptMessage({
+        const { message: encryptedArmoredMessage, sessionKey } = await CryptoWorker.encryptMessage({
             textData: 'hello world',
             returnSessionKey: true
         });
 
-        const textDecryptionResult = await WorkerProxy.decryptMessage({
+        const textDecryptionResult = await CryptoWorker.decryptMessage({
             armoredMessage: encryptedArmoredMessage,
             sessionKeys: sessionKey
         });
@@ -188,8 +188,8 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
     });
 
   it('signMessage/verifyMessage - output binary signature and data should be transferred', async () => {
-        const privateKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
-        const binarySignature = await WorkerProxy.signMessage({
+        const privateKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
+        const binarySignature = await CryptoWorker.signMessage({
             textData: 'hello world',
             format: 'binary',
             detached: true,
@@ -197,7 +197,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         });
         expect(binarySignature.length > 0).to.be.true;
 
-        const verificationResult = await WorkerProxy.verifyMessage({
+        const verificationResult = await CryptoWorker.verifyMessage({
             textData: 'hello world',
             verificationKeys: privateKeyRef,
             binarySignature
@@ -207,7 +207,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         expect(verificationResult.errors).to.not.exist;
         expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
 
-        const invalidVerificationResult = await WorkerProxy.verifyMessage({
+        const invalidVerificationResult = await CryptoWorker.verifyMessage({
             textData: 'not signed data',
             binarySignature,
             verificationKeys: privateKeyRef,
@@ -220,16 +220,16 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
     });
 
     it('should encrypt/sign and decrypt/verify text and binary data', async () => {
-        const aliceKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'alice', email: 'alice@test.com' } });
-        const bobKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'bob', email: 'bob@test.com' } });
+        const aliceKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'alice', email: 'alice@test.com' } });
+        const bobKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'bob', email: 'bob@test.com' } });
 
-        const { message: encryptedArmoredMessage } = await WorkerProxy.encryptMessage({
+        const { message: encryptedArmoredMessage } = await CryptoWorker.encryptMessage({
             textData: 'hello world',
             encryptionKeys: bobKeyRef,
             signingKeys: aliceKeyRef
         });
 
-        const textDecryptionResult = await WorkerProxy.decryptMessage({
+        const textDecryptionResult = await CryptoWorker.decryptMessage({
             armoredMessage: encryptedArmoredMessage,
             decryptionKeys: bobKeyRef,
             verificationKeys: aliceKeyRef
@@ -239,14 +239,14 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         expect(textDecryptionResult.errors).to.not.exist;
         expect(textDecryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
 
-        const { message: encryptedBinaryMessage } = await WorkerProxy.encryptMessage({
+        const { message: encryptedBinaryMessage } = await CryptoWorker.encryptMessage({
             binaryData: new Uint8Array([1, 2, 3]),
             encryptionKeys: bobKeyRef,
             signingKeys: aliceKeyRef,
             format: 'binary'
         });
 
-        const binaryDecryptionResult = await WorkerProxy.decryptMessage({
+        const binaryDecryptionResult = await CryptoWorker.decryptMessage({
             binaryMessage: encryptedBinaryMessage,
             decryptionKeys: bobKeyRef,
             verificationKeys: aliceKeyRef,
@@ -259,15 +259,15 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
     });
 
     it('should encrypt/sign and decrypt/verify binary data with detached signatures', async () => {
-        const aliceKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'alice', email: 'alice@test.com' } });
-        const bobKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'bob', email: 'bob@test.com' } });
+        const aliceKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'alice', email: 'alice@test.com' } });
+        const bobKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'bob', email: 'bob@test.com' } });
 
         const plaintext = stringToUtf8Array('hello world');
         const {
             message: encryptedBinaryMessage,
             signature: detachedBinarySignature,
             encryptedSignature: encryptedBinarySignature
-        } = await WorkerProxy.encryptMessage({
+        } = await CryptoWorker.encryptMessage({
             binaryData: plaintext,
             encryptionKeys: bobKeyRef,
             signingKeys: aliceKeyRef,
@@ -275,7 +275,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
             detached: true
         });
 
-        const decryptionResult = await WorkerProxy.decryptMessage({
+        const decryptionResult = await CryptoWorker.decryptMessage({
             binaryMessage: encryptedBinaryMessage,
             binarySignature: detachedBinarySignature,
             decryptionKeys: bobKeyRef,
@@ -287,7 +287,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         expect(decryptionResult.errors).to.not.exist;
         expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
 
-        const decryptionResultWithEncryptedSignature = await WorkerProxy.decryptMessage({
+        const decryptionResultWithEncryptedSignature = await CryptoWorker.decryptMessage({
             binaryMessage: encryptedBinaryMessage,
             binaryEncryptedSignature: encryptedBinarySignature,
             decryptionKeys: bobKeyRef,
@@ -301,26 +301,26 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
     });
 
     it('generateSessionKey - should return session key of expected size', async () => {
-        const sessionKey128 = await WorkerProxy.generateSessionKey('aes128');
+        const sessionKey128 = await CryptoWorker.generateSessionKey('aes128');
         expect(sessionKey128.length).to.equal(16);
-        const sessionKey192 = await WorkerProxy.generateSessionKey('aes192');
+        const sessionKey192 = await CryptoWorker.generateSessionKey('aes192');
         expect(sessionKey192.length).to.equal(24);
-        const sessionKey256 = await WorkerProxy.generateSessionKey('aes256');
+        const sessionKey256 = await CryptoWorker.generateSessionKey('aes256');
         expect(sessionKey256.length).to.equal(32);
     });
 
     it('generateSessionKeyFromKeyPreferences - should return shared algo preference', async () => {
-        const aliceKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'alice', email: 'alice@test.com' } });
-        const bobKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'bob', email: 'bob@test.com' } });
+        const aliceKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'alice', email: 'alice@test.com' } });
+        const bobKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'bob', email: 'bob@test.com' } });
 
-        const sessionKey = await WorkerProxy.generateSessionKeyFromKeyPreferences({
+        const sessionKey = await CryptoWorker.generateSessionKeyFromKeyPreferences({
             targetKeys: [aliceKeyRef, bobKeyRef]
         });
         expect(sessionKey.algorithm).to.equal('aes256');
     });
 
     it('generate/encrypt/decryptSessionKey - should encrypt and decrypt with key and password', async () => {
-        const privateKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'test', email: 'test@test.com' } });
+        const privateKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'test', email: 'test@test.com' } });
         const password = 'password';
 
         const sessionKey: SessionKey = {
@@ -329,17 +329,17 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         };
 
         // armored result
-        await WorkerProxy.encryptSessionKey({
+        await CryptoWorker.encryptSessionKey({
             ...sessionKey,
             encryptionKeys: privateKeyRef,
             passwords: password
         }).then(async (armoredEncryptedSessionKey) => {
-            const decryptedSessionKeyWithPassword = await WorkerProxy.decryptSessionKey({
+            const decryptedSessionKeyWithPassword = await CryptoWorker.decryptSessionKey({
                 armoredMessage: armoredEncryptedSessionKey,
                 passwords: password
             });
             expect(decryptedSessionKeyWithPassword).to.deep.equal(sessionKey);
-            const decryptedSessionKeyWithKey = await WorkerProxy.decryptSessionKey({
+            const decryptedSessionKeyWithKey = await CryptoWorker.decryptSessionKey({
                 armoredMessage: armoredEncryptedSessionKey,
                 decryptionKeys: privateKeyRef
             });
@@ -347,18 +347,18 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         });
 
         // binary result
-        await WorkerProxy.encryptSessionKey({
+        await CryptoWorker.encryptSessionKey({
             ...sessionKey,
             encryptionKeys: privateKeyRef,
             passwords: password,
             format: 'binary'
         }).then(async (binaryEncryptedSessionKey) => {
-            const decryptedSessionKeyWithPassword = await WorkerProxy.decryptSessionKey({
+            const decryptedSessionKeyWithPassword = await CryptoWorker.decryptSessionKey({
                 binaryMessage: binaryEncryptedSessionKey,
                 passwords: password
             });
             expect(decryptedSessionKeyWithPassword).to.deep.equal(sessionKey);
-            const decryptedSessionKeyWithKey = await WorkerProxy.decryptSessionKey({
+            const decryptedSessionKeyWithKey = await CryptoWorker.decryptSessionKey({
                 binaryMessage: binaryEncryptedSessionKey,
                 decryptionKeys: privateKeyRef
             });
@@ -369,11 +369,11 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
     describe('Key management API', () => {
 
         it('can export a generated key', async () => {
-            const privateKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
+            const privateKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
 
             const passphrase = 'passphrase';
-            const armoredKey = await WorkerProxy.exportPrivateKey({ keyReference: privateKeyRef, passphrase });
-            const binaryKey = await WorkerProxy.exportPrivateKey({ keyReference: privateKeyRef, passphrase, format: 'binary' });
+            const armoredKey = await CryptoWorker.exportPrivateKey({ keyReference: privateKeyRef, passphrase });
+            const binaryKey = await CryptoWorker.exportPrivateKey({ keyReference: privateKeyRef, passphrase, format: 'binary' });
 
             const decryptedKeyFromArmored = await openpgp_decryptKey({
                 privateKey: await openpgp_readPrivateKey({ armoredKey }),
@@ -392,15 +392,15 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
             const passphrase = 'passphrase';
             const { privateKey: keyToImport } = await generateKey({ userIDs: { name: 'name', email: 'email@test.com' }, format: 'object', passphrase });
 
-            const importedKeyRef = await WorkerProxy.importPrivateKey({ armoredKey: keyToImport.armor(), passphrase });
+            const importedKeyRef = await CryptoWorker.importPrivateKey({ armoredKey: keyToImport.armor(), passphrase });
             expect(importedKeyRef.creationTime).to.deep.equal(keyToImport.getCreationTime())
-            const armoredPublicKey = await WorkerProxy.exportPublicKey({ keyReference: importedKeyRef });
+            const armoredPublicKey = await CryptoWorker.exportPublicKey({ keyReference: importedKeyRef });
             const exportedPublicKey = await openpgp_readKey({ armoredKey: armoredPublicKey });
             expect(exportedPublicKey.isPrivate()).to.be.false;
             expect(exportedPublicKey.getKeyID().equals(keyToImport.getKeyID()));
 
             const exportPassphrase = 'another passphrase';
-            const armoredPrivateKey = await WorkerProxy.exportPrivateKey({
+            const armoredPrivateKey = await CryptoWorker.exportPrivateKey({
                 keyReference: importedKeyRef, passphrase: exportPassphrase
             });
             const exportedPrivateKey = await openpgp_readPrivateKey({ armoredKey: armoredPrivateKey });
@@ -418,13 +418,13 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
             const { publicKey: publicKeyToImport } = await generateKey({ userIDs: { name: 'name', email: 'email@test.com' }, format: 'object', passphrase });
 
             // this give no typescript error since serialised keys are indistinguishable for TS
-            await expect(WorkerProxy.importPrivateKey({ armoredKey: publicKeyToImport.armor(), passphrase })).to.be.rejectedWith(/not of type private key/);
-            const importedKeyRef = await WorkerProxy.importPublicKey({ armoredKey: publicKeyToImport.armor() });
+            await expect(CryptoWorker.importPrivateKey({ armoredKey: publicKeyToImport.armor(), passphrase })).to.be.rejectedWith(/not of type private key/);
+            const importedKeyRef = await CryptoWorker.importPublicKey({ armoredKey: publicKeyToImport.armor() });
             expect(importedKeyRef.isPrivate()).to.be.false;
             expect(importedKeyRef.creationTime).to.deep.equal(publicKeyToImport.getCreationTime());
             // @ts-expect-error for non-private key reference
-            await expect(WorkerProxy.exportPrivateKey({ keyReference: importedKeyRef })).to.be.rejectedWith(/Cannot encrypt a public key/);
-            const armoredPublicKey = await WorkerProxy.exportPublicKey({ keyReference: importedKeyRef });
+            await expect(CryptoWorker.exportPrivateKey({ keyReference: importedKeyRef })).to.be.rejectedWith(/Cannot encrypt a public key/);
+            const armoredPublicKey = await CryptoWorker.exportPublicKey({ keyReference: importedKeyRef });
             const exportedPublicKey = await openpgp_readKey({ armoredKey: armoredPublicKey });
             expect(exportedPublicKey.isPrivate()).to.be.false;
             expect(exportedPublicKey.getKeyID().equals(publicKeyToImport.getKeyID()));
@@ -434,11 +434,11 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
             const passphrase = 'passphrase';
             const { privateKey } = await generateKey({ userIDs: { name: 'name', email: 'email@test.com' }, passphrase, format: 'object' });
 
-            const importedKeyRef = await WorkerProxy.importPrivateKey({ armoredKey: privateKey.armor(), passphrase });
+            const importedKeyRef = await CryptoWorker.importPrivateKey({ armoredKey: privateKey.armor(), passphrase });
             expect(importedKeyRef.isPrivate()).to.be.true;
 
             await expect(
-                WorkerProxy.importPrivateKey({ armoredKey: privateKey.armor(), passphrase: 'wrong passphrase' })
+                CryptoWorker.importPrivateKey({ armoredKey: privateKey.armor(), passphrase: 'wrong passphrase' })
             ).to.be.rejectedWith(/Error decrypting private key: Incorrect key passphrase/);
         });
 
@@ -458,36 +458,36 @@ XU0oD7GPQhGsaxZjAQCmjVBDdt+CgmU9NFYwtTIWNHxxJtyf7TX7DY9RH1t2
 DQ==
 =2Lb6
 -----END PGP PRIVATE KEY BLOCK-----`;
-            const importedKeyRef = await WorkerProxy.importPrivateKey({
+            const importedKeyRef = await CryptoWorker.importPrivateKey({
                 armoredKey: decryptedArmoredKey,
                 passphrase: null
             });
             expect(importedKeyRef.isPrivate()).to.be.true;
 
             await expect(
-                WorkerProxy.importPrivateKey({ armoredKey: decryptedArmoredKey, passphrase: 'passphrase' })
+                CryptoWorker.importPrivateKey({ armoredKey: decryptedArmoredKey, passphrase: 'passphrase' })
             ).to.be.rejectedWith(/Key packet is already decrypted/);
         });
 
         it('clearKey - cannot reference a cleared key', async () => {
-            const privateKeyRef = await WorkerProxy.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
+            const privateKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
             // confirm key is in the store
-            expect(await WorkerProxy.exportPublicKey({ keyReference: privateKeyRef })).length.above(0);
-            await WorkerProxy.clearKey(privateKeyRef);
+            expect(await CryptoWorker.exportPublicKey({ keyReference: privateKeyRef })).length.above(0);
+            await CryptoWorker.clearKey(privateKeyRef);
 
-            await expect(WorkerProxy.exportPublicKey({ keyReference: privateKeyRef })).to.be.rejectedWith(/Key not found/);
+            await expect(CryptoWorker.exportPublicKey({ keyReference: privateKeyRef })).to.be.rejectedWith(/Key not found/);
         });
 
         it('clearKeyStore - cannot reference any key after clearing the store', async () => {
-            const privateKeyRef1 = await WorkerProxy.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
-            const privateKeyRef2 = await WorkerProxy.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
+            const privateKeyRef1 = await CryptoWorker.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
+            const privateKeyRef2 = await CryptoWorker.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
             // (lazily) confirm that keys are in the store
-            expect(await WorkerProxy.exportPublicKey({ keyReference: privateKeyRef1 })).length.above(0);
-            expect(await WorkerProxy.exportPublicKey({ keyReference: privateKeyRef2 })).length.above(0);
-            await WorkerProxy.clearKeyStore();
+            expect(await CryptoWorker.exportPublicKey({ keyReference: privateKeyRef1 })).length.above(0);
+            expect(await CryptoWorker.exportPublicKey({ keyReference: privateKeyRef2 })).length.above(0);
+            await CryptoWorker.clearKeyStore();
 
-            await expect(WorkerProxy.exportPublicKey({ keyReference: privateKeyRef1 })).to.be.rejectedWith(/Key not found/);
-            await expect(WorkerProxy.exportPublicKey({ keyReference: privateKeyRef2 })).to.be.rejectedWith(/Key not found/);
+            await expect(CryptoWorker.exportPublicKey({ keyReference: privateKeyRef1 })).to.be.rejectedWith(/Key not found/);
+            await expect(CryptoWorker.exportPublicKey({ keyReference: privateKeyRef2 })).to.be.rejectedWith(/Key not found/);
         });
 
     });
