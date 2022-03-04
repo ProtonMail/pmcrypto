@@ -4,7 +4,8 @@
         "moduleResolution": "node",
         "strict": true,
         "sourceMap": true,
-        "allowJs": true
+        "allowJs": true,
+        "noEmitOnError": true
     },
     "include": [
         "./test/**/*"
