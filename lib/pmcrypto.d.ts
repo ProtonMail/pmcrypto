@@ -109,7 +109,7 @@ export function decryptSessionKey(options: DecryptSessionKeyOptionsPmcrypto): Pr
 
 export interface DecryptOptionsPmcrypto<T extends MaybeStream<Data>> extends DecryptOptions {
     message: Message<T>;
-    encryptedSignature?: OpenPGPMessage;
+    encryptedSignature?: Message<MaybeStream<Data>>;
 }
 
 export interface DecryptResultPmcrypto<T extends openpgp_DecryptMessageResult['data'] = MaybeStream<Data>> {
