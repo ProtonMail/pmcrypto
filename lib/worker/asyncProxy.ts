@@ -1,4 +1,4 @@
-import { wrap, Remote, transferHandlers } from 'comlink';
+import { wrap, Remote, transferHandlers, releaseProxy } from 'comlink';
 import type { WorkerApi } from './worker';
 import { customTransferHandlers } from './transferHandlers';
 
@@ -6,7 +6,7 @@ type WorkerInterface = typeof WorkerApi;
 
 let worker: Remote<WorkerInterface> | null = null;
 
-export const initWorker = (path: string) => {
+const initWorker = (path: string) => {
     if (worker !== null) {
         throw new Error('worker already initialised');
     }
@@ -14,6 +14,11 @@ export const initWorker = (path: string) => {
     worker = wrap<WorkerInterface>(new Worker(path));
     return worker;
 };
+
+const destroyWorker = async () => {
+    await worker?.clearKeyStore();
+    worker?.[releaseProxy]();
+}
 
 const assertInitialised = (): true => {
     if (worker == null) throw new Error('Uninitialised worker');
@@ -23,6 +28,7 @@ const assertInitialised = (): true => {
 // TODO all returned types are promises
 interface WorkerProxyInterface extends WorkerInterface {
     init(path: string): void;
+    destroy(): Promise<void>;
 }
 
 // TODO implement WorkerProxy as class and expose singleton instead? (cleaner to keep the state inside the instance)
@@ -33,6 +39,7 @@ export const WorkerProxy: WorkerProxyInterface = {
         // @ts-ignore
         customTransferHandlers.forEach(({ name, handler }) => transferHandlers.set(name, handler));
     },
+    destroy: destroyWorker,
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface, hence the resulting Remote type
     // cannot infer the output signature dynamically based on the input.
     encryptMessage: (opts) => assertInitialised() && worker!.encryptMessage(opts),

@@ -18,6 +18,10 @@ before(() => {
 
 afterEach(() => {
     CryptoWorker.clearKeyStore();
+});
+
+after(() => {
+    CryptoWorker.destroy();
 })
 
 describe('WorkerAPI and Proxy Integration', () => {
