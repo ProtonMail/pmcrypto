@@ -2,8 +2,7 @@
     "name": "pmcrypto",
     "version": "6.7.1",
     "description": "",
-    "main": "./lib/index.js",
-    "types": "./lib/index.d.ts",
+    "main": "./lib/index.ts",
     "sideEffects": false,
     "browser": {
         "buffer": false,
