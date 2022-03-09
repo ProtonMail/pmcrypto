@@ -1,7 +1,8 @@
 {
     "compilerOptions": {
-        "target": "ES6",
+        "target": "es2018",
         "moduleResolution": "node",
+        "module": "esnext",
         "strict": true,
         "sourceMap": true,
         "allowJs": true,
