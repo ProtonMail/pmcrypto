@@ -1,12 +1,12 @@
 import { wrap, Remote, transferHandlers, releaseProxy } from 'comlink';
-import type { WorkerApi } from './worker';
-import { customTransferHandlers } from './transferHandlers';
+import type { WorkerApi } from './api';
+import { mainThreadTransferHandlers } from './transferHandlers';
 
 type WorkerInterface = typeof WorkerApi;
 
 let worker: Remote<WorkerInterface> | null = null;
 
-const initWorker = (path: string) => {
+const initWorker = (path: string | URL) => {
     if (worker !== null) {
         throw new Error('worker already initialised');
     }
@@ -27,17 +27,15 @@ const assertInitialised = (): true => {
 
 // TODO all returned types are promises
 interface WorkerProxyInterface extends WorkerInterface {
-    init(path: string): void;
+    init(path: string | URL): void;
     destroy(): Promise<void>;
 }
 
 // TODO implement WorkerProxy as class and expose singleton instead? (cleaner to keep the state inside the instance)
-// @ts-ignore TODO need to implement all methods
 export const WorkerProxy: WorkerProxyInterface = {
     init: (path) => {
         initWorker(path);
-        // @ts-ignore
-        customTransferHandlers.forEach(({ name, handler }) => transferHandlers.set(name, handler));
+        mainThreadTransferHandlers.forEach(({ name, handler }) => transferHandlers.set(name, handler));
     },
     destroy: destroyWorker,
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface, hence the resulting Remote type
