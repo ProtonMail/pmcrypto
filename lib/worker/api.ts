@@ -35,7 +35,6 @@ import type {
 } from '../pmcrypto';
 import { decryptKey, encryptKey, MaybeArray, readPrivateKey } from '../openpgp';
 
-const test = new Uint8Array(19)
 // Note:
 // - streams are currently not supported since they are not Transferable (not in all browsers).
 // - when returning binary data, the values are always transferred.

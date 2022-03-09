@@ -10,10 +10,9 @@ import { stringToUtf8Array, generateKey, SessionKey } from '../../lib/pmcrypto';
 import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from '../message/decryptMessageLegacy.data';
 
 chaiUse(chaiAsPromised);
-const workerPath = '/dist/worker.js';
 
 before(() => {
-    CryptoWorker.init(workerPath);
+    CryptoWorker.init();
 });
 
 afterEach(() => {
@@ -26,7 +25,7 @@ after(() => {
 
 describe('WorkerAPI and Proxy Integration', () => {
     it('init - should throw if already initialised', async () => {
-        expect(() => CryptoWorker.init(workerPath)).to.throw(/already initialised/);
+        expect(() => CryptoWorker.init()).to.throw(/already initialised/);
     })
 
     it('decryptMessage - should decrypt message with correct password', async () => {

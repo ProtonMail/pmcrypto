@@ -9,12 +9,9 @@
         "stream": false
     },
     "scripts": {
-        "build-worker": "webpack --config webpack.worker.js",
-        "build": "npm run build-worker",
-        "test": "npm run build-worker && karma start karma.conf.js",
+        "test": "karma start karma.conf.js",
         "lint": "eslint lib test --quiet",
         "pretty": "prettier --write lib",
-        "preversion": "npm run build && git add -A dist",
         "postversion": "git push && git push --tags",
         "test-type-definitions": "tsc lib/pmcrypto.d.ts"
     },
@@ -43,10 +40,10 @@
         "comlink": "^4.3.1",
         "openpgp": "github:larabr/openpgpjs#ts-update-stream-types-and-other-options",
         "@openpgp/asmcrypto.js": "^2.3.2",
-        "@openpgp/web-stream-tools": "github:larabr/web-stream-tools#ts-definitions"
+        "@openpgp/web-stream-tools": "github:larabr/web-stream-tools#ts-definitions",
+        "@openpgp/tweetnacl": "^1.0.3"
     },
     "devDependencies": {
-        "@openpgp/tweetnacl": "^1.0.3",
         "@types/chai": "^4.3.0",
         "@types/chai-as-promised": "^7.1.4",
         "@types/mocha": "^9.0.0",

@@ -1,7 +1,0 @@
-/*! OpenPGP.js v5.1.0 - 2022-03-01 - this is LGPL licensed code, see LICENSE/our website https://openpgpjs.org/ for more information. */
-
-/**
- * @file {@link http://asmjs.org Asm.js} implementation of the {@link https://en.wikipedia.org/wiki/Advanced_Encryption_Standard Advanced Encryption Standard}.
- * @author Artem S Vybornov <vybornov@gmail.com>
- * @license MIT
- */

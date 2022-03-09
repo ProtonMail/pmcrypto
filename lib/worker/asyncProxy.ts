@@ -6,12 +6,15 @@ type WorkerInterface = typeof WorkerApi;
 
 let worker: Remote<WorkerInterface> | null = null;
 
-const initWorker = (path: string | URL) => {
+const initWorker = () => {
     if (worker !== null) {
         throw new Error('worker already initialised');
     }
 
-    worker = wrap<WorkerInterface>(new Worker(path));
+    // Webpack static analyser is not especially powerful at detecting web workers that require bundling,
+    // see: https://github.com/webpack/webpack.js.org/issues/4898#issuecomment-823073304.
+    // Harcoding the path here is the easiet way to get the worker to be bundled properly.
+    worker = wrap<WorkerInterface>(new Worker(new URL('./worker.ts', import.meta.url)));
     return worker;
 };
 
@@ -27,14 +30,14 @@ const assertInitialised = (): true => {
 
 // TODO all returned types are promises
 interface WorkerProxyInterface extends WorkerInterface {
-    init(path: string | URL): void;
+    init(): void;
     destroy(): Promise<void>;
 }
 
 // TODO implement WorkerProxy as class and expose singleton instead? (cleaner to keep the state inside the instance)
 export const WorkerProxy: WorkerProxyInterface = {
-    init: (path) => {
-        initWorker(path);
+    init: () => {
+        initWorker();
         mainThreadTransferHandlers.forEach(({ name, handler }) => transferHandlers.set(name, handler));
     },
     destroy: destroyWorker,
