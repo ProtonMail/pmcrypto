@@ -11,8 +11,8 @@ import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, te
 
 chaiUse(chaiAsPromised);
 
-before(() => {
-    CryptoWorker.init();
+before(async () => {
+    await CryptoWorker.init();
 });
 
 afterEach(() => {
@@ -25,7 +25,7 @@ after(() => {
 
 describe('WorkerAPI and Proxy Integration', () => {
     it('init - should throw if already initialised', async () => {
-        expect(() => CryptoWorker.init()).to.throw(/already initialised/);
+        await expect(CryptoWorker.init()).to.be.rejectedWith(/already initialised/);
     })
 
     it('decryptMessage - should decrypt message with correct password', async () => {

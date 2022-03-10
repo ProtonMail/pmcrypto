@@ -2,11 +2,9 @@ import { wrap, Remote, transferHandlers, releaseProxy } from 'comlink';
 import type { WorkerApi } from './api';
 import { mainThreadTransferHandlers } from './transferHandlers';
 
-type WorkerInterface = typeof WorkerApi;
+let worker: Remote<WorkerApi> | null = null;
 
-let worker: Remote<WorkerInterface> | null = null;
-
-const initWorker = () => {
+const initWorker = async () => {
     if (worker !== null) {
         throw new Error('worker already initialised');
     }
@@ -14,7 +12,8 @@ const initWorker = () => {
     // Webpack static analyser is not especially powerful at detecting web workers that require bundling,
     // see: https://github.com/webpack/webpack.js.org/issues/4898#issuecomment-823073304.
     // Harcoding the path here is the easiet way to get the worker to be bundled properly.
-    worker = wrap<WorkerInterface>(new Worker(new URL('./worker.ts', import.meta.url)));
+    const RemoteApi = wrap<typeof WorkerApi>(new Worker(new URL('./worker.ts', import.meta.url)));
+    worker = await new RemoteApi()
     return worker;
 };
 
@@ -29,15 +28,15 @@ const assertInitialised = (): true => {
 };
 
 // TODO all returned types are promises
-interface WorkerProxyInterface extends WorkerInterface {
+interface WorkerProxyInterface extends WorkerApi {
     init(): void;
     destroy(): Promise<void>;
 }
 
 // TODO implement WorkerProxy as class and expose singleton instead? (cleaner to keep the state inside the instance)
 export const WorkerProxy: WorkerProxyInterface = {
-    init: () => {
-        initWorker();
+    init: async () => {
+        await initWorker();
         mainThreadTransferHandlers.forEach(({ name, handler }) => transferHandlers.set(name, handler));
     },
     destroy: destroyWorker,
@@ -69,5 +68,7 @@ export const WorkerProxy: WorkerProxyInterface = {
     // @ts-ignore cannot forward type parameters through Comlink.Remote interface
     exportPrivateKey: (opts) => assertInitialised() && worker!.exportPrivateKey(opts),
     clearKeyStore: () => assertInitialised() && worker!.clearKeyStore(),
-    clearKey: (opts) => assertInitialised() && worker!.clearKey(opts)
+    clearKey: (opts) => assertInitialised() && worker!.clearKey(opts),
+    serverTime: () => assertInitialised() && worker!.serverTime(),
+    updateServerTime: (opts) => assertInitialised() && worker!.updateServerTime(opts)
 };
