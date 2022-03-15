@@ -18,9 +18,9 @@ describe('processMIME', () => {
     it('it can process multipart/signed mime messages and verify the signature', async () => {
         const { body, verified, signatures, attachments, encryptedSubject } = await processMIME(
             {
+                data: multipartSignedMessage,
                 verificationKeys: await getKeys(key)
-            },
-            multipartSignedMessage
+            }
         );
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         expect(signatures.length).to.equal(1);
@@ -33,9 +33,9 @@ describe('processMIME', () => {
     it('it can process multipart/signed mime messages and verify the signature with extra parts at the end', async () => {
         const { body, verified,signatures } = await processMIME(
             {
+                data: extraMultipartSignedMessage,
                 verificationKeys: await getKeys(key)
-            },
-            extraMultipartSignedMessage
+            }
         );
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         expect(body).to.equal('hello');
@@ -45,9 +45,9 @@ describe('processMIME', () => {
     it('it does not verify invalid messages', async () => {
         const { verified, body, signatures } = await processMIME(
             {
+                data: invalidMultipartSignedMessage,
                 verificationKeys: await getKeys(key)
-            },
-            invalidMultipartSignedMessage
+            }
         );
         expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
         expect(signatures.length).to.equal(0);
@@ -57,9 +57,9 @@ describe('processMIME', () => {
     it('it can parse messages with special characters in the boundary', async () => {
         const { verified, body, signatures } = await processMIME(
             {
+                data: multiPartMessageWithSpecialCharacter,
                 verificationKeys: await getKeys(key)
-            },
-            multiPartMessageWithSpecialCharacter
+            }
         );
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         expect(signatures.length).to.equal(1);
@@ -67,12 +67,10 @@ describe('processMIME', () => {
     });
 
     it('it can parse message with text attachment', async () => {
-        const { verified, body, signatures, attachments } = await processMIME(
-            {
-                verificationKeys: await getKeys(key)
-            },
-            multipartMessageWithAttachment
-        );
+        const { verified, body, signatures, attachments } = await processMIME({
+            data: multipartMessageWithAttachment,
+            verificationKeys: await getKeys(key)
+        });
         expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
         expect(signatures.length).to.equal(0);
         expect(body).to.equal('this is the body text\n');
@@ -88,12 +86,10 @@ describe('processMIME', () => {
     });
 
     it('it can parse message with encrypted subject', async () => {
-        const { verified, body, signatures, encryptedSubject } = await processMIME(
-            {
-                verificationKeys: await getKeys(key)
-            },
-            multipartMessageWithEncryptedSubject
-        );
+        const { verified, body, signatures, encryptedSubject } = await processMIME({
+            data: multipartMessageWithEncryptedSubject,
+            verificationKeys: await getKeys(key)
+        });
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
         expect(signatures.length).to.equal(1);
         expect(encryptedSubject).to.equal('Encrypted subject');

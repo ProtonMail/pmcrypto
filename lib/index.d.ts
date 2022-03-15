@@ -272,6 +272,7 @@ export interface VerifyMessageResult {
 export function verifyMessage(options: VerifyOptionsPmcrypto): Promise<VerifyMessageResult>;
 
 export interface ProcessMIMEOptions {
+    data: string,
     verificationKeys?: PublicKey[],
     date?: Date,
     headerFilename?: string;
@@ -300,7 +301,7 @@ export interface ProcessMIMEResult {
     signatures: Signature[]
 }
 
-export function processMIME(options: ProcessMIMEOptions, data: string): Promise<ProcessMIMEResult>;
+export function processMIME(options: ProcessMIMEOptions): Promise<ProcessMIMEResult>;
 
 export function serverTime(): Date;
 
