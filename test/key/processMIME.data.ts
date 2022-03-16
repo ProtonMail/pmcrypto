@@ -138,3 +138,60 @@ euiL4uYD
 
 --=-=pj+EhsWuSQJxx7=-=
 `;
+
+// Message from: https://docs.microsoft.com/en-us/previous-versions/office/developer/exchange-server-2010/aa563375(v=exchg.140)
+export const multipartMessageWithAttachment = `From: Some One <someone@example.com>
+To: "Someone Else" <someone-else@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="XXXXboundary text"
+
+This is a multipart message in MIME format.
+
+--XXXXboundary text
+Content-Type: text/plain
+
+this is the body text
+
+--XXXXboundary text
+Content-Type: text/plain;
+Content-Disposition: attachment; filename="test.txt"
+
+this is the attachment text
+
+--XXXXboundary text--`;
+
+// NB: this message signature is invalid and not verifiable using `key`.
+export const multipartMessageWithEncryptedSubject = `From: "Some One" <someone@example.com>
+To: "Someone Else" <someone-else@example.com>
+Subject: ...
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256; protocol="application/pgp-signature"; boundary="------------w7atwMAiUaHQsKDKV5d0o0kr"
+
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--------------w7atwMAiUaHQsKDKV5d0o0kr
+Content-Type: multipart/mixed; boundary="------------nUB097wGzA443Ku03aYWQKqa"; protected-headers="v1"
+Subject: Encrypted subject
+From: "Some One" <someone@example.com>
+To: "Someone Else" <someone-else@example.com>
+
+--------------nUB097wGzA443Ku03aYWQKqa
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+
+hello
+--------------nUB097wGzA443Ku03aYWQKqa--
+
+--------------w7atwMAiUaHQsKDKV5d0o0kr
+Content-Type: application/pgp-signature; name="OpenPGP_signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="OpenPGP_signature"
+
+-----BEGIN PGP SIGNATURE-----
+
+wnUEARYKAAYFAmIwlfMAIQkQdqGsuYvE1jgWIQRGvajOG9a8ZbdysiN2oay5
+i8TWOBX5AP0V5H79/eiraXKKBCvpqwcEzrv1DHfhvrjTHk9L6PIadgD/fXdv
+WTyjgksKkPV68HhW1CIKZ4JIMe726uldjP6tgw8=
+=nHao
+-----END PGP SIGNATURE-----
+
+--------------w7atwMAiUaHQsKDKV5d0o0kr--`;
