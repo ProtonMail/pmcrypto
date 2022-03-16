@@ -387,7 +387,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         expect(body).to.equal(multipartSignedMessageBody);
     });
 
-    it('it can parse message with text attachment', async () => {
+    it('processMIME - it can parse message with text attachment', async () => {
         const { verified, body, signatures, attachments } = await CryptoWorker.processMIME({
             data: multipartMessageWithAttachment
         });
@@ -400,6 +400,46 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         expect(attachment.checksum).to.equal('94ee2b41f2016f2ec79a7b3a2faf920e');
         expect(attachment.content.length > 0).to.be.true;
         expect(utf8ArrayToString(attachment.content)).to.equal('this is the attachment text\r\n')
+    });
+
+    it('getMessageInfo - it returns correct keyIDs', async () => {
+        const signedMessage = `-----BEGIN PGP MESSAGE-----
+
+xA0DAQoWaZjmpnshsL8Bywt1AGIyFfFoZWxsb8J1BAEWCgAGBQJiMhXxACEJ
+EGmY5qZ7IbC/FiEE3C2Gg07gzeD8liPcaZjmpnshsL9atgD+PiNipUtpGyv7
+Jky/kRH9ikiCFdnNCPmXpGM/HXBQsnAA/jZVt+uBEVIgTeTJ9c7AqEgV3x9K
+2Dj4M71DOHZr/lAL
+=gTiI
+-----END PGP MESSAGE-----`;
+        const encryptedMessage = `-----BEGIN PGP MESSAGE-----
+
+wV4DmdSzzm35uOMSAQdAfIPK4Iteh+VVFIddVCaR60ETJ8mhx6ytbR7ppS4h
+qiAwqc/J464YnVgZ8BbGLt0k2ipAsR5y0M+I+GivWhCXMSKtRwvBmwiCgiE7
+PzIOge9V0jYBuRj2e07jffFN7LDy9Q6kaLdkj+R/pAJi1StBntsW0sBBSkcN
+xMT1c31ROTrAe4C6g21wLAY=
+=2VmX
+-----END PGP MESSAGE-----`;
+
+        const signedMessageInfo = await CryptoWorker.getMessageInfo({ armoredMessage: signedMessage });
+        expect(signedMessageInfo.getEncryptionKeyIDs()).to.deep.equal([]);
+        expect(signedMessageInfo.getSigningKeyIDs()).to.deep.equal(['6998e6a67b21b0bf']);
+
+        const encryptedMessageInfo = await CryptoWorker.getMessageInfo({ armoredMessage: encryptedMessage });
+        expect(encryptedMessageInfo.getEncryptionKeyIDs()).to.deep.equal(['99d4b3ce6df9b8e3']);
+        expect(encryptedMessageInfo.getSigningKeyIDs()).to.deep.equal([]);
+    });
+
+    it('getSignatureInfo - it returns correct keyIDs', async () => {
+        const armoredSignature = `-----BEGIN PGP SIGNATURE-----
+
+wnUEARYKAAYFAmIyIZcAIQkQaZjmpnshsL8WIQTcLYaDTuDN4PyWI9xpmOam
+eyGwv58uAQDBVzpXdSjXtEleTrlCDV0Ai7edrGelnbYl5M5QWHsO6AEA7ylY
+M8uical4EQWijKwbwpfCViRXlPLbWED7HjRFJAQ=
+=jrvP
+-----END PGP SIGNATURE-----`;
+
+        const signatureInfo = await CryptoWorker.getSignatureInfo({ armoredSignature });
+        expect(signatureInfo.getSigningKeyIDs()).to.deep.equal(['6998e6a67b21b0bf']);
     });
 
     describe('Key management API', () => {

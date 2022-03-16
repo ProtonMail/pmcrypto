@@ -63,8 +63,11 @@ export const WorkerProxy: WorkerProxyInterface = (() => {
         exportPrivateKey: (opts) => assertInitialised(worker) && worker.exportPrivateKey(opts),
         clearKeyStore: () => assertInitialised(worker) && worker.clearKeyStore(),
         clearKey: (opts) => assertInitialised(worker) && worker.clearKey(opts),
+
+        getMessageInfo: (opts) => assertInitialised(worker) && worker.getMessageInfo(opts),
+        getSignatureInfo: (opts) => assertInitialised(worker) && worker.getSignatureInfo(opts),
         serverTime: () => assertInitialised(worker) && worker.serverTime(),
         updateServerTime: (opts) => assertInitialised(worker) && worker.updateServerTime(opts)
-    } as WorkerProxyInterface; // casting needed as TS cannot forward type parameters through Comlink.Remote interface
-    // hence the resulting Remote type cannot infer the output signature dynamically based on the input.
+    } as WorkerProxyInterface; // casting needed to 'reuse' WorkerApi's parametric types declarations and preserve dynamic inference of
+    // the output types based on the input ones.
 })();
