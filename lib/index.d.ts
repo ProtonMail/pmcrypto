@@ -11,6 +11,7 @@ import {
     reformatKey,
     generateKey,
     PrivateKey,
+    PublicKey,
     SessionKey,
     encryptSessionKey,
     WebStream
@@ -269,6 +270,38 @@ export interface VerifyMessageResult {
     errors?: Error[];
 }
 export function verifyMessage(options: VerifyOptionsPmcrypto): Promise<VerifyMessageResult>;
+
+export interface ProcessMIMEOptions {
+    data: string,
+    verificationKeys?: PublicKey[],
+    date?: Date,
+    headerFilename?: string;
+    sender?: string;
+}
+
+// TODO? this definition is copied as-is from the webapps; some fields declared as optional might actually always be present
+export interface MIMEAttachment {
+    checksum?: string;
+    content: Uint8Array;
+    contentDisposition?: string;
+    contentId?: string;
+    contentType?: string;
+    fileName?: string;
+    generatedFileName?: string;
+    length?: number;
+    transferEncoding?: string;
+}
+
+export interface ProcessMIMEResult {
+    body?: string,
+    attachments: MIMEAttachment[],
+    verified: VERIFICATION_STATUS,
+    encryptedSubject: string,
+    mimetype?: 'text/html' | 'text/plain',
+    signatures: Signature[]
+}
+
+export function processMIME(options: ProcessMIMEOptions): Promise<ProcessMIMEResult>;
 
 export function serverTime(): Date;
 
