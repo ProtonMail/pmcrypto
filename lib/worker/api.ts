@@ -16,7 +16,8 @@ import {
     getKey,
     serverTime,
     updateServerTime,
-    decryptSessionKey
+    decryptSessionKey,
+    processMIME
 } from '../pmcrypto';
 import type {
     DecryptOptionsPmcrypto,
@@ -33,7 +34,9 @@ import type {
     Key,
     EncryptSessionKeyOptionsPmcrypto,
     DecryptSessionKeyOptionsPmcrypto,
-    DecryptLegacyOptions
+    DecryptLegacyOptions,
+    ProcessMIMEOptions,
+    ProcessMIMEResult
 } from '../pmcrypto';
 import { decryptKey, encryptKey, MaybeArray, readPrivateKey } from '../openpgp';
 
@@ -95,6 +98,14 @@ export interface WorkerEncryptOptions<T extends Data> extends Omit<EncryptOption
     encryptionKeys?: MaybeArray<PublicKeyReference>,
     signingKeys?: MaybeArray<PrivateKeyReference>
 };
+
+export interface WorkerProcessMIMEOptions extends Omit<ProcessMIMEOptions, 'verificationKeys'> {
+    verificationKeys?: MaybeArray<PublicKeyReference>
+}
+
+export interface WorkerProcessMIMEResult extends Omit<ProcessMIMEResult, 'signatures'> {
+    signatures: Uint8Array[]
+}
 
 export type WorkerExportedKey<F extends 'armored' | 'binary' | undefined = 'armored'> = F extends 'armored' ? string : Uint8Array;
 
@@ -565,5 +576,28 @@ export class WorkerApi extends KeyManagementApi {
         });
 
         return sessionKey;
+    }
+
+    async processMIME({
+        verificationKeys: verificationKeyRefs = [],
+        ...options
+    }: WorkerProcessMIMEOptions) {
+        const verificationKeys = toArray(verificationKeyRefs).map(
+            (keyReference) => this.keyStore.get(keyReference._idx)
+        );
+
+        const {
+            signatures: signatureObjects,
+            ...resultWithoutSignature
+        } = await processMIME({
+            ...options,
+            verificationKeys
+        });
+
+        const serialisedResult = {
+            ...resultWithoutSignature,
+            signatures: signatureObjects.map((sig) => sig.write() as Uint8Array)
+        };
+        return serialisedResult;
     }
 };

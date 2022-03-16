@@ -6,8 +6,14 @@ import {
     readKey as openpgp_readKey
 } from '../../lib/openpgp';
 import { VERIFICATION_STATUS, CryptoWorker } from '../../lib';
-import { stringToUtf8Array, generateKey, SessionKey } from '../../lib/pmcrypto';
+import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey } from '../../lib/pmcrypto';
 import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from '../message/decryptMessageLegacy.data';
+import {
+    multipartSignedMessage,
+    multipartSignedMessageBody,
+    multipartMessageWithAttachment,
+    key as mimeKey
+} from '../key/processMIME.data';
 
 chaiUse(chaiAsPromised);
 
@@ -124,7 +130,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
-    it('encryptMessage - output binary message and signatures should be transferred', async () => {
+    it('encryptMessage - output binary message should be transferred', async () => {
         const encryptionResult = await CryptoWorker.encryptMessage({
             textData: 'hello world',
             passwords: 'password',
@@ -367,6 +373,33 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
             });
             expect(decryptedSessionKeyWithKey).to.deep.equal(sessionKey);
         });
+    });
+
+    it('processMIME - it can process multipart/signed mime messages and verify the signature', async () => {
+        const mimeKeyRef = await CryptoWorker.importPublicKey({ armoredKey: mimeKey })
+        const { body, verified, signatures } = await CryptoWorker.processMIME({
+            data: multipartSignedMessage,
+            verificationKeys: mimeKeyRef
+        });
+        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(signatures.length).to.equal(1);
+        expect(signatures[0].length > 0).to.be.true; // check that serialized signature is transferred
+        expect(body).to.equal(multipartSignedMessageBody);
+    });
+
+    it('it can parse message with text attachment', async () => {
+        const { verified, body, signatures, attachments } = await CryptoWorker.processMIME({
+            data: multipartMessageWithAttachment
+        });
+        expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
+        expect(signatures.length).to.equal(0);
+        expect(body).to.equal('this is the body text\n');
+        expect(attachments.length).to.equal(1);
+        const [attachment] = attachments;
+        expect(attachment.fileName).to.equal('test.txt');
+        expect(attachment.checksum).to.equal('94ee2b41f2016f2ec79a7b3a2faf920e');
+        expect(attachment.content.length > 0).to.be.true;
+        expect(utf8ArrayToString(attachment.content)).to.equal('this is the attachment text\r\n')
     });
 
     describe('Key management API', () => {
