@@ -61,16 +61,26 @@ const toArray = <T>(maybeArray: MaybeArray<T>) => (Array.isArray(maybeArray) ? m
 const getPublicKeyReference = async (key: PublicKey, keyStoreID: number): Promise<PublicKeyReference> => {
     const publicKey = key.isPrivate() ? key.toPublic() : key; // We don't throw on private key since we allow importing an (encrypted) private key using 'importPublicKey'
 
+    const fingerprint = publicKey.getFingerprint();
+    const keyID = publicKey.getKeyID().toHex();
+    const algorithmInfo = publicKey.getAlgorithmInfo();
+    const creationTime = publicKey.getCreationTime();
+    const expirationTime = await publicKey.getExpirationTime();
+    const userIDs = publicKey.getUserIDs();
+
     return {
         _idx: keyStoreID,
         isPrivate: () => false,
-        fingerprint: publicKey.getFingerprint(),
-        keyID: publicKey.getKeyID().toHex(),
-        algorithmInfo: publicKey.getAlgorithmInfo(),
-        creationTime: publicKey.getCreationTime(),
-        expirationTime: await publicKey.getExpirationTime(),
-        userIDs: publicKey.getUserIDs(),
-        subkeys: publicKey.getSubkeys().map((subkey) => ({ algorithmInfo: subkey.getAlgorithmInfo() }))
+        getFingerprint: () => fingerprint,
+        getKeyID: () => keyID,
+        getAlgorithmInfo: () => algorithmInfo,
+        getCreationTime: () => creationTime,
+        getExpirationTime: () => expirationTime,
+        getUserIDs: () => userIDs,
+        subkeys: publicKey.getSubkeys().map((subkey) => {
+            const subkeyAlgoInfo = subkey.getAlgorithmInfo();
+            return { getAlgorithmInfo: () => subkeyAlgoInfo };
+        })
         // armor: () => armoredKey
     };
 };

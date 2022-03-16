@@ -149,15 +149,15 @@ export type WorkerPublicKeyImport = { armoredKey?: string, binaryKey?: Uint8Arra
 export interface KeyReference {
     /** Internal unique key identifier for the key store */
     readonly _idx: any,
-    readonly fingerprint: string,
-    readonly keyID: string,
-    readonly algorithmInfo: AlgorithmInfo,
-    readonly creationTime: Date,
-    readonly isPrivate: () => this is PrivateKeyReference,
-    readonly expirationTime: Date | number | null,
-    readonly userIDs: string[],
-    readonly subkeys: {
-        algorithmInfo: AlgorithmInfo
+    getFingerprint(): string,
+    getKeyID(): string,
+    getAlgorithmInfo(): AlgorithmInfo,
+    getCreationTime(): Date,
+    isPrivate: () => this is PrivateKeyReference,
+    getExpirationTime(): Date | number | null,
+    getUserIDs(): string[],
+    subkeys: {
+        getAlgorithmInfo(): AlgorithmInfo
     }[]
     // readonly armor: () => string
 }

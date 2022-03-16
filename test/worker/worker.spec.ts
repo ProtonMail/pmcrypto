@@ -469,10 +469,15 @@ M8uical4EQWijKwbwpfCViRXlPLbWED7HjRFJAQ=
             const { privateKey: keyToImport } = await generateKey({ userIDs: { name: 'name', email: 'email@test.com' }, format: 'object', passphrase });
 
             const importedKeyRef = await CryptoWorker.importPrivateKey({ armoredKey: keyToImport.armor(), passphrase });
-            expect(importedKeyRef.creationTime).to.deep.equal(keyToImport.getCreationTime())
+            expect(importedKeyRef.getCreationTime()).to.deep.equal(keyToImport.getCreationTime());
+            expect(
+                importedKeyRef.subkeys.map((subkey) => subkey.getAlgorithmInfo())
+            ).to.deep.equal(keyToImport.subkeys.map((subkey) => subkey.getAlgorithmInfo()));
+            expect(importedKeyRef.getUserIDs()).to.deep.equal(['name <email@test.com>']);
             const armoredPublicKey = await CryptoWorker.exportPublicKey({ keyReference: importedKeyRef });
             const exportedPublicKey = await openpgp_readKey({ armoredKey: armoredPublicKey });
             expect(exportedPublicKey.isPrivate()).to.be.false;
+            expect(exportedPublicKey.getKeyID().toHex()).equals(importedKeyRef.getKeyID())
             expect(exportedPublicKey.getKeyID().equals(keyToImport.getKeyID()));
 
             const exportPassphrase = 'another passphrase';
@@ -497,7 +502,7 @@ M8uical4EQWijKwbwpfCViRXlPLbWED7HjRFJAQ=
             await expect(CryptoWorker.importPrivateKey({ armoredKey: publicKeyToImport.armor(), passphrase })).to.be.rejectedWith(/not of type private key/);
             const importedKeyRef = await CryptoWorker.importPublicKey({ armoredKey: publicKeyToImport.armor() });
             expect(importedKeyRef.isPrivate()).to.be.false;
-            expect(importedKeyRef.creationTime).to.deep.equal(publicKeyToImport.getCreationTime());
+            expect(importedKeyRef.getCreationTime()).to.deep.equal(publicKeyToImport.getCreationTime());
             // @ts-expect-error for non-private key reference
             await expect(CryptoWorker.exportPrivateKey({ keyReference: importedKeyRef })).to.be.rejectedWith(/Cannot encrypt a public key/);
             const armoredPublicKey = await CryptoWorker.exportPublicKey({ keyReference: importedKeyRef });

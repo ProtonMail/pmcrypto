@@ -3,21 +3,37 @@ import type { KeyReference, MessageInfo, SignatureInfo } from './api.models';
 
 // return interface with same non-function fields as T, and with function fields type converted to their return type
 // e.g. ExtractFunctionReturnTypes<{ foo: () => string, bar: 3 }> returns { foo: string, bar: 3 }
-type ExtractFunctionReturnTypes<T> = { [I in keyof T]: T[I] extends (...args: any) => any ? ReturnType<T[I]> : T[I] };
+type ExtractFunctionReturnTypes<T> = {
+    [I in keyof T]: T[I] extends (...args: any) => any ?
+        ReturnType<T[I]> :
+        T[I] extends Array<infer A> ? ExtractFunctionReturnTypes<A>[] : T[I] // recurse on array fields
+};
 
+type SerializedKeyReference = ExtractFunctionReturnTypes<KeyReference>;
 const KeyReferenceSerializer = {
-    canHandle: (obj: any): obj is KeyReference => (typeof obj === 'object') && obj.isPrivate !== undefined,
-    serialize: (keyReference: KeyReference) => ({
+    canHandle: (obj: any): obj is KeyReference => (typeof obj === 'object') && obj._idx !== undefined && obj.isPrivate !== undefined,
+    serialize: (keyReference: KeyReference): SerializedKeyReference => ({  // store values directly, convert back to function when deserialising
         ...keyReference,
-        isPrivate: keyReference.isPrivate() // store boolean directly, convert back to function when deserialising
+        isPrivate: keyReference.isPrivate(),
+        getFingerprint: keyReference.getFingerprint(),
+        getKeyID: keyReference.getKeyID(),
+        getAlgorithmInfo: keyReference.getAlgorithmInfo(),
+        getCreationTime: keyReference.getCreationTime(),
+        getExpirationTime: keyReference.getExpirationTime(),
+        getUserIDs: keyReference.getUserIDs(),
+        subkeys: keyReference.subkeys.map((subkey) => ({ getAlgorithmInfo: subkey.getAlgorithmInfo() }))
     }),
 
-    deserialize: ({
-        isPrivate,
-        ...keyReference
-    }: Omit<KeyReference, 'isPrivate'> & { isPrivate: boolean }): KeyReference => ({
-        ...keyReference,
-        isPrivate: () => isPrivate
+    deserialize: (serialized: SerializedKeyReference): KeyReference => ({
+        ...serialized,
+        isPrivate: () => serialized.isPrivate,
+        getFingerprint: () => serialized.getFingerprint,
+        getKeyID: () => serialized.getKeyID,
+        getAlgorithmInfo: () => serialized.getAlgorithmInfo,
+        getCreationTime: () => serialized.getCreationTime,
+        getExpirationTime: () => serialized.getExpirationTime,
+        getUserIDs: () => serialized.getUserIDs,
+        subkeys: serialized.subkeys.map((subkey) => ({ getAlgorithmInfo: () => subkey.getAlgorithmInfo }))
     })
 };
 
