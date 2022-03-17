@@ -17,11 +17,15 @@ const KeyReferenceSerializer = {
         isPrivate: keyReference.isPrivate(),
         getFingerprint: keyReference.getFingerprint(),
         getKeyID: keyReference.getKeyID(),
+        getKeyIDs: keyReference.getKeyIDs(),
         getAlgorithmInfo: keyReference.getAlgorithmInfo(),
         getCreationTime: keyReference.getCreationTime(),
         getExpirationTime: keyReference.getExpirationTime(),
         getUserIDs: keyReference.getUserIDs(),
-        subkeys: keyReference.subkeys.map((subkey) => ({ getAlgorithmInfo: subkey.getAlgorithmInfo() }))
+        subkeys: keyReference.subkeys.map((subkey) => ({
+            getAlgorithmInfo: subkey.getAlgorithmInfo(),
+            getKeyID: subkey.getKeyID()
+        }))
     }),
 
     deserialize: (serialized: SerializedKeyReference): KeyReference => ({
@@ -29,11 +33,15 @@ const KeyReferenceSerializer = {
         isPrivate: () => serialized.isPrivate,
         getFingerprint: () => serialized.getFingerprint,
         getKeyID: () => serialized.getKeyID,
+        getKeyIDs: () => serialized.getKeyIDs,
         getAlgorithmInfo: () => serialized.getAlgorithmInfo,
         getCreationTime: () => serialized.getCreationTime,
         getExpirationTime: () => serialized.getExpirationTime,
         getUserIDs: () => serialized.getUserIDs,
-        subkeys: serialized.subkeys.map((subkey) => ({ getAlgorithmInfo: () => subkey.getAlgorithmInfo }))
+        subkeys: serialized.subkeys.map((subkey) => ({
+            getAlgorithmInfo: () => subkey.getAlgorithmInfo,
+            getKeyID: () => subkey.getKeyID
+        }))
     })
 };
 

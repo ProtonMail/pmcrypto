@@ -131,8 +131,8 @@ export interface WorkerGetMessageInfoOptions<T extends Data> {
 }
 
 export interface MessageInfo {
-    signingKeyIDs: string[],
-    encryptionKeyIDs: string[]
+    signingKeyIDs: KeyID[],
+    encryptionKeyIDs: KeyID[]
 }
 
 export interface WorkerGetSignatureInfoOptions<T extends Data> {
@@ -141,23 +141,26 @@ export interface WorkerGetSignatureInfoOptions<T extends Data> {
 }
 
 export interface SignatureInfo {
-    signingKeyIDs: string[],
+    signingKeyIDs: KeyID[],
 }
 
 export type WorkerPublicKeyImport = { armoredKey?: string, binaryKey?: Uint8Array };
+export type KeyID = string;
 
 export interface KeyReference {
     /** Internal unique key identifier for the key store */
     readonly _idx: any,
     getFingerprint(): string,
-    getKeyID(): string,
+    getKeyID(): KeyID,
+    getKeyIDs(): KeyID[],
     getAlgorithmInfo(): AlgorithmInfo,
     getCreationTime(): Date,
     isPrivate: () => this is PrivateKeyReference,
     getExpirationTime(): Date | number | null,
     getUserIDs(): string[],
     subkeys: {
-        getAlgorithmInfo(): AlgorithmInfo
+        getAlgorithmInfo(): AlgorithmInfo,
+        getKeyID(): KeyID
     }[]
     // readonly armor: () => string
 }

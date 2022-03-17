@@ -62,7 +62,8 @@ const getPublicKeyReference = async (key: PublicKey, keyStoreID: number): Promis
     const publicKey = key.isPrivate() ? key.toPublic() : key; // We don't throw on private key since we allow importing an (encrypted) private key using 'importPublicKey'
 
     const fingerprint = publicKey.getFingerprint();
-    const keyID = publicKey.getKeyID().toHex();
+    const hexKeyID = publicKey.getKeyID().toHex();
+    const hexKeyIDs = publicKey.getKeyIDs().map((id) => id.toHex());
     const algorithmInfo = publicKey.getAlgorithmInfo();
     const creationTime = publicKey.getCreationTime();
     const expirationTime = await publicKey.getExpirationTime();
@@ -72,14 +73,19 @@ const getPublicKeyReference = async (key: PublicKey, keyStoreID: number): Promis
         _idx: keyStoreID,
         isPrivate: () => false,
         getFingerprint: () => fingerprint,
-        getKeyID: () => keyID,
+        getKeyID: () => hexKeyID,
+        getKeyIDs: () => hexKeyIDs,
         getAlgorithmInfo: () => algorithmInfo,
         getCreationTime: () => creationTime,
         getExpirationTime: () => expirationTime,
         getUserIDs: () => userIDs,
         subkeys: publicKey.getSubkeys().map((subkey) => {
             const subkeyAlgoInfo = subkey.getAlgorithmInfo();
-            return { getAlgorithmInfo: () => subkeyAlgoInfo };
+            const subkeyKeyID = subkey.getKeyID().toHex();
+            return {
+                getAlgorithmInfo: () => subkeyAlgoInfo,
+                getKeyID: () => subkeyKeyID
+            };
         })
         // armor: () => armoredKey
     };
