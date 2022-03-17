@@ -421,12 +421,12 @@ xMT1c31ROTrAe4C6g21wLAY=
 -----END PGP MESSAGE-----`;
 
         const signedMessageInfo = await CryptoWorker.getMessageInfo({ armoredMessage: signedMessage });
-        expect(signedMessageInfo.getEncryptionKeyIDs()).to.deep.equal([]);
-        expect(signedMessageInfo.getSigningKeyIDs()).to.deep.equal(['6998e6a67b21b0bf']);
+        expect(signedMessageInfo.encryptionKeyIDs).to.deep.equal([]);
+        expect(signedMessageInfo.signingKeyIDs).to.deep.equal(['6998e6a67b21b0bf']);
 
         const encryptedMessageInfo = await CryptoWorker.getMessageInfo({ armoredMessage: encryptedMessage });
-        expect(encryptedMessageInfo.getEncryptionKeyIDs()).to.deep.equal(['99d4b3ce6df9b8e3']);
-        expect(encryptedMessageInfo.getSigningKeyIDs()).to.deep.equal([]);
+        expect(encryptedMessageInfo.encryptionKeyIDs).to.deep.equal(['99d4b3ce6df9b8e3']);
+        expect(encryptedMessageInfo.signingKeyIDs).to.deep.equal([]);
     });
 
     it('getSignatureInfo - it returns correct keyIDs', async () => {
@@ -439,7 +439,7 @@ M8uical4EQWijKwbwpfCViRXlPLbWED7HjRFJAQ=
 -----END PGP SIGNATURE-----`;
 
         const signatureInfo = await CryptoWorker.getSignatureInfo({ armoredSignature });
-        expect(signatureInfo.getSigningKeyIDs()).to.deep.equal(['6998e6a67b21b0bf']);
+        expect(signatureInfo.signingKeyIDs).to.deep.equal(['6998e6a67b21b0bf']);
     });
 
     describe('Key management API', () => {

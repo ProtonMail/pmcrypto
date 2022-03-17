@@ -492,10 +492,7 @@ export class WorkerApi extends KeyManagementApi {
         const signingKeyIDs = message.getSigningKeyIDs().map((keyID) => keyID.toHex());
         const encryptionKeyIDs = message.getEncryptionKeyIDs().map((keyID) => keyID.toHex());
 
-        return {
-            getSigningKeyIDs: () => signingKeyIDs,
-            getEncryptionKeyIDs: () => encryptionKeyIDs
-        };
+        return { signingKeyIDs, encryptionKeyIDs };
     }
 
     async getSignatureInfo<T extends Data>({
@@ -505,8 +502,6 @@ export class WorkerApi extends KeyManagementApi {
         const signature = await getSignature(binarySignature || armoredSignature!);
         const signingKeyIDs = signature.getSigningKeyIDs().map((keyID) => keyID.toHex());
 
-        return {
-            getSigningKeyIDs: () => signingKeyIDs
-        };
+        return { signingKeyIDs };
     }
 };

@@ -1,5 +1,5 @@
 import type { TransferHandler } from 'comlink';
-import type { KeyReference, MessageInfo, SignatureInfo } from './api.models';
+import type { KeyReference } from './api.models';
 
 // return interface with same non-function fields as T, and with function fields type converted to their return type
 // e.g. ExtractFunctionReturnTypes<{ foo: () => string, bar: 3 }> returns { foo: string, bar: 3 }
@@ -68,45 +68,6 @@ const KeyOptionsSerializer = {
 
         return options;
     }
-};
-
-type SerializedMessageInfo = ExtractFunctionReturnTypes<MessageInfo>;
-const MessageInfoSerializer = {
-    _fieldNames: ['getSigningKeyIDs', 'getEncryptionKeyIDs'],
-    canHandle: (obj: any): obj is MessageInfo => (
-        (typeof obj === 'object') &&
-        Object.keys(obj).length === MessageInfoSerializer._fieldNames.length &&
-        MessageInfoSerializer._fieldNames.every((field) => obj[field] !== undefined)
-    ),    serialize: (info: MessageInfo): SerializedMessageInfo => ({ // store values directly, convert back to function when deserialising
-        getEncryptionKeyIDs: info.getEncryptionKeyIDs(),
-        getSigningKeyIDs: info.getSigningKeyIDs()
-    }),
-
-    deserialize: ({
-        getEncryptionKeyIDs: encryptionKeyIDs,
-        getSigningKeyIDs: signingKeyIDs
-    }: SerializedMessageInfo): MessageInfo => ({
-        getEncryptionKeyIDs: () => encryptionKeyIDs,
-        getSigningKeyIDs: () => signingKeyIDs
-    })
-};
-type SerializedSignatureInfo = ExtractFunctionReturnTypes<SignatureInfo>;
-const SignatureInfoSerializer = {
-    _fieldNames: ['getSigningKeyIDs'],
-    canHandle: (obj: any): obj is SignatureInfo => (
-        (typeof obj === 'object') &&
-        Object.keys(obj).length === SignatureInfoSerializer._fieldNames.length &&
-        SignatureInfoSerializer._fieldNames.every((field) => obj[field] !== undefined)
-    ),
-    serialize: (info: SignatureInfo): SerializedSignatureInfo => ({ // store values directly, convert back to function when deserialising
-        getSigningKeyIDs: info.getSigningKeyIDs()
-    }),
-
-    deserialize: ({
-        getSigningKeyIDs: signingKeyIDs
-    }: SerializedSignatureInfo): SignatureInfo => ({
-        getSigningKeyIDs: () => signingKeyIDs
-    })
 };
 
 const ResultTranferer = {
@@ -199,28 +160,6 @@ const sharedTransferHandlers: ExportedTransferHandler[] = [
                 [] // transferables
             ],
             deserialize: KeyOptionsSerializer.deserialize
-        }
-    },
-    {
-        name: 'MessageInfo', // only returned by the worker, but it's harmless to declare the same handler on both sides
-        handler: {
-            canHandle: MessageInfoSerializer.canHandle,
-            serialize: (info: MessageInfo) => [
-                MessageInfoSerializer.serialize(info),
-                [] // transferables
-            ],
-            deserialize: MessageInfoSerializer.deserialize
-        }
-    },
-    {
-        name: 'SignatureInfo', // only returned by the worker, but it's harmless to declare the same handler on both sides
-        handler: {
-            canHandle: SignatureInfoSerializer.canHandle,
-            serialize: (info: SignatureInfo) => [
-                SignatureInfoSerializer.serialize(info),
-                [] // transferables
-            ],
-            deserialize: SignatureInfoSerializer.deserialize
         }
     }
 ];

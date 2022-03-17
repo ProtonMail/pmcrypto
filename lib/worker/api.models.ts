@@ -131,8 +131,8 @@ export interface WorkerGetMessageInfoOptions<T extends Data> {
 }
 
 export interface MessageInfo {
-    getSigningKeyIDs: () => string[],
-    getEncryptionKeyIDs: () => string[]
+    signingKeyIDs: string[],
+    encryptionKeyIDs: string[]
 }
 
 export interface WorkerGetSignatureInfoOptions<T extends Data> {
@@ -141,7 +141,7 @@ export interface WorkerGetSignatureInfoOptions<T extends Data> {
 }
 
 export interface SignatureInfo {
-    getSigningKeyIDs: () => string[],
+    signingKeyIDs: string[],
 }
 
 export type WorkerPublicKeyImport = { armoredKey?: string, binaryKey?: Uint8Array };
