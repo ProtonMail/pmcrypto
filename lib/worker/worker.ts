@@ -7,6 +7,6 @@ workerTransferHandlers.forEach(
     ({ name, handler }) => transferHandlers.set(name, handler)
 );
 
-initPmcrypto()
+initPmcrypto();
 
 expose(WorkerApi);
