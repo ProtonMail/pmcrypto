@@ -1,12 +1,12 @@
-export const VERIFICATION_STATUS = {
-    NOT_SIGNED: 0,
-    SIGNED_AND_VALID: 1,
-    SIGNED_AND_INVALID: 2
-};
+export enum VERIFICATION_STATUS {
+    NOT_SIGNED = 0,
+    SIGNED_AND_VALID = 1,
+    SIGNED_AND_INVALID = 2
+}
 
-export const SIGNATURE_TYPES = {
-    BINARY: 0,
-    CANONICAL_TEXT: 1
+export enum SIGNATURE_TYPES {
+    BINARY = 0,
+    CANONICAL_TEXT = 1
 };
 
 export const MAX_ENC_HEADER_LENGTH = 1024;
