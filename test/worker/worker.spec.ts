@@ -3,10 +3,11 @@ import * as chaiAsPromised from 'chai-as-promised';
 import {
     readPrivateKey as openpgp_readPrivateKey,
     decryptKey as openpgp_decryptKey,
-    readKey as openpgp_readKey
+    readKey as openpgp_readKey,
+    revokeKey as openpgp_revokeKey
 } from '../../lib/openpgp';
 import { VERIFICATION_STATUS, CryptoWorker } from '../../lib';
-import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey } from '../../lib/pmcrypto';
+import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey, reformatKey } from '../../lib/pmcrypto';
 import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from '../message/decryptMessageLegacy.data';
 import {
     multipartSignedMessage,
@@ -442,6 +443,49 @@ M8uical4EQWijKwbwpfCViRXlPLbWED7HjRFJAQ=
         expect(signatureInfo.signingKeyIDs).to.deep.equal(['6998e6a67b21b0bf']);
     });
 
+    it('isExpiredKey - it can correctly detect an expired key', async () => {
+        const now = new Date();
+        const future = new Date(+now + 1000);
+        const past = new Date(+now - 1000);
+        // key expires in one second
+        const expiringKeyRef = await CryptoWorker.generateKey({
+            userIDs: [{ name: 'name', email: 'email@test.com' }],
+            date: now,
+            keyExpirationTime: 1
+        });
+        expect(await CryptoWorker.isExpiredKey({ keyReference: expiringKeyRef, date: now })).to.be.false;
+        expect(await CryptoWorker.isExpiredKey({ keyReference: expiringKeyRef, date: future })).to.be.true;
+        expect(await CryptoWorker.isExpiredKey({ keyReference: expiringKeyRef, date: past })).to.be.true;
+
+        const keyReference = await CryptoWorker.generateKey({
+            userIDs: [{ name: 'name', email: 'email@test.com' }],
+            date: now
+        });
+        expect(await CryptoWorker.isExpiredKey({ keyReference })).to.be.false;
+        expect(await CryptoWorker.isExpiredKey({ keyReference, date: past })).to.be.true;
+    });
+
+    it('isRevokedKey - it can correctly detect a revoked key', async () => {
+        const past = new Date(0);
+        const now = new Date();
+
+        const { privateKey: key, revocationCertificate } = await generateKey({
+            userIDs: [{ name: 'name', email: 'email@test.com' }],
+            date: past,
+            format: 'object'
+        });
+        const { publicKey: armoredRevokedKey } = await openpgp_revokeKey({
+            key,
+            revocationCertificate
+        });
+
+        const keyRef = await CryptoWorker.importPublicKey({ armoredKey: key.armor() });
+        const revokedKeyRef = await CryptoWorker.importPublicKey({ armoredKey: armoredRevokedKey });
+        expect(await CryptoWorker.isRevokedKey({ keyReference: revokedKeyRef, date: past })).to.be.true;
+        expect(await CryptoWorker.isRevokedKey({ keyReference: revokedKeyRef, date: now })).to.be.true;
+        expect(await CryptoWorker.isRevokedKey({ keyReference: keyRef, date: now })).to.be.false;
+    });
+
     describe('Key management API', () => {
 
         it('can export a generated key', async () => {
@@ -548,6 +592,26 @@ DQ==
             await expect(
                 CryptoWorker.importPrivateKey({ armoredKey: decryptedArmoredKey, passphrase: 'passphrase' })
             ).to.be.rejectedWith(/Key packet is already decrypted/);
+        });
+
+        it('equals - returns true for equal public keys', async () => {
+            const userIDs = { name: 'name', email: 'email@test.com' };
+            const { privateKey, publicKey } = await generateKey({ userIDs, format: 'object' });
+
+            const privateKeyRef = await CryptoWorker.importPrivateKey({
+                armoredKey: privateKey.armor(), passphrase: null
+            });
+            const publicKeyRef = await CryptoWorker.importPublicKey({ armoredKey: publicKey.armor() });
+            expect(privateKeyRef.equals(publicKeyRef)).to.be.true;
+
+            // change expiration time
+            const { privateKey: armoredReformattedKey } = await reformatKey({
+                privateKey, userIDs, keyExpirationTime: 3600
+            })
+            const reformattedKeyRef = await CryptoWorker.importPrivateKey({
+                armoredKey: armoredReformattedKey, passphrase: null
+            });
+            expect(privateKeyRef.equals(reformattedKeyRef)).to.be.false;
         });
 
         it('clearKey - cannot reference a cleared key', async () => {

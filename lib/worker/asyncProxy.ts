@@ -64,6 +64,8 @@ export const WorkerProxy: WorkerProxyInterface = (() => {
         clearKeyStore: () => assertInitialised(worker) && worker.clearKeyStore(),
         clearKey: (opts) => assertInitialised(worker) && worker.clearKey(opts),
 
+        isExpiredKey: (opts) => assertInitialised(worker) && worker.isExpiredKey(opts),
+        isRevokedKey: (opts) => assertInitialised(worker) && worker.isRevokedKey(opts),
         getMessageInfo: (opts) => assertInitialised(worker) && worker.getMessageInfo(opts),
         getSignatureInfo: (opts) => assertInitialised(worker) && worker.getSignatureInfo(opts),
         serverTime: () => assertInitialised(worker) && worker.serverTime(),

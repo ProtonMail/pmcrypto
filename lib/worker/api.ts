@@ -19,7 +19,9 @@ import {
     decryptSessionKey,
     processMIME,
     SHA256,
-    arrayToHexString
+    arrayToHexString,
+    isRevokedKey,
+    isExpiredKey
 } from '../pmcrypto';
 import type {
     Data,
@@ -514,5 +516,20 @@ export class WorkerApi extends KeyManagementApi {
         const signingKeyIDs = signature.getSigningKeyIDs().map((keyID) => keyID.toHex());
 
         return { signingKeyIDs };
+    }
+
+    async isRevokedKey({ keyReference, date }: { keyReference: KeyReference, date?: Date }) {
+        const key = this.keyStore.get(keyReference._idx);
+        const isRevoked = await isRevokedKey(key, date);
+        return isRevoked;
+    }
+
+    /**
+     * Returns whether the primary key is expired, or its creation time is in the future.
+     */
+    async isExpiredKey({ keyReference, date }: { keyReference: KeyReference, date?: Date }) {
+        const key = this.keyStore.get(keyReference._idx);
+        const isExpired = await isExpiredKey(key, date);
+        return isExpired;
     }
 };
