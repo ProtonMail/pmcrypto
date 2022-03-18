@@ -17,28 +17,35 @@ import {
     decryptSessionKeys as openpgp_decryptSessionKeys,
     WebStream,
     CleartextMessage,
-    KeyOptions
+    KeyOptions as GenerateKeyOptions,
+    UserID,
+    PartialConfig
 } from 'openpgp/lightweight';
+
+import { VERIFICATION_STATUS, SIGNATURE_TYPES } from './constants';
+
+type MaybeArray<T> = T | T[];
 
 export function init(): void;
 
-export enum VERIFICATION_STATUS {
-    NOT_SIGNED = 0,
-    SIGNED_AND_VALID = 1,
-    SIGNED_AND_INVALID = 2
-}
-
-export enum SIGNATURE_TYPES {
-    BINARY = 0,
-    CANONICAL_TEXT = 1
-}
+export { VERIFICATION_STATUS, SIGNATURE_TYPES};
 
 export type OpenPGPKey = Key;
 export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing streaming support
 export type OpenPGPSignature = Signature;
 
 export { generateKey, reformatKey };
-export type { PrivateKey, PublicKey, KeyOptions, Key, SessionKey };
+export type { PrivateKey, PublicKey, GenerateKeyOptions, Key, SessionKey };
+
+export interface ReformatKeyOptions {
+    privateKey: PrivateKey;
+    userIDs?: MaybeArray<UserID>;
+    passphrase?: string;
+    keyExpirationTime?: number;
+    date?: Date,
+    format?: GenerateKeyOptions['format'],
+    config?: PartialConfig
+}
 
 export interface DecryptLegacyOptions extends Omit<DecryptOptions, 'message'> {
     message: string;
@@ -238,6 +245,7 @@ export function signMessage<
 export function getSignature(option: string | Uint8Array | OpenPGPSignature): Promise<OpenPGPSignature>;
 
 export function getMessage(message: OpenPGPMessage | Uint8Array | string): Promise<OpenPGPMessage>;
+export function getCleartextMessage(message: CleartextMessage | string): Promise<CleartextMessage>;
 
 export function splitMessage(message: OpenPGPMessage | Uint8Array | string): Promise<{
     asymmetric: Uint8Array[];
@@ -249,7 +257,7 @@ export function splitMessage(message: OpenPGPMessage | Uint8Array | string): Pro
     other: Uint8Array[];
 }>;
 
-export function armorBytes(value: Uint8Array | string): Promise<Uint8Array | string>;
+export function armorBytes(value: Uint8Array | string): Promise<string>;
 
 export interface AlgorithmInfo {
     algorithm: string;
@@ -292,7 +300,7 @@ export interface VerifyCleartextOptionsPmcrypto extends Omit<VerifyOptions, 'mes
 // Cleartext message data is always of utf8 format
 export function verifyCleartextMessage(
     options: VerifyCleartextOptionsPmcrypto
-): Promise<VerifyMessageResult>;
+): Promise<VerifyMessageResult<string>>;
 
 export interface ProcessMIMEOptions {
     data: string,
@@ -326,8 +334,7 @@ export interface ProcessMIMEResult {
 
 export function processMIME(options: ProcessMIMEOptions): Promise<ProcessMIMEResult>;
 
-export function serverTime(): Date;
-export function updateServerTime(serverDate: Date): Date;
+export { serverTime, updateServerTime } from './serverTime';
 
 export function getSHA256Fingerprints(key: OpenPGPKey): Promise<string[]>;
 
