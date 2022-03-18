@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { checkKeyStrength } from '../../lib/pmcrypto';
 import { readKey } from '../../lib/openpgp';
 
-const ecc25519Key = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+export const ecc25519Key = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 xjMEYRaiLRYJKwYBBAHaRw8BAQdAMrsrfniSJuxOLn+Q3VKP0WWqgizG4VOF
 6t0HZYx8mSnNEHRlc3QgPHRlc3RAYS5pdD7CjAQQFgoAHQUCYRaiLQQLCQcI
@@ -17,7 +17,7 @@ po3C/804tJkeKgEA0ruKx9rcMTi4LxfYgijjPrI+GgrfegfREt/YN2KQ75gA
 =8+ep
 -----END PGP PUBLIC KEY BLOCK-----`;
 
-const eddsaElGamalSubkey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+export const eddsaElGamalSubkey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
 
 xVgEYRU8lhYJKwYBBAHaRw8BAQdAixQ3oWfWg0zF8Dr8iCSKI7d87uR0D8KT
 jaXmeP/BFLMAAQC6l0agypEfDhEsPXnooVeQ9RdbuQJt79G0X0fEMJUaHA6L
@@ -43,7 +43,7 @@ LAhjJS/ggyNCU/A+d6Eu9gacwFDD3j0IQLNe012Z2wU=
 =qRad
 -----END PGP PRIVATE KEY BLOCK-----`;
 
-const rsa512BitsKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+export const rsa512BitsKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 xk0EYRam4gECALVRNFX0hcAEE2+FfdzawLPZJwyk2Lt4Rw/iWk+lBmbWuifM
 b7vbYKV2gGBnyEIoo1P6eN6aN7sRFtYYL0uVWB0AEQEAAc0QdGVzdCA8dGVz
@@ -60,7 +60,7 @@ m53MXUW1fnpBPuv9RWJDN+tLhm5FPJktpuElr6hcBg==
 
 describe('key checks', () => {
     it('it warns on insecure primary key (RSA 512 bits)', async () => {
-        const key = await readKey({ armoredKey: rsa512BitsKey, config: { minRSABits: 0 } });
+        const key = await readKey({ armoredKey: rsa512BitsKey });
         expect(
             () => checkKeyStrength(key)
         ).to.throw(/Keys shorter than 2047 bits are considered unsafe/)

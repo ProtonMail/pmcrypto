@@ -15,6 +15,11 @@ import {
     multipartMessageWithAttachment,
     key as mimeKey
 } from '../key/processMIME.data';
+import {
+    rsa512BitsKey,
+    ecc25519Key,
+    eddsaElGamalSubkey
+} from '../key/check.spec'
 
 chaiUse(chaiAsPromised);
 
@@ -190,6 +195,24 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         const textDecryptionResult = await CryptoWorker.decryptMessage({
             armoredMessage: encryptedArmoredMessage,
             sessionKeys: sessionKey
+        });
+        expect(textDecryptionResult.data).to.equal('hello world');
+        expect(textDecryptionResult.signatures).to.have.length(0);
+        expect(textDecryptionResult.errors).to.not.exist;
+        expect(textDecryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
+    });
+
+    it('encryptMessage/decryptMessage - with elgamal key', async () => {
+        // an elgamal key is considered insecure by OpenPGP.js by default, but we need to allow existing keys to be used for now.
+        const weakKeyRef = await CryptoWorker.importPrivateKey({ armoredKey: eddsaElGamalSubkey, passphrase: null })
+        const { message: encryptedArmoredMessage } = await CryptoWorker.encryptMessage({
+            textData: 'hello world',
+            encryptionKeys: weakKeyRef
+        });
+
+        const textDecryptionResult = await CryptoWorker.decryptMessage({
+            armoredMessage: encryptedArmoredMessage,
+            decryptionKeys: weakKeyRef
         });
         expect(textDecryptionResult.data).to.equal('hello world');
         expect(textDecryptionResult.signatures).to.have.length(0);
