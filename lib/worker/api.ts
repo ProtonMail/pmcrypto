@@ -21,7 +21,8 @@ import {
     SHA256,
     arrayToHexString,
     isRevokedKey,
-    isExpiredKey
+    isExpiredKey,
+    canKeyEncrypt
 } from '../pmcrypto';
 import type {
     Data,
@@ -531,5 +532,15 @@ export class WorkerApi extends KeyManagementApi {
         const key = this.keyStore.get(keyReference._idx);
         const isExpired = await isExpiredKey(key, date);
         return isExpired;
+    }
+
+    /**
+     * Check whether a key can successfully encrypt a message.
+     * This confirms that the key has encryption capabilities, it is neither expired nor revoked, and that its key material is valid.
+     */
+    async canKeyEncrypt({ keyReference, date }: { keyReference: KeyReference, date?: Date }) {
+        const key = this.keyStore.get(keyReference._idx);
+        const canEncrypt = await canKeyEncrypt(key, date);
+        return canEncrypt;
     }
 };

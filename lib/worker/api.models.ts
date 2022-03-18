@@ -12,10 +12,12 @@ import type {
   DecryptSessionKeyOptionsPmcrypto,
   DecryptLegacyOptions,
   ProcessMIMEOptions,
-  ProcessMIMEResult
+  ProcessMIMEResult,
+  SessionKey
 } from '../pmcrypto';
 
 type MaybeArray<T> = T[] | T;
+export type { SessionKey };
 
 // TODO TS: do not allow mutually exclusive properties
 export interface WorkerDecryptionOptions

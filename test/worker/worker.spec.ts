@@ -443,7 +443,7 @@ M8uical4EQWijKwbwpfCViRXlPLbWED7HjRFJAQ=
         expect(signatureInfo.signingKeyIDs).to.deep.equal(['6998e6a67b21b0bf']);
     });
 
-    it('isExpiredKey - it can correctly detect an expired key', async () => {
+    it('isExpiredKey/canKeyEncrypt - it can correctly detect an expired key', async () => {
         const now = new Date();
         const future = new Date(+now + 1000);
         const past = new Date(+now - 1000);
@@ -456,6 +456,9 @@ M8uical4EQWijKwbwpfCViRXlPLbWED7HjRFJAQ=
         expect(await CryptoWorker.isExpiredKey({ keyReference: expiringKeyRef, date: now })).to.be.false;
         expect(await CryptoWorker.isExpiredKey({ keyReference: expiringKeyRef, date: future })).to.be.true;
         expect(await CryptoWorker.isExpiredKey({ keyReference: expiringKeyRef, date: past })).to.be.true;
+        // canKeyEncrypt should return false for expired keys
+        expect(await CryptoWorker.canKeyEncrypt({ keyReference: expiringKeyRef, date: now })).to.be.true;
+        expect(await CryptoWorker.canKeyEncrypt({ keyReference: expiringKeyRef, date: past })).to.be.false;
 
         const keyReference = await CryptoWorker.generateKey({
             userIDs: [{ name: 'name', email: 'email@test.com' }],
@@ -465,7 +468,7 @@ M8uical4EQWijKwbwpfCViRXlPLbWED7HjRFJAQ=
         expect(await CryptoWorker.isExpiredKey({ keyReference, date: past })).to.be.true;
     });
 
-    it('isRevokedKey - it can correctly detect a revoked key', async () => {
+    it('isRevokedKey/canKeyEncrypt - it can correctly detect a revoked key', async () => {
         const past = new Date(0);
         const now = new Date();
 
@@ -484,6 +487,9 @@ M8uical4EQWijKwbwpfCViRXlPLbWED7HjRFJAQ=
         expect(await CryptoWorker.isRevokedKey({ keyReference: revokedKeyRef, date: past })).to.be.true;
         expect(await CryptoWorker.isRevokedKey({ keyReference: revokedKeyRef, date: now })).to.be.true;
         expect(await CryptoWorker.isRevokedKey({ keyReference: keyRef, date: now })).to.be.false;
+        // canKeyEncrypt should return false for revoked key
+        expect(await CryptoWorker.canKeyEncrypt({ keyReference: revokedKeyRef, date: now })).to.be.false;
+        expect(await CryptoWorker.canKeyEncrypt({ keyReference: keyRef, date: now })).to.be.true;
     });
 
     describe('Key management API', () => {
