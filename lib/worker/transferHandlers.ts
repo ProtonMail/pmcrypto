@@ -22,6 +22,7 @@ const KeyReferenceSerializer = {
         getCreationTime: keyReference.getCreationTime(),
         getExpirationTime: keyReference.getExpirationTime(),
         getUserIDs: keyReference.getUserIDs(),
+        equals: false, // unused, function will be reconstructed based on ._keyContentHash
         subkeys: keyReference.subkeys.map((subkey) => ({
             getAlgorithmInfo: subkey.getAlgorithmInfo(),
             getKeyID: subkey.getKeyID()
@@ -38,6 +39,7 @@ const KeyReferenceSerializer = {
         getCreationTime: () => serialized.getCreationTime,
         getExpirationTime: () => serialized.getExpirationTime,
         getUserIDs: () => serialized.getUserIDs,
+        equals: (otherKey) => otherKey._keyContentHash === serialized._keyContentHash,
         subkeys: serialized.subkeys.map((subkey) => ({
             getAlgorithmInfo: () => subkey.getAlgorithmInfo,
             getKeyID: () => subkey.getKeyID

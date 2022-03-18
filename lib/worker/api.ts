@@ -17,7 +17,9 @@ import {
     serverTime,
     updateServerTime,
     decryptSessionKey,
-    processMIME
+    processMIME,
+    SHA256,
+    arrayToHexString
 } from '../pmcrypto';
 import type {
     Data,
@@ -68,9 +70,11 @@ const getPublicKeyReference = async (key: PublicKey, keyStoreID: number): Promis
     const creationTime = publicKey.getCreationTime();
     const expirationTime = await publicKey.getExpirationTime();
     const userIDs = publicKey.getUserIDs();
+    const keyContentHash = await SHA256(publicKey.write()).then(arrayToHexString);
 
     return {
         _idx: keyStoreID,
+        _keyContentHash: keyContentHash,
         isPrivate: () => false,
         getFingerprint: () => fingerprint,
         getKeyID: () => hexKeyID,
@@ -79,6 +83,7 @@ const getPublicKeyReference = async (key: PublicKey, keyStoreID: number): Promis
         getCreationTime: () => creationTime,
         getExpirationTime: () => expirationTime,
         getUserIDs: () => userIDs,
+        equals: (otherKey: KeyReference) => (otherKey._keyContentHash === keyContentHash),
         subkeys: publicKey.getSubkeys().map((subkey) => {
             const subkeyAlgoInfo = subkey.getAlgorithmInfo();
             const subkeyKeyID = subkey.getKeyID().toHex();

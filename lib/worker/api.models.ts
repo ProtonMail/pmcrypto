@@ -150,6 +150,8 @@ export type KeyID = string;
 export interface KeyReference {
     /** Internal unique key identifier for the key store */
     readonly _idx: any,
+    /** (Internal) key content identifier to determine equality */
+    readonly _keyContentHash: string,
     getFingerprint(): string,
     getKeyID(): KeyID,
     getKeyIDs(): KeyID[],
@@ -158,10 +160,15 @@ export interface KeyReference {
     isPrivate: () => this is PrivateKeyReference,
     getExpirationTime(): Date | number | null,
     getUserIDs(): string[],
+    /**
+     * Compare public key content. Keys are considered equal if they have same key and subkey material,
+     * as well as same certification signatures, namely same expiration time, capabilities, algorithm preferences etc.
+     */
+    equals(otherKey: KeyReference): boolean,
     subkeys: {
         getAlgorithmInfo(): AlgorithmInfo,
         getKeyID(): KeyID
-    }[]
+    }[],
     // readonly armor: () => string
 }
 export interface PublicKeyReference extends KeyReference {
