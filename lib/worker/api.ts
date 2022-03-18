@@ -75,7 +75,7 @@ const getPublicKeyReference = async (key: PublicKey, keyStoreID: number): Promis
     const expirationTime = await publicKey.getExpirationTime();
     const userIDs = publicKey.getUserIDs();
     const keyContentHash = await SHA256(publicKey.write()).then(arrayToHexString);
-
+    let isWeak: boolean; try { checkKeyStrength(publicKey); isWeak = false } catch { isWeak = true };
     return {
         _idx: keyStoreID,
         _keyContentHash: keyContentHash,
@@ -87,6 +87,7 @@ const getPublicKeyReference = async (key: PublicKey, keyStoreID: number): Promis
         getCreationTime: () => creationTime,
         getExpirationTime: () => expirationTime,
         getUserIDs: () => userIDs,
+        isWeak: () => isWeak,
         equals: (otherKey: KeyReference) => (otherKey._keyContentHash === keyContentHash),
         subkeys: publicKey.getSubkeys().map((subkey) => {
             const subkeyAlgoInfo = subkey.getAlgorithmInfo();
@@ -543,17 +544,5 @@ export class WorkerApi extends KeyManagementApi {
         const key = this.keyStore.get(keyReference._idx);
         const canEncrypt = await canKeyEncrypt(key, date);
         return canEncrypt;
-    }
-
-    /**
-    * Checks whether the primary key and the subkeys meet our recommended security requirements.
-    * These checks are lightweight and do not verify the validity of the subkeys.
-    * A key is considered secure if it is:
-    * - RSA of size >= 2047 bits
-    * - ECC using curve 25519 or any of the NIST curves
-    */
-    async checkKeyStrength({ keyReference }: { keyReference: KeyReference }) {
-        const key = this.keyStore.get(keyReference._idx);
-        return checkKeyStrength(key);
     }
 };

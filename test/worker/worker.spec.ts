@@ -515,12 +515,12 @@ M8uical4EQWijKwbwpfCViRXlPLbWED7HjRFJAQ=
         expect(await CryptoWorker.canKeyEncrypt({ keyReference: keyRef, date: now })).to.be.true;
     });
 
-    it('checkKeyStrength - it warns on insecure key', async () => {
+    it('key reference - it correctly marks a weak key', async () => {
         const weakKeyReference = await CryptoWorker.importPublicKey({ armoredKey: rsa512BitsKey });
-        await expect(CryptoWorker.checkKeyStrength({ keyReference: weakKeyReference })).to.be.rejectedWith(/Keys shorter than 2047 bits are considered unsafe/);
+        expect(weakKeyReference.isWeak()).to.be.true;
 
         const keyReference = await CryptoWorker.importPublicKey({ armoredKey: ecc25519Key });
-        await expect(CryptoWorker.checkKeyStrength({ keyReference })).to.be.fulfilled;
+        expect(keyReference.isWeak()).to.be.false;
     });
 
     describe('Key management API', () => {

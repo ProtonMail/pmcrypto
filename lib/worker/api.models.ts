@@ -163,6 +163,13 @@ export interface KeyReference {
     getExpirationTime(): Date | number | null,
     getUserIDs(): string[],
     /**
+     * Whether the primary key or the subkeys fail to meet our recommended security level.
+     * A key is considered secure (i.e. not weak) if it is:
+     * - RSA of size >= 2047 bits
+     * - ECC using curve 25519 or any of the NIST curves
+     */
+    isWeak(): boolean,
+    /**
      * Compare public key content. Keys are considered equal if they have same key and subkey material,
      * as well as same certification signatures, namely same expiration time, capabilities, algorithm preferences etc.
      */
