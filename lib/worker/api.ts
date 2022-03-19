@@ -521,6 +521,11 @@ export class WorkerApi extends KeyManagementApi {
         return { signingKeyIDs };
     }
 
+    async getArmoredSignature({ binarySignature }: { binarySignature: Uint8Array }) {
+        const signature = await getSignature(binarySignature);
+        return signature.armor();
+    }
+
     async isRevokedKey({ keyReference, date }: { keyReference: KeyReference, date?: Date }) {
         const key = this.keyStore.get(keyReference._idx);
         const isRevoked = await isRevokedKey(key, date);

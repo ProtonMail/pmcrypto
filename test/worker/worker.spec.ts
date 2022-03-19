@@ -9,6 +9,7 @@ import {
 import { VERIFICATION_STATUS, CryptoWorker } from '../../lib';
 import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey, reformatKey } from '../../lib/pmcrypto';
 import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from '../message/decryptMessageLegacy.data';
+import { hexToUint8Array } from '../../lib/utils';
 import {
     multipartSignedMessage,
     multipartSignedMessageBody,
@@ -464,6 +465,16 @@ M8uical4EQWijKwbwpfCViRXlPLbWED7HjRFJAQ=
 
         const signatureInfo = await CryptoWorker.getSignatureInfo({ armoredSignature });
         expect(signatureInfo.signingKeyIDs).to.deep.equal(['6998e6a67b21b0bf']);
+    });
+
+    it('getArmoredSignature - it returns a valid armored signature', async () => {
+        const hexBinarySignature = `c2750401160a0006050262351cc9002109101a5092c9a2df33531621041f75b4729655e143dc146f941a5092c9a2df33532cba0100ab31401b4aca8b449dc490d16927e37c9510c076745795b3e73bba0209b826770100dc6a6fcc1aaa6fcbce51a5b20682ea201414ec923d387a4eb88932df87f6e60c`;
+
+        const armoredSignature = await CryptoWorker.getArmoredSignature({
+            binarySignature: hexToUint8Array(hexBinarySignature)
+        });
+        const signatureInfo = await CryptoWorker.getSignatureInfo({ armoredSignature });
+        expect(signatureInfo.signingKeyIDs).to.not.be.empty;
     });
 
     it('isExpiredKey/canKeyEncrypt - it can correctly detect an expired key', async () => {
