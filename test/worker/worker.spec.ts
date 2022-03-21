@@ -534,6 +534,45 @@ M8uical4EQWijKwbwpfCViRXlPLbWED7HjRFJAQ=
         expect(keyReference.isWeak()).to.be.false;
     });
 
+    it('reformatKey - creates a separate key reference', async () => {
+        const passphrase = 'passphrase';
+        const originalKeyRef = await CryptoWorker.importPrivateKey({
+            armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xYYEYjh/NRYJKwYBBAHaRw8BAQdAAJW2i9biFMIXiH15J6vGU1GCAqcp5utw
+C+y+CeZ+h4L+CQMI/K3Ebi8BpsUAzexw43SwgpD0mDGd/d4ORX77AiUoq/rp
+DKjS+0lpIszAa6SVWcA6xQZsz1ztdNBktEg4t/gybivH88kGTIprO/HWetM+
+j80RPHRlc3RAd29ya2VyLmNvbT7CjAQQFgoAHQUCYjh/NQQLCQcIAxUICgQW
+AAIBAhkBAhsDAh4BACEJEFx55sPEaXlKFiEE+PdMNIqw4jCyqqnuXHnmw8Rp
+eUoC8QD+NdQzOAWdIJEp1eMeEa3xx9rkCpD2TXUeV7goHtixyQIBANcgmRTg
+gN0O2hdiL9kjN4MPhbkz3dNTpkiO/K6O8UIDx4sEYjh/NRIKKwYBBAGXVQEF
+AQEHQF3XUaFXbb6O9Qcas72x5nhNupZ3iIrIx8wKeUdgdkBNAwEIB/4JAwjK
+CPlfkyHxBABYJC70HwO36TjRBxROY480CvL40r1bJ3NSLlV4aIZXLP2723PH
+tsnD3fhK5ZbGqC7FCmmDKEh1ibl3Lw6rEoE0Z6Fq72x6wngEGBYIAAkFAmI4
+fzUCGwwAIQkQXHnmw8RpeUoWIQT490w0irDiMLKqqe5ceebDxGl5Sl9wAQC+
+9Jb0r5pG7sMbNclmp3s1OIfWG9tJ9RoXSHU/bCFHlgEA/ggjJKzRuja0MWZ6
+8IDTErKCgaYSPES5+mwT27LYvw0=
+=D7EW
+-----END PGP PRIVATE KEY BLOCK-----`,
+            passphrase
+        });
+
+        const reformattedKeyRef = await CryptoWorker.reformatKey({ keyReference: originalKeyRef, userIDs: { email: 'reformatted@worker.com' } });
+        expect(reformattedKeyRef.getUserIDs()).to.have.length(1);
+        expect(reformattedKeyRef.getUserIDs().includes('<reformatted@worker.com>'));
+        expect(originalKeyRef.getUserIDs()).to.have.length(1);
+        expect(originalKeyRef.getUserIDs()).includes('<test@worker.com>');
+
+        await CryptoWorker.clearKey({ keyReference: originalKeyRef }); // this clears the private params as well
+
+        const armoredKey = await CryptoWorker.exportPrivateKey({ keyReference: reformattedKeyRef, passphrase });
+        const decryptedKeyFromArmored = await openpgp_decryptKey({
+            privateKey: await openpgp_readPrivateKey({ armoredKey }),
+            passphrase
+        });
+        expect(decryptedKeyFromArmored.isDecrypted()).to.be.true;
+    });
+
     describe('Key management API', () => {
 
         it('can export a generated key', async () => {
@@ -666,7 +705,7 @@ DQ==
             const privateKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
             // confirm key is in the store
             expect(await CryptoWorker.exportPublicKey({ keyReference: privateKeyRef })).length.above(0);
-            await CryptoWorker.clearKey(privateKeyRef);
+            await CryptoWorker.clearKey({ keyReference: privateKeyRef });
 
             await expect(CryptoWorker.exportPublicKey({ keyReference: privateKeyRef })).to.be.rejectedWith(/Key not found/);
         });

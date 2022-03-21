@@ -7,17 +7,18 @@ import type {
   VerifyOptionsPmcrypto,
   VerifyMessageResult,
   AlgorithmInfo,
-  KeyOptions,
+  GenerateKeyOptions,
   EncryptSessionKeyOptionsPmcrypto,
   DecryptSessionKeyOptionsPmcrypto,
   DecryptLegacyOptions,
   ProcessMIMEOptions,
   ProcessMIMEResult,
-  SessionKey
+  SessionKey,
+  ReformatKeyOptions
 } from '../pmcrypto';
 
 type MaybeArray<T> = T[] | T;
-export type { SessionKey };
+export type { SessionKey, AlgorithmInfo };
 
 // TODO TS: do not allow mutually exclusive properties
 export interface WorkerDecryptionOptions
@@ -112,8 +113,13 @@ export interface WorkerExportDecryptedPrivateKeyOptions {
     format?: 'armored' | 'binary',
 }
 
-export interface WorkerGenerateKeyOptions extends Omit<KeyOptions, 'format' | 'passphrase'> {
+export interface WorkerGenerateKeyOptions extends Omit<GenerateKeyOptions, 'format' | 'passphrase'> {
     // passphrase: string; the key can be encrypted on export, no need/reason to do so on generation (based on current key store API)
+}
+
+export interface WorkerReformatKeyOptions extends Omit<ReformatKeyOptions, 'privateKey' | 'format' | 'passphrase'> {
+    // passphrase: string; the key can be encrypted on export, no need/reason to do so on generation (based on current key store API)
+    keyReference: PrivateKeyReference
 }
 
 export interface WorkerEncryptSessionKeyOptions extends Omit<EncryptSessionKeyOptionsPmcrypto, 'encryptionKeys'> {

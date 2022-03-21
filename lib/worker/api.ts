@@ -3,6 +3,7 @@
 /* eslint-disable no-underscore-dangle */
 import {
     generateKey,
+    reformatKey,
     encryptMessage,
     signMessage,
     decryptMessage,
@@ -38,6 +39,7 @@ import {
     PrivateKeyReference,
     KeyReference,
     WorkerGenerateKeyOptions,
+    WorkerReformatKeyOptions,
     WorkerImportPrivateKeyOptions,
     WorkerPublicKeyImport,
     WorkerEncryptOptions,
@@ -171,7 +173,7 @@ class KeyManagementApi {
         this.keyStore.clearAll();
     }
 
-    async clearKey(keyReference: KeyReference) {
+    async clearKey({ keyReference }: { keyReference: KeyReference }) {
         this.keyStore.clear(keyReference._idx);
     }
 
@@ -180,6 +182,20 @@ class KeyManagementApi {
         const { privateKey } = await generateKey({ ...options, format: 'object' });
         // Typescript guards against a passphrase input, but it's best to ensure the option wasn't given since for API simplicity we assume any PrivateKeyReference points to a decrypted key.
         if (!privateKey.isDecrypted()) throw new Error('Unexpected "passphrase" option on key generation. Use "exportPrivateKey" after key generation to obtain a transferable encrypted key.')
+        const keyStoreID = this.keyStore.add(privateKey);
+
+        return getPrivateKeyReference(privateKey, keyStoreID);
+    }
+
+    async reformatKey({ keyReference, ...options }: WorkerReformatKeyOptions) {
+        const originalKey = this.keyStore.get(keyReference._idx) as PrivateKey;
+        // we have to deep clone before reformatting, since privateParams of reformatted key point to the ones of the given privateKey, and
+        // we do not want reformatted key to be affected if the original key reference is cleared/deleted.
+        // @ts-ignore - missing .clone() definition
+        const keyToReformat = originalKey.clone(true);
+        const { privateKey } = await reformatKey({ ...options, privateKey: keyToReformat, format: 'object' });
+        // Typescript guards against a passphrase input, but it's best to ensure the option wasn't given since for API simplicity we assume any PrivateKeyReference points to a decrypted key.
+        if (!privateKey.isDecrypted()) throw new Error('Unexpected "passphrase" option on key reformat. Use "exportPrivateKey" after key reformatting to obtain a transferable encrypted key.')
         const keyStoreID = this.keyStore.add(privateKey);
 
         return getPrivateKeyReference(privateKey, keyStoreID);

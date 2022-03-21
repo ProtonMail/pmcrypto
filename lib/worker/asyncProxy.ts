@@ -59,6 +59,7 @@ export const WorkerProxy: WorkerProxyInterface = (() => {
         importPrivateKey: (opts) => assertInitialised(worker) && worker.importPrivateKey(opts),
         importPublicKey: (opts) => assertInitialised(worker) && worker.importPublicKey(opts),
         generateKey: (opts) => assertInitialised(worker) && worker.generateKey(opts),
+        reformatKey: (opts) => assertInitialised(worker) && worker.reformatKey(opts),
         exportPublicKey: (opts) => assertInitialised(worker) && worker.exportPublicKey(opts),
         exportPrivateKey: (opts) => assertInitialised(worker) && worker.exportPrivateKey(opts),
         clearKeyStore: () => assertInitialised(worker) && worker.clearKeyStore(),
