@@ -491,15 +491,16 @@ Z3SSOseslp6+4nnQ3zOqnisO
         });
 
         const publicKeyInfo = await CryptoWorker.getKeyInfo({ armoredKey: armoredPublicKey });
-        expect(publicKeyInfo.isPrivate()).to.be.false;
-        expect(publicKeyInfo.isDecrypted()).to.be.null;
+        expect(publicKeyInfo.keyIsPrivate).to.be.false;
+        expect(publicKeyInfo.keyIsDecrypted).to.be.null;
         const decryptedKeyInfo = await CryptoWorker.getKeyInfo({ armoredKey: armoredDecryptedPrivateKey });
-        expect(decryptedKeyInfo.isPrivate()).to.be.true;
-        expect(decryptedKeyInfo.isDecrypted()).to.be.true;
+        expect(decryptedKeyInfo.keyIsPrivate).to.be.true;
+        expect(decryptedKeyInfo.keyIsDecrypted).to.be.true;
 
-        const encryptedKeyKey = await CryptoWorker.getKeyInfo({ armoredKey: encryptedPrivateKey.armor() });
-        expect(encryptedKeyKey.isPrivate()).to.be.true;
-        expect(encryptedKeyKey.isDecrypted()).to.be.false;
+        const encryptedKeyInfo = await CryptoWorker.getKeyInfo({ armoredKey: encryptedPrivateKey.armor() });
+        expect(encryptedKeyInfo.keyIsPrivate).to.be.true;
+        expect(encryptedKeyInfo.keyIsDecrypted).to.be.false;
+        expect(encryptedKeyInfo.fingerprint).to.equal(encryptedPrivateKey.getFingerprint())
     });
 
     it('getArmoredSignature - it returns a valid armored signature', async () => {

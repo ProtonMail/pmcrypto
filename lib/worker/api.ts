@@ -562,12 +562,14 @@ export class WorkerApi extends KeyManagementApi {
         binaryKey
     }: WorkerGetKeyInfoOptions<T>): Promise<KeyInfo> {
         const key = await getKey(binaryKey || armoredKey!);
-        const isPrivate = key.isPrivate();
-        const isDecrypted = isPrivate ? key.isDecrypted() : null;
+        const keyIsPrivate = key.isPrivate();
+        const keyIsDecrypted = keyIsPrivate ? key.isDecrypted() : null;
+        const fingerprint = key.getFingerprint();
 
         return {
-            isPrivate: () => isPrivate,
-            isDecrypted: () => isDecrypted
+            keyIsPrivate,
+            keyIsDecrypted,
+            fingerprint
          };
     }
 

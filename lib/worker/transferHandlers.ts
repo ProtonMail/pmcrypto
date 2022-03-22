@@ -1,5 +1,5 @@
 import type { TransferHandler } from 'comlink';
-import type { KeyReference, KeyInfo } from './api.models';
+import type { KeyReference } from './api.models';
 
 // return interface with same non-function fields as T, and with function fields type converted to their return type
 // e.g. ExtractFunctionReturnTypes<{ foo: () => string, bar: 3 }> returns { foo: string, bar: 3 }
@@ -48,19 +48,6 @@ const KeyReferenceSerializer = {
         }))
     })
 };
-
-type SerializedKeyInfo = ExtractFunctionReturnTypes<KeyInfo>;
-const KeyInfoSerializer = {
-    canHandle: (obj: any): obj is KeyInfo => (typeof obj === 'object') && obj.isDecrypted !== undefined && obj.isPrivate !== undefined, // NB: careful not to confuse with KeyReference object
-    serialize: (keyInfo: KeyInfo): SerializedKeyInfo => ({ // store values directly, convert back to function when deserialising
-        isPrivate: keyInfo.isPrivate(),
-        isDecrypted: keyInfo.isDecrypted()
-    }),
-    deserialize: (serialized: SerializedKeyInfo): KeyInfo => ({
-        isPrivate: () => serialized.isPrivate,
-        isDecrypted: () => serialized.isDecrypted
-    })
-}
 
 const KeyOptionsSerializer = {
     _optionNames: ['verificationKeys', 'signingKeys', 'encryptionKeys', 'decryptionKeys', 'keyReference', 'targetKeys'],
@@ -185,17 +172,6 @@ const sharedTransferHandlers: ExportedTransferHandler[] = [
                 [] // transferables
             ],
             deserialize: KeyOptionsSerializer.deserialize
-        }
-    },
-    {
-        name: 'KeyInfo', // only returned by the worker, but it's harmless to declare the same handler on both sides
-        handler: {
-            canHandle: KeyInfoSerializer.canHandle,
-            serialize: (keyInfo: KeyInfo) => [
-                KeyInfoSerializer.serialize(keyInfo),
-                [] // transferables
-            ],
-            deserialize: KeyInfoSerializer.deserialize
         }
     }
 ];

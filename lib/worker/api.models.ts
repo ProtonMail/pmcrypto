@@ -158,11 +158,12 @@ export interface SignatureInfo {
 }
 
 export interface KeyInfo {
-    isPrivate: () => boolean,
+    keyIsPrivate: boolean,
     /**
      * Whether the key is decrypted, or `null` for public keys
      */
-    isDecrypted: () => boolean | null,
+    keyIsDecrypted: boolean | null,
+    fingerprint: string,
 }
 
 export type WorkerPublicKeyImport = { armoredKey?: string, binaryKey?: Uint8Array };
