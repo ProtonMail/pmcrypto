@@ -625,6 +625,21 @@ fzUCGwwAIQkQXHnmw8RpeUoWIQT490w0irDiMLKqqe5ceebDxGl5Sl9wAQC+
             expect(decryptedExportedKey.isDecrypted()).to.be.true;
         });
 
+        it('exports an unencrypted key only when given a null passphrase', async () => {
+            const keyReference = await CryptoWorker.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
+
+            // empty passphrase not allowed
+            await expect(CryptoWorker.exportPrivateKey({ keyReference, passphrase: '' })).to.be.rejectedWith(/passphrase is required for key encryption/);
+            const armoredEncryptedKey = await CryptoWorker.exportPrivateKey({ keyReference, passphrase: 'passphrase' });
+            const encryptedKey = await openpgp_readPrivateKey({ armoredKey: armoredEncryptedKey })
+            expect(encryptedKey.isDecrypted()).to.be.false;
+            const armoredUnencryptedKey = await CryptoWorker.exportPrivateKey({
+                keyReference, passphrase: null
+            });
+            const unencryptedKey = await openpgp_readPrivateKey({ armoredKey: armoredUnencryptedKey })
+            expect(unencryptedKey.isDecrypted()).to.be.true;
+        });
+
         it('cannot import or export a public key as a private key', async () => {
             const passphrase = 'passphrase';
             const { publicKey: publicKeyToImport } = await generateKey({ userIDs: { name: 'name', email: 'email@test.com' }, format: 'object', passphrase });

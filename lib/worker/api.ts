@@ -219,10 +219,16 @@ class KeyManagementApi {
         const maybeEncryptedKey = binaryKey ?
             await readPrivateKey({ binaryKey }) :
             await readPrivateKey({ armoredKey: armoredKey! });
-        if (expectDecrypted && !maybeEncryptedKey.isDecrypted()) throw new Error('Provide passphrase to import an encrypted private key');
-        const decryptedKey = expectDecrypted ?
-            maybeEncryptedKey :
-            await decryptKey({ privateKey: maybeEncryptedKey, passphrase });
+        let decryptedKey;
+        if (expectDecrypted) {
+            if (!maybeEncryptedKey.isDecrypted()) throw new Error('Provide passphrase to import an encrypted private key');
+            decryptedKey = maybeEncryptedKey;
+            // @ts-ignore missing .validate() types
+            await decryptedKey.validate();
+        } else {
+            decryptedKey = await decryptKey({ privateKey: maybeEncryptedKey, passphrase });
+        }
+
         const keyStoreID = this.keyStore.add(decryptedKey);
 
         return getPrivateKeyReference(decryptedKey, keyStoreID);
@@ -248,19 +254,27 @@ class KeyManagementApi {
         return serializedKey as SerialisedOutputTypeFromFormat<F>;
     }
 
+    /**
+     * Get the serialized private key, encrypted with the given `passphrase`.
+     * Exporting a key does not invalidate the corresponding `keyReference`, nor does it remove the key from internal storage (use `clearKey()` for that).
+     * @param options.passphrase - passphrase to encrypt the key with (non-empty string), or `null` to export an unencrypted key (not recommended).
+     * @param options.format - `'binary'` or `'armored'` format of serialized key
+     * @returns serialized encrypted key
+     */
     async exportPrivateKey<F extends SerialisedOutputFormat = 'armored'>({
         format = 'armored',
         ...options
     }: {
         keyReference: PrivateKeyReference;
-        passphrase: string;
+        passphrase: string | null;
         format?: F;
     }): Promise<SerialisedOutputTypeFromFormat<F>> {
         const { keyReference, passphrase } = options;
         const privateKey = this.keyStore.get(keyReference._idx) as PrivateKey;
-        const encryptedKey = await encryptKey({ privateKey, passphrase });
+        const doNotEncrypt = passphrase === null;
+        const maybeEncryptedKey = doNotEncrypt ? privateKey : await encryptKey({ privateKey, passphrase });
 
-        const serializedKey = format === 'binary' ? encryptedKey.write() : encryptedKey.armor();
+        const serializedKey = format === 'binary' ? maybeEncryptedKey.write() : maybeEncryptedKey.armor();
         return serializedKey as SerialisedOutputTypeFromFormat<F>;
     }
 };
