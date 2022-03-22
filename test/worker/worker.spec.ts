@@ -3,6 +3,7 @@ import * as chaiAsPromised from 'chai-as-promised';
 import {
     readPrivateKey as openpgp_readPrivateKey,
     decryptKey as openpgp_decryptKey,
+    encryptKey as openpgp_encryptKey,
     readKey as openpgp_readKey,
     revokeKey as openpgp_revokeKey
 } from '../../lib/openpgp';
@@ -465,6 +466,40 @@ M8uical4EQWijKwbwpfCViRXlPLbWED7HjRFJAQ=
 
         const signatureInfo = await CryptoWorker.getSignatureInfo({ armoredSignature });
         expect(signatureInfo.signingKeyIDs).to.deep.equal(['6998e6a67b21b0bf']);
+    });
+
+    it('getKeyInfo - it returns correct key type and encryption status', async () => {
+        const armoredPublicKey = ecc25519Key;
+        const armoredDecryptedPrivateKey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEYjn/DRYJKwYBBAHaRw8BAQdACQUzjf/48LfAqt/iJoCLvNh82ezGNLad
+uLoCyyqP+kMAAQDlR+FqVc7sOXkWw9Ce21H9U75JbXkQZdopNT6rmUP5eRDN
+zRE8dGVzdEB3b3JrZXIuY29tPsKMBBAWCgAdBQJiOf8NBAsJBwgDFQgKBBYA
+AgECGQECGwMCHgEAIQkQgXhWyqdTIuIWIQSLE8CDw3U8LVFQRY6BeFbKp1Mi
+4kBPAQCHH7+sA6/Rvn/cABOPdGuDz6LtBB2pai5ahUuYTyBP1QEAgG/KR/AX
+fWuidzPVytVcHmE7PH0ZUe/J8qAxszespALHXQRiOf8NEgorBgEEAZdVAQUB
+AQdAi+mqfJuhbYqNNrCRb0w8dDMImkdk9ygaZZXgzh6REWwDAQgHAAD/eBLr
+qR+dnBSXPk7n+0+/6bWjBWrYc6vDElTpPSA3stARasJ4BBgWCAAJBQJiOf8N
+AhsMACEJEIF4VsqnUyLiFiEEixPAg8N1PC1RUEWOgXhWyqdTIuLV3QD/e6jQ
+Y9qpG8A3sC7ZB29GClPXVJy6uL2Ai5R37cGozfUA/REr1bi6Ac4FauZsge1+
+Z3SSOseslp6+4nnQ3zOqnisO
+=pEmk
+-----END PGP PRIVATE KEY BLOCK-----`;
+        const encryptedPrivateKey = await openpgp_encryptKey({
+            privateKey: await openpgp_readPrivateKey({ armoredKey: armoredDecryptedPrivateKey }),
+            passphrase: 'passphrase'
+        });
+
+        const publicKeyInfo = await CryptoWorker.getKeyInfo({ armoredKey: armoredPublicKey });
+        expect(publicKeyInfo.isPrivate()).to.be.false;
+        expect(publicKeyInfo.isDecrypted()).to.be.null;
+        const decryptedKeyInfo = await CryptoWorker.getKeyInfo({ armoredKey: armoredDecryptedPrivateKey });
+        expect(decryptedKeyInfo.isPrivate()).to.be.true;
+        expect(decryptedKeyInfo.isDecrypted()).to.be.true;
+
+        const encryptedKeyKey = await CryptoWorker.getKeyInfo({ armoredKey: encryptedPrivateKey.armor() });
+        expect(encryptedKeyKey.isPrivate()).to.be.true;
+        expect(encryptedKeyKey.isDecrypted()).to.be.false;
     });
 
     it('getArmoredSignature - it returns a valid armored signature', async () => {

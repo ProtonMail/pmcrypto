@@ -52,7 +52,9 @@ import {
     WorkerGetMessageInfoOptions,
     MessageInfo,
     SignatureInfo,
-    WorkerGetSignatureInfoOptions
+    WorkerGetSignatureInfoOptions,
+    WorkerGetKeyInfoOptions,
+    KeyInfo
 } from './api.models';
 // Note:
 // - streams are currently not supported since they are not Transferable (not in all browsers).
@@ -549,6 +551,24 @@ export class WorkerApi extends KeyManagementApi {
         const signingKeyIDs = signature.getSigningKeyIDs().map((keyID) => keyID.toHex());
 
         return { signingKeyIDs };
+    }
+
+    /**
+     * Get basic info about a serialied key without importing it in the key store.
+     * E.g. determine whether the given key is private, and whether it is decrypted.
+     */
+    async getKeyInfo<T extends Data>({
+        armoredKey,
+        binaryKey
+    }: WorkerGetKeyInfoOptions<T>): Promise<KeyInfo> {
+        const key = await getKey(binaryKey || armoredKey!);
+        const isPrivate = key.isPrivate();
+        const isDecrypted = isPrivate ? key.isDecrypted() : null;
+
+        return {
+            isPrivate: () => isPrivate,
+            isDecrypted: () => isDecrypted
+         };
     }
 
     async getArmoredSignature({ binarySignature }: { binarySignature: Uint8Array }) {

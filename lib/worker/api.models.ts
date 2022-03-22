@@ -148,8 +148,21 @@ export interface WorkerGetSignatureInfoOptions<T extends Data> {
     binarySignature?: T extends Uint8Array ? T : never
 }
 
+export interface WorkerGetKeyInfoOptions<T extends Data> {
+    armoredKey?: T extends string ? T : never,
+    binaryKey?: T extends Uint8Array ? T : never
+}
+
 export interface SignatureInfo {
     signingKeyIDs: KeyID[],
+}
+
+export interface KeyInfo {
+    isPrivate: () => boolean,
+    /**
+     * Whether the key is decrypted, or `null` for public keys
+     */
+    isDecrypted: () => boolean | null,
 }
 
 export type WorkerPublicKeyImport = { armoredKey?: string, binaryKey?: Uint8Array };
