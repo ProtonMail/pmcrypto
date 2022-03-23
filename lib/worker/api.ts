@@ -32,7 +32,7 @@ import type {
     PublicKey,
     Key
 } from '../pmcrypto';
-import { decryptKey, encryptKey, MaybeArray, readPrivateKey } from '../openpgp';
+import { decryptKey, encryptKey, MaybeArray, readPrivateKey, readKeys } from '../openpgp';
 
 import {
     PublicKeyReference,
@@ -579,13 +579,13 @@ export class WorkerApi extends KeyManagementApi {
     }
 
     /**
-     * Get the armored version of a key serialized in binary format.
-     * The key is not imported into the key store nor processed further. Both private and public keys are supported.
-     * @returns armored key
+     * Given one or more keys concatenated in binary format, get the corresponding keys in armored format.
+     * The keys are not imported into the key store nor processed further. Both private and public keys are supported.
+     * @returns array of armored keys
      */
-    async getArmoredKey({ binaryKey }: { binaryKey: Uint8Array }) {
-        const key = await getKey(binaryKey);
-        return key.armor();
+    async getArmoredKeys({ binaryKeys }: { binaryKeys: Uint8Array }) {
+        const keys = await readKeys({ binaryKeys });
+        return keys.map((key) => key.armor());
     }
 
     async isRevokedKey({ keyReference, date }: { keyReference: KeyReference, date?: Date }) {

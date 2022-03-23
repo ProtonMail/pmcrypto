@@ -71,7 +71,7 @@ export const WorkerProxy: WorkerProxyInterface = (() => {
         getMessageInfo: (opts) => assertInitialised(worker) && worker.getMessageInfo(opts),
         getKeyInfo: (opts) => assertInitialised(worker) && worker.getKeyInfo(opts),
         getSignatureInfo: (opts) => assertInitialised(worker) && worker.getSignatureInfo(opts),
-        getArmoredKey: (opts) => assertInitialised(worker) && worker.getArmoredKey(opts),
+        getArmoredKeys: (opts) => assertInitialised(worker) && worker.getArmoredKeys(opts),
         getArmoredSignature: (opts) => assertInitialised(worker) && worker.getArmoredSignature(opts),
         serverTime: () => assertInitialised(worker) && worker.serverTime(),
         updateServerTime: (opts) => assertInitialised(worker) && worker.updateServerTime(opts)

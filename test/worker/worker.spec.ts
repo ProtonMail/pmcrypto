@@ -503,13 +503,14 @@ Z3SSOseslp6+4nnQ3zOqnisO
         expect(encryptedKeyInfo.fingerprint).to.equal(encryptedPrivateKey.getFingerprint());
     });
 
-    it('getArmoredKey - it returns a valid armored key', async () => {
+    it('getArmoredKeys - it returns a valid armored key', async () => {
         const hexBinaryPublicKey = `c63304623b4fac16092b06010401da470f010107405787b1d537d9974a40fea2f239578b81c355991ac4fe619a1595c3f21ecfb3abcd113c7465737440776f726b65722e636f6d3ec28c0410160a001d0502623b4fac040b0907080315080a0416000201021901021b03021e0100210910db8c8a5d901c2766162104d26cda9d40b4fea61b6cb65adb8c8a5d901c2766f80e00fd1eb4b4c4917d18436081ff9f463b9cc595af7805c789ba3b57a6b66511ff95d600fe36072060165618fed927051527d585ff26c3293b42671f2a169f47a4df6ba50cce3804623b4fac120a2b06010401975501050101074057571d1c77fbcb8f9fd0abd3d4f0e95ea725f569a49ec4faf0d2d0df8df3cd4103010807c2780418160800090502623b4fac021b0c00210910db8c8a5d901c2766162104d26cda9d40b4fea61b6cb65adb8c8a5d901c27665f760100e650904af11ea8933e9b91028df04375867f15b2542e8f8f86c2069081f66ed000fb06ddfa8ce3370eb9b92e93c40f7a624c1bf3b190f26beba3a9a93107b9ad310e`;
 
-        const armoredKey = await CryptoWorker.getArmoredKey({
-            binaryKey: hexToUint8Array(hexBinaryPublicKey)
+        const armoredKeys = await CryptoWorker.getArmoredKeys({
+            binaryKeys: hexToUint8Array(hexBinaryPublicKey)
         });
-        const key = await openpgp_readKey({ armoredKey });
+        expect(armoredKeys).to.have.length(1);
+        const key = await openpgp_readKey({ armoredKey: armoredKeys[0] });
         expect(key.isPrivate()).to.be.false;
     });
 
