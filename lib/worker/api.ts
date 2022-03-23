@@ -578,6 +578,16 @@ export class WorkerApi extends KeyManagementApi {
         return signature.armor();
     }
 
+    /**
+     * Get the armored version of a key serialized in binary format.
+     * The key is not imported into the key store nor processed further. Both private and public keys are supported.
+     * @returns armored key
+     */
+    async getArmoredKey({ binaryKey }: { binaryKey: Uint8Array }) {
+        const key = await getKey(binaryKey);
+        return key.armor();
+    }
+
     async isRevokedKey({ keyReference, date }: { keyReference: KeyReference, date?: Date }) {
         const key = this.keyStore.get(keyReference._idx);
         const isRevoked = await isRevokedKey(key, date);
