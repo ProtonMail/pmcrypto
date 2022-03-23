@@ -68,6 +68,7 @@ export const WorkerProxy: WorkerProxyInterface = (() => {
         isExpiredKey: (opts) => assertInitialised(worker) && worker.isExpiredKey(opts),
         isRevokedKey: (opts) => assertInitialised(worker) && worker.isRevokedKey(opts),
         canKeyEncrypt: (opts) => assertInitialised(worker) && worker.canKeyEncrypt(opts),
+        getSHA256Fingerprints: (opts) => assertInitialised(worker) && worker.getSHA256Fingerprints(opts),
         getMessageInfo: (opts) => assertInitialised(worker) && worker.getMessageInfo(opts),
         getKeyInfo: (opts) => assertInitialised(worker) && worker.getKeyInfo(opts),
         getSignatureInfo: (opts) => assertInitialised(worker) && worker.getSignatureInfo(opts),

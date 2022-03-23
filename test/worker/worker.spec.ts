@@ -8,7 +8,7 @@ import {
     revokeKey as openpgp_revokeKey
 } from '../../lib/openpgp';
 import { VERIFICATION_STATUS, CryptoWorker } from '../../lib';
-import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey, reformatKey } from '../../lib/pmcrypto';
+import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey, reformatKey, getSHA256Fingerprints } from '../../lib/pmcrypto';
 import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from '../message/decryptMessageLegacy.data';
 import { hexToUint8Array } from '../../lib/utils';
 import {
@@ -573,51 +573,11 @@ Z3SSOseslp6+4nnQ3zOqnisO
         expect(await CryptoWorker.canKeyEncrypt({ keyReference: keyRef, date: now })).to.be.true;
     });
 
-    it('key reference - it correctly marks a weak key', async () => {
-        const weakKeyReference = await CryptoWorker.importPublicKey({ armoredKey: rsa512BitsKey });
-        expect(weakKeyReference.isWeak()).to.be.true;
-
+    it('getSHA256Fingerprints - it returns the expected fingerprints', async () => {
+        const key = await openpgp_readKey({ armoredKey: ecc25519Key });
         const keyReference = await CryptoWorker.importPublicKey({ armoredKey: ecc25519Key });
-        expect(keyReference.isWeak()).to.be.false;
-    });
-
-    it('reformatKey - creates a separate key reference', async () => {
-        const passphrase = 'passphrase';
-        const originalKeyRef = await CryptoWorker.importPrivateKey({
-            armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
-
-xYYEYjh/NRYJKwYBBAHaRw8BAQdAAJW2i9biFMIXiH15J6vGU1GCAqcp5utw
-C+y+CeZ+h4L+CQMI/K3Ebi8BpsUAzexw43SwgpD0mDGd/d4ORX77AiUoq/rp
-DKjS+0lpIszAa6SVWcA6xQZsz1ztdNBktEg4t/gybivH88kGTIprO/HWetM+
-j80RPHRlc3RAd29ya2VyLmNvbT7CjAQQFgoAHQUCYjh/NQQLCQcIAxUICgQW
-AAIBAhkBAhsDAh4BACEJEFx55sPEaXlKFiEE+PdMNIqw4jCyqqnuXHnmw8Rp
-eUoC8QD+NdQzOAWdIJEp1eMeEa3xx9rkCpD2TXUeV7goHtixyQIBANcgmRTg
-gN0O2hdiL9kjN4MPhbkz3dNTpkiO/K6O8UIDx4sEYjh/NRIKKwYBBAGXVQEF
-AQEHQF3XUaFXbb6O9Qcas72x5nhNupZ3iIrIx8wKeUdgdkBNAwEIB/4JAwjK
-CPlfkyHxBABYJC70HwO36TjRBxROY480CvL40r1bJ3NSLlV4aIZXLP2723PH
-tsnD3fhK5ZbGqC7FCmmDKEh1ibl3Lw6rEoE0Z6Fq72x6wngEGBYIAAkFAmI4
-fzUCGwwAIQkQXHnmw8RpeUoWIQT490w0irDiMLKqqe5ceebDxGl5Sl9wAQC+
-9Jb0r5pG7sMbNclmp3s1OIfWG9tJ9RoXSHU/bCFHlgEA/ggjJKzRuja0MWZ6
-8IDTErKCgaYSPES5+mwT27LYvw0=
-=D7EW
------END PGP PRIVATE KEY BLOCK-----`,
-            passphrase
-        });
-
-        const reformattedKeyRef = await CryptoWorker.reformatKey({ keyReference: originalKeyRef, userIDs: { email: 'reformatted@worker.com' } });
-        expect(reformattedKeyRef.getUserIDs()).to.have.length(1);
-        expect(reformattedKeyRef.getUserIDs().includes('<reformatted@worker.com>'));
-        expect(originalKeyRef.getUserIDs()).to.have.length(1);
-        expect(originalKeyRef.getUserIDs()).includes('<test@worker.com>');
-
-        await CryptoWorker.clearKey({ keyReference: originalKeyRef }); // this clears the private params as well
-
-        const armoredKey = await CryptoWorker.exportPrivateKey({ keyReference: reformattedKeyRef, passphrase });
-        const decryptedKeyFromArmored = await openpgp_decryptKey({
-            privateKey: await openpgp_readPrivateKey({ armoredKey }),
-            passphrase
-        });
-        expect(decryptedKeyFromArmored.isDecrypted()).to.be.true;
+        const sha256Fingerprings = await CryptoWorker.getSHA256Fingerprints({ keyReference });
+        expect(sha256Fingerprings).to.deep.equal(await getSHA256Fingerprints(key));
     });
 
     describe('Key management API', () => {
@@ -741,6 +701,53 @@ DQ==
             await expect(
                 CryptoWorker.importPrivateKey({ armoredKey: decryptedArmoredKey, passphrase: 'passphrase' })
             ).to.be.rejectedWith(/Key packet is already decrypted/);
+        });
+
+        it('reformatted key has a separate key reference', async () => {
+            const passphrase = 'passphrase';
+            const originalKeyRef = await CryptoWorker.importPrivateKey({
+                armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xYYEYjh/NRYJKwYBBAHaRw8BAQdAAJW2i9biFMIXiH15J6vGU1GCAqcp5utw
+C+y+CeZ+h4L+CQMI/K3Ebi8BpsUAzexw43SwgpD0mDGd/d4ORX77AiUoq/rp
+DKjS+0lpIszAa6SVWcA6xQZsz1ztdNBktEg4t/gybivH88kGTIprO/HWetM+
+j80RPHRlc3RAd29ya2VyLmNvbT7CjAQQFgoAHQUCYjh/NQQLCQcIAxUICgQW
+AAIBAhkBAhsDAh4BACEJEFx55sPEaXlKFiEE+PdMNIqw4jCyqqnuXHnmw8Rp
+eUoC8QD+NdQzOAWdIJEp1eMeEa3xx9rkCpD2TXUeV7goHtixyQIBANcgmRTg
+gN0O2hdiL9kjN4MPhbkz3dNTpkiO/K6O8UIDx4sEYjh/NRIKKwYBBAGXVQEF
+AQEHQF3XUaFXbb6O9Qcas72x5nhNupZ3iIrIx8wKeUdgdkBNAwEIB/4JAwjK
+CPlfkyHxBABYJC70HwO36TjRBxROY480CvL40r1bJ3NSLlV4aIZXLP2723PH
+tsnD3fhK5ZbGqC7FCmmDKEh1ibl3Lw6rEoE0Z6Fq72x6wngEGBYIAAkFAmI4
+fzUCGwwAIQkQXHnmw8RpeUoWIQT490w0irDiMLKqqe5ceebDxGl5Sl9wAQC+
+9Jb0r5pG7sMbNclmp3s1OIfWG9tJ9RoXSHU/bCFHlgEA/ggjJKzRuja0MWZ6
+8IDTErKCgaYSPES5+mwT27LYvw0=
+=D7EW
+-----END PGP PRIVATE KEY BLOCK-----`,
+                passphrase
+            });
+
+            const reformattedKeyRef = await CryptoWorker.reformatKey({ keyReference: originalKeyRef, userIDs: { email: 'reformatted@worker.com' } });
+            expect(reformattedKeyRef.getUserIDs()).to.have.length(1);
+            expect(reformattedKeyRef.getUserIDs().includes('<reformatted@worker.com>'));
+            expect(originalKeyRef.getUserIDs()).to.have.length(1);
+            expect(originalKeyRef.getUserIDs()).includes('<test@worker.com>');
+
+            await CryptoWorker.clearKey({ keyReference: originalKeyRef }); // this clears the private params as well
+
+            const armoredKey = await CryptoWorker.exportPrivateKey({ keyReference: reformattedKeyRef, passphrase });
+            const decryptedKeyFromArmored = await openpgp_decryptKey({
+                privateKey: await openpgp_readPrivateKey({ armoredKey }),
+                passphrase
+            });
+            expect(decryptedKeyFromArmored.isDecrypted()).to.be.true;
+        });
+
+        it('isWeak() - it correctly marks a weak key', async () => {
+            const weakKeyReference = await CryptoWorker.importPublicKey({ armoredKey: rsa512BitsKey });
+            expect(weakKeyReference.isWeak()).to.be.true;
+
+            const keyReference = await CryptoWorker.importPublicKey({ armoredKey: ecc25519Key });
+            expect(keyReference.isWeak()).to.be.false;
         });
 
         it('equals - returns true for equal public keys', async () => {

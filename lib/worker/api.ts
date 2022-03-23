@@ -24,7 +24,8 @@ import {
     isRevokedKey,
     isExpiredKey,
     canKeyEncrypt,
-    checkKeyStrength
+    checkKeyStrength,
+    getSHA256Fingerprints
 } from '../pmcrypto';
 import type {
     Data,
@@ -611,5 +612,13 @@ export class WorkerApi extends KeyManagementApi {
         const key = this.keyStore.get(keyReference._idx);
         const canEncrypt = await canKeyEncrypt(key, date);
         return canEncrypt;
+    }
+
+    async getSHA256Fingerprints({ keyReference }: { keyReference: KeyReference }) {
+        const key = this.keyStore.get(keyReference._idx);
+        // this is quite slow since it hashes the key packets, even for v5 keys, instead of reusing the fingerprint.
+        // once v5 keys are more widespread and this function can be made more efficient, we could include sha256Fingerprings in `KeyReference` or `KeyInfo`.
+        const sha256Fingerprints = await getSHA256Fingerprints(key);
+        return sha256Fingerprints;
     }
 };
