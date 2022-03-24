@@ -74,6 +74,7 @@ export const WorkerProxy: WorkerProxyInterface = (() => {
         getSignatureInfo: (opts) => assertInitialised(worker) && worker.getSignatureInfo(opts),
         getArmoredKeys: (opts) => assertInitialised(worker) && worker.getArmoredKeys(opts),
         getArmoredSignature: (opts) => assertInitialised(worker) && worker.getArmoredSignature(opts),
+        getArmoredMessage: (opts) => assertInitialised(worker) && worker.getArmoredMessage(opts),
         serverTime: () => assertInitialised(worker) && worker.serverTime(),
         updateServerTime: (opts) => assertInitialised(worker) && worker.updateServerTime(opts)
     } as WorkerProxyInterface; // casting needed to 'reuse' WorkerApi's parametric types declarations and preserve dynamic inference of

@@ -263,7 +263,7 @@ export function splitMessage(message: OpenPGPMessage | Uint8Array | string): Pro
     other: Uint8Array[];
 }>;
 
-export function armorBytes(value: Uint8Array | string): Promise<Uint8Array | string>;
+export function armorBytes(value: Uint8Array | string): Promise<string>;
 
 export interface AlgorithmInfo {
     algorithm: string;

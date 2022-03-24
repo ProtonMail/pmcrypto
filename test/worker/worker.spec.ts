@@ -5,7 +5,8 @@ import {
     decryptKey as openpgp_decryptKey,
     encryptKey as openpgp_encryptKey,
     readKey as openpgp_readKey,
-    revokeKey as openpgp_revokeKey
+    revokeKey as openpgp_revokeKey,
+    readMessage as openpgp_readMessage
 } from '../../lib/openpgp';
 import { VERIFICATION_STATUS, CryptoWorker } from '../../lib';
 import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey, reformatKey, getSHA256Fingerprints } from '../../lib/pmcrypto';
@@ -522,6 +523,17 @@ Z3SSOseslp6+4nnQ3zOqnisO
         });
         const signatureInfo = await CryptoWorker.getSignatureInfo({ armoredSignature });
         expect(signatureInfo.signingKeyIDs).to.not.be.empty;
+    });
+
+    it('getArmoredMessage - it returns a valid armored message', async () => {
+        const hexBinaryMessage = `c15e03f95c1ce325f4cb90120107409ebcb5a71c378c1f0936a5264aa69cd97d11abc03ff7e82077641e1e2000fd2e3000316865a8f7516e3048376a949ea31e84f1d5588fef7d485ece4e8a96358697c1c25a2019c8d6b527cea6c234265354d23c013b5dc3c8ab1a6bd1afda98ea4c5476dc93e4319c9f3734148ed7eec41adef1d80a86b02eb256e185bce5958f43dd0cbbf6eb654970d65234595e72`;
+
+        const armoredMessage = await CryptoWorker.getArmoredMessage({
+            binaryMessage: hexToUint8Array(hexBinaryMessage)
+        });
+
+        const message = await openpgp_readMessage({ armoredMessage });
+        expect(message.getEncryptionKeyIDs()).to.not.be.empty;
     });
 
     it('isExpiredKey/canKeyEncrypt - it can correctly detect an expired key', async () => {

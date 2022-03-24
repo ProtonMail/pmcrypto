@@ -25,7 +25,8 @@ import {
     isExpiredKey,
     canKeyEncrypt,
     checkKeyStrength,
-    getSHA256Fingerprints
+    getSHA256Fingerprints,
+    armorBytes
 } from '../pmcrypto';
 import type {
     Data,
@@ -580,6 +581,14 @@ export class WorkerApi extends KeyManagementApi {
     }
 
     /**
+     * Armor a message given in binary form
+     */
+    async getArmoredMessage({ binaryMessage }: { binaryMessage: Uint8Array }) {
+        const armoredMessage = await armorBytes(binaryMessage);
+        return armoredMessage;
+    }
+
+    /**
      * Given one or more keys concatenated in binary format, get the corresponding keys in armored format.
      * The keys are not imported into the key store nor processed further. Both private and public keys are supported.
      * @returns array of armored keys
@@ -617,7 +626,7 @@ export class WorkerApi extends KeyManagementApi {
     async getSHA256Fingerprints({ keyReference }: { keyReference: KeyReference }) {
         const key = this.keyStore.get(keyReference._idx);
         // this is quite slow since it hashes the key packets, even for v5 keys, instead of reusing the fingerprint.
-        // once v5 keys are more widespread and this function can be made more efficient, we could include sha256Fingerprings in `KeyReference` or `KeyInfo`.
+        // once v5 keys are more widespread and this function can be made more efficient, we could include `sha256Fingerprings` in `KeyReference` or `KeyInfo`.
         const sha256Fingerprints = await getSHA256Fingerprints(key);
         return sha256Fingerprints;
     }
