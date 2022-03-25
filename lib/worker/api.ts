@@ -26,7 +26,9 @@ import {
     canKeyEncrypt,
     checkKeyStrength,
     getSHA256Fingerprints,
-    armorBytes
+    armorBytes,
+    getCleartextMessage,
+    verifyCleartextMessage
 } from '../pmcrypto';
 import type {
     Data,
@@ -56,7 +58,8 @@ import {
     SignatureInfo,
     WorkerGetSignatureInfoOptions,
     WorkerGetKeyInfoOptions,
-    KeyInfo
+    KeyInfo,
+    WorkerVerifyCleartextOptions
 } from './api.models';
 // Note:
 // - streams are currently not supported since they are not Transferable (not in all browsers).
@@ -338,6 +341,16 @@ export class WorkerApi extends KeyManagementApi {
         return signResult;
     }
 
+    /**
+     * Verify a signature over the given data.
+     * Either `armoredSignature` or `binarySignature` must be given for the signature, and either `textData` or `binaryData` must be given as data to be verified.
+     * To verify a Cleartext message, which includes both the signed data and the corresponding signature, see `verifyCleartextMessage`.
+     * @param options.textData - expected signed text data
+     * @param options.binaryData - expected signed binary data
+     * @param options.armoredSignature - armored signature to verify
+     * @param options.binarySignature - binary signature to verify
+     * @returns signature verification result over the given data
+     */
     async verifyMessage<
         T extends Data,
         F extends WorkerVerifyOptions<T>['format'] = 'utf8'
@@ -355,6 +368,34 @@ export class WorkerApi extends KeyManagementApi {
             signatures: signatureObjects, // extracting this is needed for proper type inference of `serialisedResult.signatures`
             ...verificationResultWithoutSignatures
         } = await verifyMessage<T, F>({ signature, verificationKeys, ...options });
+
+        const serialisedResult = {
+            ...verificationResultWithoutSignatures,
+            signatures: signatureObjects.map((sig) => sig.write() as Uint8Array) // no support for streamed input for now
+        };
+
+        return serialisedResult;
+    }
+
+    /**
+     * Verify a Cleartext message, which includes the signed data and the corresponding signature.
+     * A cleartext message is always in armored form.
+     * To verify a detached signature over some data, see `verifyMessage` instead.
+     * @params options.armoredCleartextSignature - armored cleartext message to verify
+     */
+    async verifyCleartextMessage({
+        armoredCleartextMessage,
+        verificationKeys: verificationKeyRefs = [],
+        ...options
+    }: WorkerVerifyCleartextOptions) {
+        const verificationKeys = await Promise.all(
+            toArray(verificationKeyRefs).map((keyReference) => this.keyStore.get(keyReference._idx))
+        );
+        const cleartextMessage = await getCleartextMessage(armoredCleartextMessage);
+        const {
+            signatures: signatureObjects, // extracting this is needed for proper type inference of `serialisedResult.signatures`
+            ...verificationResultWithoutSignatures
+        } = await verifyCleartextMessage({ cleartextMessage, verificationKeys, ...options });
 
         const serialisedResult = {
             ...verificationResultWithoutSignatures,

@@ -47,6 +47,7 @@ export const WorkerProxy: WorkerProxyInterface = (() => {
         signMessage: (opts) => assertInitialised(worker) && worker.signMessage(opts),
         // @ts-ignore marked as non-callable, unclear why, might be due to a limitation of type Remote
         verifyMessage: (opts) => assertInitialised(worker) && worker.verifyMessage(opts),
+        verifyCleartextMessage: (opts) => assertInitialised(worker) && worker.verifyCleartextMessage(opts),
         processMIME: (opts) => assertInitialised(worker) && worker.processMIME(opts),
 
         generateSessionKey: (opts) => assertInitialised(worker) && worker.generateSessionKey(opts),

@@ -14,7 +14,8 @@ import type {
   ProcessMIMEOptions,
   ProcessMIMEResult,
   SessionKey,
-  ReformatKeyOptions
+  ReformatKeyOptions,
+  VerifyCleartextOptionsPmcrypto
 } from '../pmcrypto';
 
 type MaybeArray<T> = T[] | T;
@@ -49,6 +50,10 @@ export interface WorkerDecryptLegacyOptions
 export interface WorkerVerifyOptions<T extends Data> extends Omit<VerifyOptionsPmcrypto<T>, 'signature' | 'verificationKeys'> {
     armoredSignature?: string;
     binarySignature?: Uint8Array;
+    verificationKeys: MaybeArray<PublicKeyReference>;
+}
+export interface WorkerVerifyCleartextOptions extends Omit<VerifyCleartextOptionsPmcrypto, 'cleartextMessage' | 'verificationKeys'> {
+    armoredCleartextMessage: string,
     verificationKeys: MaybeArray<PublicKeyReference>;
 }
 export interface WorkerVerificationResult<D extends Data = Data> extends Omit<VerifyMessageResult<D>, 'signatures'> {

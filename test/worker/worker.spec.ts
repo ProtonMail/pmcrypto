@@ -223,7 +223,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         expect(textDecryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
     });
 
-  it('signMessage/verifyMessage - output binary signature and data should be transferred', async () => {
+    it('signMessage/verifyMessage - output binary signature and data should be transferred', async () => {
         const privateKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'name', email: 'email@test.com' } });
         const binarySignature = await CryptoWorker.signMessage({
             textData: 'hello world',
@@ -250,6 +250,46 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
             format: 'binary'
         });
         expect(invalidVerificationResult.data).to.deep.equal(stringToUtf8Array('not signed data'));
+        expect(invalidVerificationResult.signatures).to.have.length(1);
+        expect(invalidVerificationResult.errors).to.have.length(1);
+        expect(invalidVerificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID)
+    });
+
+    it('verifyCleartextMessage - output binary signature should be transferred', async () => {
+        const armoredKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+xjMEYj2jmxYJKwYBBAHaRw8BAQdAlG1ARz91CtsRmJ0lQo2wOqAzUXn8KnOu
+oBdEwZWZhPvNDzx0ZXN0QHRlc3QuY29tPsKMBBAWCgAdBQJiPaObBAsJBwgD
+FQgKBBYAAgECGQECGwMCHgEAIQkQ0k/eZvRKo8YWIQQseK5K/i3v7uzoNYHS
+T95m9EqjxqiLAP9sIlmYlCVgSiPZBmsixn9CL27Hv/Bgr2nc73v9K5OszAEA
+ypolW41xuLR+4D7vvxT66lwMMVagQSIisR+49QQP2w8=
+=rzuc
+-----END PGP PUBLIC KEY BLOCK-----`;
+        const armoredCleartextMessage = `-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+hello world
+-----BEGIN PGP SIGNATURE-----
+
+wnUEARYKAAYFAmI9o6IAIQkQ0k/eZvRKo8YWIQQseK5K/i3v7uzoNYHST95m
+9EqjxoO3AP9xPAlk+qZ3sr/Y1lgWBIdoGeQ1ZGzLKVVzgrhH5sOcZQEA3AeS
+fLz+Lk0ZkB4L3nhM/c6sQKSsI9k2Tptm1VZ5+Qo=
+=1A38
+-----END PGP SIGNATURE-----`;
+        const publicKeyRef = await CryptoWorker.importPublicKey({ armoredKey });
+        const verificationResult = await CryptoWorker.verifyCleartextMessage({
+            armoredCleartextMessage,
+            verificationKeys: publicKeyRef
+        });
+        expect(verificationResult.data).to.equal('hello world');
+        expect(verificationResult.signatures).to.have.length(1);
+        expect(verificationResult.errors).to.not.exist;
+        expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+
+        const invalidVerificationResult = await CryptoWorker.verifyCleartextMessage({
+            armoredCleartextMessage,
+            verificationKeys: []
+        });
         expect(invalidVerificationResult.signatures).to.have.length(1);
         expect(invalidVerificationResult.errors).to.have.length(1);
         expect(invalidVerificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID)

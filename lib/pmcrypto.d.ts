@@ -252,6 +252,7 @@ export function signMessage<
 export function getSignature(option: string | Uint8Array | OpenPGPSignature): Promise<OpenPGPSignature>;
 
 export function getMessage(message: OpenPGPMessage | Uint8Array | string): Promise<OpenPGPMessage>;
+export function getCleartextMessage(message: CleartextMessage | string): Promise<CleartextMessage>;
 
 export function splitMessage(message: OpenPGPMessage | Uint8Array | string): Promise<{
     asymmetric: Uint8Array[];
@@ -306,7 +307,7 @@ export interface VerifyCleartextOptionsPmcrypto extends Omit<VerifyOptions, 'mes
 // Cleartext message data is always of utf8 format
 export function verifyCleartextMessage(
     options: VerifyCleartextOptionsPmcrypto
-): Promise<VerifyMessageResult>;
+): Promise<VerifyMessageResult<string>>;
 
 export interface ProcessMIMEOptions {
     data: string,
