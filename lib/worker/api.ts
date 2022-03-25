@@ -28,7 +28,9 @@ import {
     getSHA256Fingerprints,
     armorBytes,
     getCleartextMessage,
-    verifyCleartextMessage
+    verifyCleartextMessage,
+    unsafeMD5,
+    SHA512
 } from '../pmcrypto';
 import type {
     Data,
@@ -670,5 +672,19 @@ export class WorkerApi extends KeyManagementApi {
         // once v5 keys are more widespread and this function can be made more efficient, we could include `sha256Fingerprings` in `KeyReference` or `KeyInfo`.
         const sha256Fingerprints = await getSHA256Fingerprints(key);
         return sha256Fingerprints;
+    }
+
+    async computeHash({ algorithm, data }: { algorithm: 'unsafeMD5' | 'SHA512', data: Uint8Array }) {
+        let hash;
+        switch(algorithm) {
+            case 'SHA512':
+                hash = await SHA512(data);
+                return hash;
+            case 'unsafeMD5':
+                hash = await unsafeMD5(data);
+                return hash
+            default:
+                throw new Error(`Unsupported algorithm: ${algorithm}`);
+        }
     }
 };

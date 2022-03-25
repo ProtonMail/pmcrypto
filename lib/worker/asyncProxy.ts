@@ -49,6 +49,7 @@ export const WorkerProxy: WorkerProxyInterface = (() => {
         verifyMessage: (opts) => assertInitialised(worker) && worker.verifyMessage(opts),
         verifyCleartextMessage: (opts) => assertInitialised(worker) && worker.verifyCleartextMessage(opts),
         processMIME: (opts) => assertInitialised(worker) && worker.processMIME(opts),
+        computeHash: (opts) => assertInitialised(worker) && worker.computeHash(opts),
 
         generateSessionKey: (opts) => assertInitialised(worker) && worker.generateSessionKey(opts),
         generateSessionKeyFromKeyPreferences: (opts) => (

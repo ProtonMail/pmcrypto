@@ -9,7 +9,7 @@ import {
     readMessage as openpgp_readMessage
 } from '../../lib/openpgp';
 import { VERIFICATION_STATUS, CryptoWorker } from '../../lib';
-import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey, reformatKey, getSHA256Fingerprints } from '../../lib/pmcrypto';
+import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey, reformatKey, getSHA256Fingerprints, binaryStringToArray, arrayToHexString } from '../../lib/pmcrypto';
 import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from '../message/decryptMessageLegacy.data';
 import { hexToUint8Array } from '../../lib/utils';
 import {
@@ -630,6 +630,14 @@ Z3SSOseslp6+4nnQ3zOqnisO
         const keyReference = await CryptoWorker.importPublicKey({ armoredKey: ecc25519Key });
         const sha256Fingerprings = await CryptoWorker.getSHA256Fingerprints({ keyReference });
         expect(sha256Fingerprings).to.deep.equal(await getSHA256Fingerprints(key));
+    });
+
+    it('computeHash - supports unsafeMD5 and SHA512', async () => {
+        const testHashMD5 = await CryptoWorker.computeHash({ algorithm: 'unsafeMD5', data: binaryStringToArray('The quick brown fox jumps over the lazy dog') }).then(arrayToHexString);
+        expect(testHashMD5).to.equal('9e107d9d372bb6826bd81d3542a419d6');
+
+        const testHashSHA512 = await CryptoWorker.computeHash({ algorithm: 'SHA512', data: new Uint8Array() }).then(arrayToHexString);
+        expect(testHashSHA512).to.equal('cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e');
     });
 
     describe('Key management API', () => {
