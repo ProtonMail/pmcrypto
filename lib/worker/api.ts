@@ -68,10 +68,10 @@ import {
 // - when returning binary data, the values are always transferred.
 
 const getSignatureIfDefined = (serializedData?: string | Uint8Array) =>
-    serializedData !== undefined ? getSignature(serializedData) : undefined;
+    serializedData ? getSignature(serializedData) : undefined;
 
 const getMessageIfDefined = (serializedData?: string | Uint8Array) =>
-    serializedData !== undefined ? getMessage(serializedData) : undefined;
+    serializedData ? getMessage(serializedData) : undefined;
 
 const toArray = <T>(maybeArray: MaybeArray<T>) => (Array.isArray(maybeArray) ? maybeArray : [maybeArray]);
 
