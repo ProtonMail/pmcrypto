@@ -223,7 +223,7 @@ class KeyManagementApi {
         armoredKey,
         binaryKey,
         passphrase
-    }: WorkerImportPrivateKeyOptions<T>) {
+    }: WorkerImportPrivateKeyOptions<T>, _customIdx?: number) {
         const expectDecrypted = passphrase === null;
         const maybeEncryptedKey = binaryKey ?
             await readPrivateKey({ binaryKey }) :
@@ -238,14 +238,14 @@ class KeyManagementApi {
             decryptedKey = await decryptKey({ privateKey: maybeEncryptedKey, passphrase });
         }
 
-        const keyStoreID = this.keyStore.add(decryptedKey);
+        const keyStoreID = this.keyStore.add(decryptedKey, _customIdx);
 
         return getPrivateKeyReference(decryptedKey, keyStoreID);
     }
 
-    async importPublicKey({ armoredKey, binaryKey }: WorkerPublicKeyImport) {
+    async importPublicKey({ armoredKey, binaryKey }: WorkerPublicKeyImport, _customIdx?: number) {
         const publicKey = await getKey(binaryKey || armoredKey!);
-        const keyStoreID = this.keyStore.add(publicKey);
+        const keyStoreID = this.keyStore.add(publicKey, _customIdx);
 
         return getPublicKeyReference(publicKey, keyStoreID);
     }

@@ -26,19 +26,19 @@ import {
 
 chaiUse(chaiAsPromised);
 
-before(async () => {
-    await CryptoWorker.init();
-});
-
-afterEach(() => {
-    CryptoWorker.clearKeyStore();
-});
-
-after(() => {
-    CryptoWorker.destroy();
-})
-
 describe('WorkerAPI and Proxy Integration', () => {
+    before(async () => {
+        await CryptoWorker.init();
+    });
+
+    afterEach(() => {
+        CryptoWorker.clearKeyStore();
+    });
+
+    after(async () => {
+        await CryptoWorker.destroy();
+    })
+
     it('init - should throw if already initialised', async () => {
         await expect(CryptoWorker.init()).to.be.rejectedWith(/already initialised/);
     })
