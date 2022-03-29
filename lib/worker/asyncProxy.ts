@@ -96,6 +96,9 @@ export const WorkerProxy: WorkerProxyInterface = (() => {
             )
             return keyReference;
         },
+        replaceUserIDs: async (opts) => {
+            await Promise.all(getAllWorkers().map((worker) => worker.replaceUserIDs(opts)))
+        },
         exportPublicKey: (opts) => getWorker().exportPublicKey(opts),
         exportPrivateKey: (opts) => getWorker().exportPrivateKey(opts),
         clearKeyStore: async () => { await Promise.all(getAllWorkers().map((worker) => worker.clearKeyStore())) },

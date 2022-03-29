@@ -640,6 +640,66 @@ Z3SSOseslp6+4nnQ3zOqnisO
         expect(testHashSHA512).to.equal('cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e');
     });
 
+    it('replaceUserIDs - the target key user IDs match the source key ones', async () => {
+        const sourceKey = await openpgp_readKey({ armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEYkMx+RYJKwYBBAHaRw8BAQdA2wiwC/FbumCQYlJAEHeRCm2GZD0S1aPt
+BG6ZcpuehWUAAQDpWPNfvUtTnn6AiJ/xEQ09so7ZWF+2GHlaOglSQUADwQ5J
+zQ88Y0B3b3JrZXIudGVzdD7CiQQQFgoAGgUCYkMx+QQLCQcIAxUICgQWAAIB
+AhsDAh4BACEJECO0b8qLQMw0FiEEYiHKmAo/cFLglZrtI7RvyotAzDRu6QEA
+mbhLi00tsTr7hmJxIPw4JLHGw8UVvztUfeyFE6ZqAIsBAJtF8P9pcZxHKb58
+nNamH0U5+cC+9hN9uw2pn51NIY8KzQ88YkB3b3JrZXIudGVzdD7CiQQQFgoA
+GgUCYkMx+QQLCQcIAxUICgQWAAIBAhsDAh4BACEJECO0b8qLQMw0FiEEYiHK
+mAo/cFLglZrtI7RvyotAzDSSNwD+JDTJNbf8/0u9QUS3liusBKk5qKUPXG+j
+ezH+Sgw1wagA/36wOxNMHxVUJXBjYiOIrZjcUKwXPR2pjke6zgntRuQOx10E
+YkMx+RIKKwYBBAGXVQEFAQEHQJDjVd81zZuOdxAkjMe6Y+8Bj8gF9PKBkMJ+
+I8Yc2OQKAwEIBwAA/2Ikos/IDw3uCSa6DGRoMDzQzZSwyzIO0XhoP9cgKSb4
+Dw/CeAQYFggACQUCYkMx+QIbDAAhCRAjtG/Ki0DMNBYhBGIhypgKP3BS4JWa
+7SO0b8qLQMw02YoBAOwG3hB8S5NBjdam/kRWvRjS8LMZDsVICPpOrwhQXkRl
+AQDFe4bzH3MY16IqrIq70QSCxqLJ0Ao+NYb1whc/mXYOAA==
+=p5Q+
+-----END PGP PRIVATE KEY BLOCK-----` });
+        const targetKey = await openpgp_readPrivateKey({ armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEYkMx+RYJKwYBBAHaRw8BAQdA2wiwC/FbumCQYlJAEHeRCm2GZD0S1aPt
+BG6ZcpuehWUAAQDpWPNfvUtTnn6AiJ/xEQ09so7ZWF+2GHlaOglSQUADwQ5J
+zQ88Y0B3b3JrZXIudGVzdD7CiQQQFgoAGgUCYkMx+QQLCQcIAxUICgQWAAIB
+AhsDAh4BACEJECO0b8qLQMw0FiEEYiHKmAo/cFLglZrtI7RvyotAzDRu6QEA
+mbhLi00tsTr7hmJxIPw4JLHGw8UVvztUfeyFE6ZqAIsBAJtF8P9pcZxHKb58
+nNamH0U5+cC+9hN9uw2pn51NIY8Kx10EYkMx+RIKKwYBBAGXVQEFAQEHQJDj
+Vd81zZuOdxAkjMe6Y+8Bj8gF9PKBkMJ+I8Yc2OQKAwEIBwAA/2Ikos/IDw3u
+CSa6DGRoMDzQzZSwyzIO0XhoP9cgKSb4Dw/CeAQYFggACQUCYkMx+QIbDAAh
+CRAjtG/Ki0DMNBYhBGIhypgKP3BS4JWa7SO0b8qLQMw02YoBAOwG3hB8S5NB
+jdam/kRWvRjS8LMZDsVICPpOrwhQXkRlAQDFe4bzH3MY16IqrIq70QSCxqLJ
+0Ao+NYb1whc/mXYOAA==
+=AjeC
+-----END PGP PRIVATE KEY BLOCK-----` });
+        const sourceKeyRef = await CryptoWorker.importPublicKey({ armoredKey: sourceKey.armor() });
+        const targetKeyRef = await CryptoWorker.importPrivateKey({
+            armoredKey: targetKey.armor(), passphrase: null
+        });
+
+        await CryptoWorker.replaceUserIDs({ sourceKey: sourceKeyRef, targetKey: targetKeyRef });
+
+        const exportedSourceKey = await openpgp_readKey({
+            armoredKey: await CryptoWorker.exportPublicKey({ keyReference: sourceKeyRef })
+        });
+        const exportedTargetKey = await openpgp_readKey({
+            armoredKey: await CryptoWorker.exportPublicKey({ keyReference: targetKeyRef })
+        });
+        // source key users should be unchanged
+        expect(sourceKey.getUserIDs()).to.deep.equal(exportedSourceKey.getUserIDs());
+        expect(
+            (await sourceKey.getPrimaryUser()).user.userID
+        ).to.deep.equal((await exportedSourceKey.getPrimaryUser()).user.userID);
+        // target key users should have changed
+        expect(targetKey.getUserIDs()).to.not.deep.equal(exportedTargetKey.getUserIDs());
+        expect(sourceKey.getUserIDs()).to.deep.equal(exportedTargetKey.getUserIDs());
+        expect(
+            (await sourceKey.getPrimaryUser()).user.userID
+        ).to.deep.equal((await exportedTargetKey.getPrimaryUser()).user.userID);
+    });
+
     describe('Key management API', () => {
 
         it('can export a generated key', async () => {

@@ -687,4 +687,26 @@ export class WorkerApi extends KeyManagementApi {
                 throw new Error(`Unsupported algorithm: ${algorithm}`);
         }
     }
+
+    /**
+     * Replace the User IDs of the target key to match those of the source key.
+     * NOTE: this function mutates the target key in place.
+     */
+    async replaceUserIDs({
+        sourceKey: sourceKeyReference,
+        targetKey: targetKeyReference
+    }: { sourceKey: KeyReference, targetKey: PrivateKeyReference }) {
+        const sourceKey = this.keyStore.get(sourceKeyReference._idx);
+        const targetKey = this.keyStore.get(targetKeyReference._idx);
+        if (targetKey.getFingerprint() !== sourceKey.getFingerprint()) {
+            throw new Error('Cannot replace UserIDs of a different key');
+        }
+
+        targetKey.users = await Promise.all(sourceKey.users.map((sourceUser) => {
+            // @ts-ignore missing .clone() definition
+            const destUser = sourceUser.clone();
+            destUser.mainKey = targetKey;
+            return destUser;
+        }))
+    }
 };
