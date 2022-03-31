@@ -8,7 +8,7 @@ import {
     revokeKey as openpgp_revokeKey,
     readMessage as openpgp_readMessage
 } from '../../lib/openpgp';
-import { VERIFICATION_STATUS, CryptoWorker } from '../../lib';
+import { VERIFICATION_STATUS, CryptoWorkerPool as CryptoWorker } from '../../lib';
 import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey, reformatKey, getSHA256Fingerprints, binaryStringToArray, arrayToHexString } from '../../lib/pmcrypto';
 import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from '../message/decryptMessageLegacy.data';
 import { hexToUint8Array } from '../../lib/utils';

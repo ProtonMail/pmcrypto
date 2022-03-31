@@ -1,39 +1,44 @@
 import { wrap, Remote, transferHandlers, releaseProxy } from 'comlink';
-import type { WorkerApi } from './api';
+import type { WorkerApi as CryptoApi } from './api';
 import { mainThreadTransferHandlers } from './transferHandlers';
 
-export interface WorkerProxyInterface extends Omit<WorkerApi, 'keyStore'> {
-    init(workerNumber?: number): void;
+export interface CryptoApiInterface extends InstanceType<typeof CryptoApi> {};
+
+interface WorkerPoolInterface extends CryptoApiInterface {
+    init(poolSize?: number): Promise<void>;
     destroy(): Promise<void>;
 }
 
-export const WorkerProxy: WorkerProxyInterface = (() => {
-    let workerPool: Remote<WorkerApi>[] | null = null;
+// TODO should we keep this as singleton?
+export const WorkerPool: WorkerPoolInterface = (() => {
+    let workerPool: Remote<CryptoApi>[] | null = null;
     let i = -1;
 
     const initWorker = async () => {
         // Webpack static analyser is not especially powerful at detecting web workers that require bundling,
         // see: https://github.com/webpack/webpack.js.org/issues/4898#issuecomment-823073304.
         // Harcoding the path here is the easiet way to get the worker to be bundled properly.
-        const RemoteApi = wrap<typeof WorkerApi>(new Worker(new URL('./worker.ts', import.meta.url)));
+        const RemoteApi = wrap<typeof CryptoApi>(new Worker(new URL('./worker.ts', import.meta.url)));
         const worker = await new RemoteApi();
         return worker;
     };
 
-    const destroyWorker = async (worker: Remote<WorkerApi>) => {
+    const destroyWorker = async (worker: Remote<CryptoApi>) => {
         await worker?.clearKeyStore();
         worker?.[releaseProxy]();
     }
 
-    const getWorker = (): Remote<WorkerApi>  => {
+    const getWorker = (): Remote<CryptoApi> => {
         if (workerPool == null) throw new Error('Uninitialised worker pool');
         i = (i + 1) % workerPool.length;
         return workerPool[i];
     }
 
-    const getAllWorkers = (): Omit<WorkerApi, 'keyStore'>[] => {
+    // The return type is technically `Remote<CryptoApi>[]` but that removes some type inference capabilities that are
+    // useful to type-check the internal worker pool functions.
+    const getAllWorkers = (): CryptoApiInterface[] => {
         if (workerPool == null) throw new Error('Uninitialised worker pool');
-        return workerPool as unknown as Omit<WorkerApi, 'keyStore'>[];
+        return workerPool as any as CryptoApiInterface[];
     }
 
     return {
@@ -116,6 +121,6 @@ export const WorkerProxy: WorkerProxyInterface = (() => {
         getArmoredMessage: (opts) => getWorker().getArmoredMessage(opts),
         serverTime: () => getWorker().serverTime(),
         updateServerTime: (opts) => getWorker().updateServerTime(opts)
-    } as WorkerProxyInterface; // casting needed to 'reuse' WorkerApi's parametric types declarations and preserve dynamic inference of
+    } as WorkerPoolInterface; // casting needed to 'reuse' CryptoApi's parametric types declarations and preserve dynamic inference of
     // the output types based on the input ones.
 })();
