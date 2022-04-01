@@ -6,7 +6,9 @@ import {
     encryptKey as openpgp_encryptKey,
     readKey as openpgp_readKey,
     revokeKey as openpgp_revokeKey,
-    readMessage as openpgp_readMessage
+    readMessage as openpgp_readMessage,
+    enums,
+    CompressedDataPacket
 } from '../../lib/openpgp';
 import { VERIFICATION_STATUS, CryptoWorkerPool as CryptoWorker } from '../../lib';
 import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey, reformatKey, getSHA256Fingerprints, binaryStringToArray, arrayToHexString } from '../../lib/pmcrypto';
@@ -154,6 +156,33 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         expect(decryptionResult.signatures).to.have.length(0);
         expect(decryptionResult.errors).to.not.exist;
         expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED)
+    });
+
+    it('encryptMessage - should compress with zlib only if given `compress: true`', async () => {
+        const password = 'password';
+        const { message: armoredMessage } = await CryptoWorker.encryptMessage({
+            textData: 'hello world',
+            passwords: password
+        });
+
+        const encryptedMessage = await openpgp_readMessage({ armoredMessage });
+        const decryptedMessage = await encryptedMessage.decrypt([], [password])
+        expect(decryptedMessage.packets.findPacket(enums.packet.compressedData)).to.be.undefined;
+
+        // request compression
+        const { message: compressedArmoredMessage } = await CryptoWorker.encryptMessage({
+            textData: 'hello world',
+            passwords: password,
+            compress: true
+        });
+        const compressedEncryptedMessage = await openpgp_readMessage({ armoredMessage: compressedArmoredMessage });
+        const compressedDecryptedMessage = await compressedEncryptedMessage.decrypt([], [password])
+        const compressedPacket = compressedDecryptedMessage.packets.findPacket(
+            enums.packet.compressedData
+        ) as CompressedDataPacket;
+        expect(compressedPacket).to.not.be.undefined;
+        // @ts-ignore undeclared algorithm field
+        expect(compressedPacket.algorithm).to.equal(enums.compression.zlib);
     });
 
     it('encryptMessage/decryptMessage - should encrypt and decrypt text and binary data', async () => {

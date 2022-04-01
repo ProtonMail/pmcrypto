@@ -69,7 +69,8 @@ export interface WorkerEncryptOptions<T extends Data> extends Omit<EncryptOption
     armoredSignature?: string,
     binarySignature?: Uint8Array,
     encryptionKeys?: MaybeArray<PublicKeyReference>,
-    signingKeys?: MaybeArray<PrivateKeyReference>
+    signingKeys?: MaybeArray<PrivateKeyReference>,
+    compress?: boolean
 };
 
 export interface WorkerProcessMIMEOptions extends Omit<ProcessMIMEOptions, 'verificationKeys'> {

@@ -38,7 +38,7 @@ import type {
     PublicKey,
     Key
 } from '../pmcrypto';
-import { decryptKey, encryptKey, MaybeArray, readPrivateKey, readKeys } from '../openpgp';
+import { decryptKey, encryptKey, MaybeArray, readPrivateKey, readKeys, enums } from '../openpgp';
 
 import {
     PublicKeyReference,
@@ -304,6 +304,8 @@ export class WorkerApi extends KeyManagementApi {
         signingKeys: signingKeyRefs = [],
         armoredSignature,
         binarySignature,
+        compress = false,
+        config = {},
         ...options
     }: WorkerEncryptOptions<T> & { format?: F; detached?: D; returnSessionKey?: SK }) {
         const signingKeys = await Promise.all(
@@ -314,11 +316,19 @@ export class WorkerApi extends KeyManagementApi {
         );
         const inputSignature = await getSignatureIfDefined(binarySignature || armoredSignature);
 
+        if (config.preferredCompressionAlgorithm) {
+            throw new Error('Passing `config.preferredCompressionAlgorithm` is not supported. Use `compress` option instead.')
+        }
+
         const encryptionResult = await encryptMessage<T, F, D, SK>({
             ...options,
             encryptionKeys,
             signingKeys,
-            signature: inputSignature
+            signature: inputSignature,
+            config: {
+                ...config,
+                preferredCompressionAlgorithm: compress ? enums.compression.zlib : enums.compression.uncompressed
+            }
         });
 
         return encryptionResult;
