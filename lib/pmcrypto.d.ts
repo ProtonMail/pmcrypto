@@ -22,20 +22,13 @@ import {
     PartialConfig
 } from 'openpgp/lightweight';
 
+import { VERIFICATION_STATUS, SIGNATURE_TYPES } from './constants';
+
 type MaybeArray<T> = T | T[];
 
 export function init(): void;
 
-export enum VERIFICATION_STATUS {
-    NOT_SIGNED = 0,
-    SIGNED_AND_VALID = 1,
-    SIGNED_AND_INVALID = 2
-}
-
-export enum SIGNATURE_TYPES {
-    BINARY = 0,
-    CANONICAL_TEXT = 1
-}
+export { VERIFICATION_STATUS, SIGNATURE_TYPES};
 
 export type OpenPGPKey = Key;
 export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing streaming support
@@ -341,8 +334,7 @@ export interface ProcessMIMEResult {
 
 export function processMIME(options: ProcessMIMEOptions): Promise<ProcessMIMEResult>;
 
-export function serverTime(): Date;
-export function updateServerTime(serverDate: Date): Date;
+export { serverTime, updateServerTime } from './serverTime';
 
 export function getSHA256Fingerprints(key: OpenPGPKey): Promise<string[]>;
 
