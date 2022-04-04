@@ -118,7 +118,8 @@ export const WorkerPool: WorkerPoolInterface = (() => {
         getArmoredSignature: (opts) => getWorker().getArmoredSignature(opts),
         getArmoredMessage: (opts) => getWorker().getArmoredMessage(opts),
         serverTime: () => getWorker().serverTime(),
-        updateServerTime: (opts) => getWorker().updateServerTime(opts)
+        updateServerTime: (opts) => getWorker().updateServerTime(opts),
+        setConfig: async (opts) => { await Promise.all(getAllWorkers().map((worker) => worker.setConfig(opts))) }
     } as WorkerPoolInterface; // casting needed to 'reuse' CryptoApi's parametric types declarations and preserve dynamic inference of
     // the output types based on the input ones.
 })();

@@ -8,7 +8,8 @@ import {
     revokeKey as openpgp_revokeKey,
     readMessage as openpgp_readMessage,
     enums,
-    CompressedDataPacket
+    CompressedDataPacket,
+    config as openpgp_config
 } from '../../lib/openpgp';
 import { VERIFICATION_STATUS, CryptoWorkerPool as CryptoWorker } from '../../lib';
 import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey, reformatKey, getSHA256Fingerprints, binaryStringToArray, arrayToHexString } from '../../lib/pmcrypto';
@@ -730,6 +731,17 @@ jdam/kRWvRjS8LMZDsVICPpOrwhQXkRlAQDFe4bzH3MY16IqrIq70QSCxqLJ
         expect(
             (await sourceKey.getPrimaryUser()).user.userID
         ).to.deep.equal((await exportedTargetKey.getPrimaryUser()).user.userID);
+    });
+
+    it('setConfig - it applies the given configuration', async () => {
+        const { maxUserIDLength } = openpgp_config; // this setting is unchanged by pmcrypto.init so it's fine to read the default OpenPGP value
+        try {
+            await expect(CryptoWorker.importPublicKey({ armoredKey: ecc25519Key })).to.be.fulfilled;
+            await CryptoWorker.setConfig({ maxUserIDLength: 0, ignoreMalformedPackets: false });
+            await expect(CryptoWorker.importPublicKey({ armoredKey: ecc25519Key })).to.be.rejectedWith(/User ID string is too long/)
+        } finally {
+            await CryptoWorker.setConfig({ maxUserIDLength });
+        }
     });
 
     describe('Key management API', () => {

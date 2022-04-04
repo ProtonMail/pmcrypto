@@ -38,7 +38,7 @@ import type {
     PublicKey,
     Key
 } from '../pmcrypto';
-import { decryptKey, encryptKey, MaybeArray, readPrivateKey, readKeys, enums } from '../openpgp';
+import { decryptKey, encryptKey, MaybeArray, readPrivateKey, readKeys, enums, config as globalConfig } from '../openpgp';
 
 import {
     PublicKeyReference,
@@ -61,7 +61,8 @@ import {
     WorkerGetSignatureInfoOptions,
     WorkerGetKeyInfoOptions,
     KeyInfo,
-    WorkerVerifyCleartextOptions
+    WorkerVerifyCleartextOptions,
+    OpenPGPConfig
 } from './api.models';
 // Note:
 // - streams are currently not supported since they are not Transferable (not in all browsers).
@@ -721,6 +722,25 @@ export class Api extends KeyManagementApi {
             destUser.mainKey = targetKey;
             return destUser;
         }))
+    }
+
+    /**
+     * Change OpenPGP global configuration.
+     * NOTE: This is intended for app initialization purposes only.
+     * Functions whose behaviour depend on the config accept a `config` input option that can be used to
+     * apply a configuration change limited to the single function call.
+     * @param partialConfig - config entries to set
+     * @throws {Error} if the given configuration is invalid
+     */
+    async setConfig(partialConfig: OpenPGPConfig) {
+        Object.entries(partialConfig).forEach(([prop, value]) => {
+            if (prop in globalConfig) {
+                // @ts-ignore limitation of Object.entries type def
+                globalConfig[prop] = value;
+            } else {
+                throw new Error(`Invalid configuration: unknown property ${prop}`)
+            }
+        });
     }
 };
 

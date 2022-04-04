@@ -18,6 +18,8 @@ import type {
   VerifyCleartextOptionsPmcrypto
 } from '../pmcrypto';
 
+export type { PartialConfig as OpenPGPConfig } from 'openpgp/lightweight';
+
 type MaybeArray<T> = T[] | T;
 export type { SessionKey, AlgorithmInfo };
 
