@@ -1,10 +1,10 @@
 import { expect } from 'chai';
 // @ts-ignore missing web-stream-tools types
-import { WritableStream, ReadableStream, readToEnd } from '@openpgp/web-stream-tools';
+import { WritableStream, ReadableStream, readToEnd, WebStream } from '@openpgp/web-stream-tools';
 import { readKey, readSignature, readCleartextMessage } from '../../lib/openpgp';
-import { verifyMessage, signMessage, getSignature, stringToUtf8Array, generateKey, verifyCleartextMessage } from '../../lib';
+import { verifyMessage, signMessage, getSignature, generateKey, verifyCleartextMessage, stripArmor } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
-import type { WebStream } from '../../lib';
+import { stringToUtf8Array } from '../../lib/utils';
 
 const detachedSignatureFromTwoKeys = `-----BEGIN PGP SIGNATURE-----
 
@@ -266,4 +266,25 @@ fLz+Lk0ZkB4L3nhM/c6sQKSsI9k2Tptm1VZ5+Qo=
         expect(verificationResult.data).to.equal(inputData);
         expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
+
+    it('it can correctly dearmor a message', async () => {
+        const x = await stripArmor(`
+-----BEGIN PGP MESSAGE-----
+Version: GnuPG v2.0.19 (GNU/Linux)
+
+jA0ECQMCpo7I8WqsebTJ0koBmm6/oqdHXJU9aPe+Po+nk/k4/PZrLmlXwz2lhqBg
+GAlY9rxVStLBrg0Hn+5gkhyHI9B85rM1BEYXQ8pP5CSFuTwbJ3O2s67dzQ==
+=VZ0/
+-----END PGP MESSAGE-----`);
+        expect(x).to.deep.equal(new Uint8Array([
+            140, 13, 4, 9, 3, 2, 166, 142, 200, 241, 106, 172, 121, 180, 201,
+            210, 74, 1, 154, 110, 191, 162, 167, 71, 92, 149, 61, 104, 247,
+            190, 62, 143, 167, 147, 249, 56, 252, 246, 107, 46, 105, 87, 195,
+            61, 165, 134, 160, 96, 24, 9, 88, 246, 188, 85, 74, 210, 193, 174,
+            13, 7, 159, 238, 96, 146, 28, 135, 35, 208, 124, 230, 179, 53, 4,
+            70, 23, 67, 202, 79, 228, 36, 133, 185, 60, 27, 39, 115, 182, 179,
+            174, 221, 205
+        ]));
+    });
+
 })

@@ -1,9 +1,6 @@
 import { expect } from 'chai';
 import { enums, PrivateKey, readKey, revokeKey, sign, createMessage } from '../../lib/openpgp';
 import {
-    concatArrays,
-    decodeBase64,
-    encodeBase64,
     isExpiredKey,
     isRevokedKey,
     reformatKey,
@@ -12,47 +9,11 @@ import {
     getMatchingKey,
     generateSessionKey,
     generateSessionKeyFromKeyPreferences,
-    // @ts-ignore missing stripArmor typings
-    stripArmor,
     // @ts-ignore missing keyCheck typings
     keyCheck
 } from '../../lib';
 
 describe('key utils', () => {
-    it('it can correctly encode base 64', async () => {
-        expect(encodeBase64('foo')).to.equal('Zm9v');
-    });
-
-    it('it can correctly decode base 64', async () => {
-        expect(decodeBase64('Zm9v')).to.equal('foo');
-    });
-
-    it('it can correctly concat arrays', async () => {
-        expect(concatArrays([
-            new Uint8Array([1]),
-            new Uint8Array([255])
-        ])).to.deep.equal(new Uint8Array([1, 255]));
-    });
-
-    it('it can correctly dearmor a message', async () => {
-        const x = await stripArmor(`
------BEGIN PGP MESSAGE-----
-Version: GnuPG v2.0.19 (GNU/Linux)
-
-jA0ECQMCpo7I8WqsebTJ0koBmm6/oqdHXJU9aPe+Po+nk/k4/PZrLmlXwz2lhqBg
-GAlY9rxVStLBrg0Hn+5gkhyHI9B85rM1BEYXQ8pP5CSFuTwbJ3O2s67dzQ==
-=VZ0/
------END PGP MESSAGE-----`);
-        expect(x).to.deep.equal(new Uint8Array([
-            140, 13, 4, 9, 3, 2, 166, 142, 200, 241, 106, 172, 121, 180, 201,
-            210, 74, 1, 154, 110, 191, 162, 167, 71, 92, 149, 61, 104, 247,
-            190, 62, 143, 167, 147, 249, 56, 252, 246, 107, 46, 105, 87, 195,
-            61, 165, 134, 160, 96, 24, 9, 88, 246, 188, 85, 74, 210, 193, 174,
-            13, 7, 159, 238, 96, 146, 28, 135, 35, 208, 124, 230, 179, 53, 4,
-            70, 23, 67, 202, 79, 228, 36, 133, 185, 60, 27, 39, 115, 182, 179,
-            174, 221, 205
-        ]));
-    });
 
     // Test issue https://github.com/ProtonMail/pmcrypto/issues/92
     it('keyCheck - it can check userId against a given email', () => {
