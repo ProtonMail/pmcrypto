@@ -1,6 +1,6 @@
 import { expose, transferHandlers } from 'comlink';
 import { workerTransferHandlers } from './transferHandlers';
-import { WorkerApi } from './api';
+import { Api as WorkerApi } from './api';
 import { init as initPmcrypto } from '../pmcrypto';
 
 workerTransferHandlers.forEach(

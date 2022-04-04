@@ -1,8 +1,6 @@
 import { wrap, Remote, transferHandlers, releaseProxy } from 'comlink';
-import type { WorkerApi as CryptoApi } from './api';
+import type { Api as CryptoApi, ApiInterface as CryptoApiInterface } from './api';
 import { mainThreadTransferHandlers } from './transferHandlers';
-
-export interface CryptoApiInterface extends InstanceType<typeof CryptoApi> {};
 
 interface WorkerPoolInterface extends CryptoApiInterface {
     init(poolSize?: number): Promise<void>;
@@ -36,9 +34,9 @@ export const WorkerPool: WorkerPoolInterface = (() => {
 
     // The return type is technically `Remote<CryptoApi>[]` but that removes some type inference capabilities that are
     // useful to type-check the internal worker pool functions.
-    const getAllWorkers = (): CryptoApiInterface[] => {
+    const getAllWorkers = (): CryptoApi[] => {
         if (workerPool == null) throw new Error('Uninitialised worker pool');
-        return workerPool as any as CryptoApiInterface[];
+        return workerPool as any as CryptoApi[];
     }
 
     return {

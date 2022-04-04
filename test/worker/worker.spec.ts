@@ -28,7 +28,7 @@ import {
 
 chaiUse(chaiAsPromised);
 
-describe('WorkerAPI and Proxy Integration', () => {
+describe('Worker API and Proxy Integration', () => {
     before(async () => {
         await CryptoWorker.init();
     });

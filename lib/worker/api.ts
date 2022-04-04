@@ -288,7 +288,7 @@ class KeyManagementApi {
     }
 };
 
-export class WorkerApi extends KeyManagementApi {
+export class Api extends KeyManagementApi {
     // these are declared async so that exported type is a Promise and can be directly exposed by async proxy
     async serverTime() { return serverTime() }
 
@@ -720,3 +720,5 @@ export class WorkerApi extends KeyManagementApi {
         }))
     }
 };
+
+export interface ApiInterface extends Omit<Api, 'keyStore'> {};
