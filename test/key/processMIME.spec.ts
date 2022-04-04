@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 
-import { getKeys, processMIME, utf8ArrayToString } from '../../lib';
+import { getKeys, processMIME } from '../../lib';
+import { utf8ArrayToString } from '../../lib/utils';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 import { Signature } from '../../lib/openpgp';
 import {
