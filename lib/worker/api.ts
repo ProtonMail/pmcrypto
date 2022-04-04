@@ -684,11 +684,14 @@ export class Api extends KeyManagementApi {
         return sha256Fingerprints;
     }
 
-    async computeHash({ algorithm, data }: { algorithm: 'unsafeMD5' | 'SHA512', data: Uint8Array }) {
+    async computeHash({ algorithm, data }: { algorithm: 'unsafeMD5' | 'SHA512' | 'SHA256', data: Uint8Array }) {
         let hash;
         switch(algorithm) {
             case 'SHA512':
                 hash = await SHA512(data);
+                return hash;
+            case 'SHA256':
+                hash = await SHA256(data);
                 return hash;
             case 'unsafeMD5':
                 hash = await unsafeMD5(data);

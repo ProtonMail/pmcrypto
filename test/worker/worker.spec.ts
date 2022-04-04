@@ -665,6 +665,9 @@ Z3SSOseslp6+4nnQ3zOqnisO
         const testHashMD5 = await CryptoWorker.computeHash({ algorithm: 'unsafeMD5', data: binaryStringToArray('The quick brown fox jumps over the lazy dog') }).then(arrayToHexString);
         expect(testHashMD5).to.equal('9e107d9d372bb6826bd81d3542a419d6');
 
+        const testHashSHA256 = await CryptoWorker.computeHash({ algorithm: 'SHA256', data: new Uint8Array() }).then(arrayToHexString);
+        expect(testHashSHA256).to.equal('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+
         const testHashSHA512 = await CryptoWorker.computeHash({ algorithm: 'SHA512', data: new Uint8Array() }).then(arrayToHexString);
         expect(testHashSHA512).to.equal('cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e');
     });
