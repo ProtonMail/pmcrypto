@@ -38,7 +38,7 @@ import type {
     PublicKey,
     Key
 } from '../pmcrypto';
-import { decryptKey, encryptKey, MaybeArray, readPrivateKey, readKeys, enums, config as globalConfig } from '../openpgp';
+import { decryptKey, encryptKey, MaybeArray, readPrivateKey, readKeys, enums, config as globalConfig, setConfig as setStandardOpenPGPConfig } from '../openpgp';
 
 import {
     PublicKeyReference,
@@ -290,6 +290,28 @@ class KeyManagementApi {
 };
 
 export class Api extends KeyManagementApi {
+    /**
+     * Each instance keeps a dedicated key storage.
+     * @param openpgpConfig - Config entries to set as OpenPGP global configuration.
+     *                        Note: functions whose behaviour depends on it accept a `config` input option, that can be used to
+     *                        apply a configuration change limited to the single function call.
+     * @throws {Error} if the given configuration is invalid
+     */
+    constructor(openpgpConfig: OpenPGPConfig = {}) {
+        super();
+        setStandardOpenPGPConfig();
+
+        Object.entries(openpgpConfig).forEach(([prop, value]) => {
+            if (prop in globalConfig) {
+                // @ts-ignore limitation of Object.entries type def
+                globalConfig[prop] = value;
+            } else {
+                throw new Error(`Invalid configuration: unknown property ${prop}`)
+            }
+        });
+
+    }
+
     // these are declared async so that exported type is a Promise and can be directly exposed by async proxy
     async serverTime() { return serverTime() }
 
@@ -722,25 +744,6 @@ export class Api extends KeyManagementApi {
             destUser.mainKey = targetKey;
             return destUser;
         }))
-    }
-
-    /**
-     * Change OpenPGP global configuration.
-     * NOTE: This is intended for app initialization purposes only.
-     * Functions whose behaviour depend on the config accept a `config` input option that can be used to
-     * apply a configuration change limited to the single function call.
-     * @param partialConfig - config entries to set
-     * @throws {Error} if the given configuration is invalid
-     */
-    async setConfig(partialConfig: OpenPGPConfig) {
-        Object.entries(partialConfig).forEach(([prop, value]) => {
-            if (prop in globalConfig) {
-                // @ts-ignore limitation of Object.entries type def
-                globalConfig[prop] = value;
-            } else {
-                throw new Error(`Invalid configuration: unknown property ${prop}`)
-            }
-        });
     }
 };
 

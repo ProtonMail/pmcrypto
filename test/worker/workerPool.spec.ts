@@ -13,7 +13,7 @@ chaiUse(chaiAsPromised);
 describe('Worker Pool', () => {
     const poolSize = 2;
     before(async () => {
-        await CryptoWorkerPool.init(poolSize);
+        await CryptoWorkerPool.init({ poolSize });
     });
 
     afterEach(() => {

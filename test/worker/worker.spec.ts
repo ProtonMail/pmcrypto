@@ -8,8 +8,7 @@ import {
     revokeKey as openpgp_revokeKey,
     readMessage as openpgp_readMessage,
     enums,
-    CompressedDataPacket,
-    config as openpgp_config
+    CompressedDataPacket
 } from '../../lib/openpgp';
 import { VERIFICATION_STATUS, CryptoWorkerPool as CryptoWorker } from '../../lib';
 import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey, reformatKey, getSHA256Fingerprints, binaryStringToArray, arrayToHexString } from '../../lib/pmcrypto';
@@ -45,6 +44,19 @@ describe('Worker API and Proxy Integration', () => {
     it('init - should throw if already initialised', async () => {
         await expect(CryptoWorker.init()).to.be.rejectedWith(/already initialised/);
     })
+
+    it('init - it applies the given OpenPGP configuration', async () => {
+        try {
+            await expect(CryptoWorker.importPublicKey({ armoredKey: ecc25519Key })).to.be.fulfilled;
+            await CryptoWorker.destroy();
+            const config = { maxUserIDLength: 0 };
+            await CryptoWorker.init({ openpgpConfig: config })
+            await expect(CryptoWorker.importPublicKey({ armoredKey: ecc25519Key })).to.be.rejectedWith(/User ID string is too long/)
+        } finally {
+            await CryptoWorker.destroy();
+            await CryptoWorker.init();
+        }
+    });
 
     it('decryptMessage - should decrypt message with correct password', async () => {
         const armoredMessage = `-----BEGIN PGP MESSAGE-----
@@ -731,17 +743,6 @@ jdam/kRWvRjS8LMZDsVICPpOrwhQXkRlAQDFe4bzH3MY16IqrIq70QSCxqLJ
         expect(
             (await sourceKey.getPrimaryUser()).user.userID
         ).to.deep.equal((await exportedTargetKey.getPrimaryUser()).user.userID);
-    });
-
-    it('setConfig - it applies the given configuration', async () => {
-        const { maxUserIDLength } = openpgp_config; // this setting is unchanged by pmcrypto.init so it's fine to read the default OpenPGP value
-        try {
-            await expect(CryptoWorker.importPublicKey({ armoredKey: ecc25519Key })).to.be.fulfilled;
-            await CryptoWorker.setConfig({ maxUserIDLength: 0, ignoreMalformedPackets: false });
-            await expect(CryptoWorker.importPublicKey({ armoredKey: ecc25519Key })).to.be.rejectedWith(/User ID string is too long/)
-        } finally {
-            await CryptoWorker.setConfig({ maxUserIDLength });
-        }
     });
 
     describe('Key management API', () => {
