@@ -14,7 +14,8 @@ import {
     PublicKey,
     SessionKey,
     encryptSessionKey,
-    WebStream
+    WebStream,
+    CleartextMessage
 } from 'openpgp/lightweight';
 
 export function init(): void;
@@ -270,6 +271,14 @@ export interface VerifyMessageResult {
     errors?: Error[];
 }
 export function verifyMessage(options: VerifyOptionsPmcrypto): Promise<VerifyMessageResult>;
+
+export interface VerifyCleartextOptionsPmcrypto extends Omit<VerifyOptions, 'message' | 'signature' | 'format'> {
+    cleartextMessage: CleartextMessage
+}
+// Cleartext message data is always of utf8 format
+export function verifyCleartextMessage(
+    options: VerifyCleartextOptionsPmcrypto
+): Promise<VerifyMessageResult>;
 
 export interface ProcessMIMEOptions {
     data: string,

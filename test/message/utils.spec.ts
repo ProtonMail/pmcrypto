@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 // @ts-ignore missing web-stream-tools types
 import { WritableStream, ReadableStream, readToEnd } from '@openpgp/web-stream-tools';
-import { readKey, readSignature } from '../../lib/openpgp';
-import { verifyMessage, signMessage, getSignature, stringToUtf8Array, generateKey } from '../../lib';
+import { readKey, readSignature, readCleartextMessage } from '../../lib/openpgp';
+import { verifyMessage, signMessage, getSignature, stringToUtf8Array, generateKey, verifyCleartextMessage } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 import type { WebStream } from '../../lib';
 
@@ -128,6 +128,42 @@ describe('message utils', () => {
         expect(signatures.length).to.equal(0);
         expect(errors).to.be.undefined;
         expect(signatureTimestamp).to.be.null;
+    });
+
+    it('verifyCleartextMessage - it verifies a cleartext message', async () => {
+        const armoredKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+xjMEYj2jmxYJKwYBBAHaRw8BAQdAlG1ARz91CtsRmJ0lQo2wOqAzUXn8KnOu
+oBdEwZWZhPvNDzx0ZXN0QHRlc3QuY29tPsKMBBAWCgAdBQJiPaObBAsJBwgD
+FQgKBBYAAgECGQECGwMCHgEAIQkQ0k/eZvRKo8YWIQQseK5K/i3v7uzoNYHS
+T95m9EqjxqiLAP9sIlmYlCVgSiPZBmsixn9CL27Hv/Bgr2nc73v9K5OszAEA
+ypolW41xuLR+4D7vvxT66lwMMVagQSIisR+49QQP2w8=
+=rzuc
+-----END PGP PUBLIC KEY BLOCK-----
+`
+        const cleartextMessage = `-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+hello world
+-----BEGIN PGP SIGNATURE-----
+
+wnUEARYKAAYFAmI9o6IAIQkQ0k/eZvRKo8YWIQQseK5K/i3v7uzoNYHST95m
+9EqjxoO3AP9xPAlk+qZ3sr/Y1lgWBIdoGeQ1ZGzLKVVzgrhH5sOcZQEA3AeS
+fLz+Lk0ZkB4L3nhM/c6sQKSsI9k2Tptm1VZ5+Qo=
+=1A38
+-----END PGP SIGNATURE-----
+`;
+
+        const publicKey = await readKey({ armoredKey });
+
+        const { verified, signatureTimestamp, signatures, errors } = await verifyCleartextMessage({
+            cleartextMessage: await readCleartextMessage({ cleartextMessage }),
+            verificationKeys: [publicKey]
+        });
+        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(signatures.length).to.equal(1);
+        expect(errors).to.be.undefined;
+        expect(signatureTimestamp).to.deep.equal(new Date('Fri, 25 Mar 2022 11:12:34 GMT'));
     });
 
     it('signMessage/verifyMessage - it verifies a text message it has signed (format = armored)', async () => {
