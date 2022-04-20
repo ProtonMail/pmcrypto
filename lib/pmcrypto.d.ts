@@ -60,35 +60,6 @@ export interface DecryptMimeOptions extends DecryptLegacyOptions {
 export function encryptPrivateKey(key: OpenPGPKey, password: string): Promise<string>;
 export function decryptPrivateKey(serialisedKey: string | Uint8Array, password: string): Promise<PrivateKey>;
 
-export function encodeUtf8(str: string): string;
-export function encodeUtf8(str: undefined): undefined;
-
-export function decodeUtf8(str: string): string;
-export function decodeUtf8(str: undefined): undefined;
-
-export function encodeBase64(str: string): string;
-export function encodeBase64(str: undefined): undefined;
-
-export function decodeBase64(str: string): string;
-export function decodeBase64(str: undefined): undefined;
-
-export function encodeUtf8Base64(str: string): string;
-export function encodeUtf8Base64(str: undefined): string;
-
-export function decodeUtf8Base64(str: string): string;
-export function decodeUtf8Base64(str: undefined): undefined;
-
-export function stringToUtf8Array(str: string): Uint8Array;
-export function utf8ArrayToString(bytes: Uint8Array): string;
-
-export function binaryStringToArray(str: string): Uint8Array;
-
-export function arrayToBinaryString(bytes: Uint8Array): string;
-
-export function arrayToHexString(bytes: Uint8Array): string;
-
-export function concatArrays(data: Uint8Array[]): Uint8Array;
-
 export function getKeys(serializedKeys: string | Uint8Array): Promise<OpenPGPKey[]>;
 export function getKey(serializedKey: string | Uint8Array): Promise<OpenPGPKey>;
 
@@ -258,6 +229,7 @@ export function splitMessage(message: OpenPGPMessage | Uint8Array | string): Pro
 }>;
 
 export function armorBytes(value: Uint8Array | string): Promise<string>;
+export function stripArmor(value: string): Promise<Uint8Array>;
 
 export interface AlgorithmInfo {
     algorithm: string;

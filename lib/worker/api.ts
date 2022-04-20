@@ -20,7 +20,6 @@ import {
     decryptSessionKey,
     processMIME,
     SHA256,
-    arrayToHexString,
     isRevokedKey,
     isExpiredKey,
     canKeyEncrypt,
@@ -32,6 +31,9 @@ import {
     unsafeMD5,
     SHA512
 } from '../pmcrypto';
+import {
+    arrayToHexString
+} from '../utils';
 import type {
     Data,
     PrivateKey,

@@ -11,9 +11,9 @@ import {
     CompressedDataPacket
 } from '../../lib/openpgp';
 import { VERIFICATION_STATUS, CryptoWorkerPool as CryptoWorker } from '../../lib';
-import { utf8ArrayToString, stringToUtf8Array, generateKey, SessionKey, reformatKey, getSHA256Fingerprints, binaryStringToArray, arrayToHexString } from '../../lib/pmcrypto';
+import { generateKey, SessionKey, reformatKey, getSHA256Fingerprints } from '../../lib/pmcrypto';
 import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from '../message/decryptMessageLegacy.data';
-import { hexToUint8Array } from '../../lib/utils';
+import { hexToUint8Array, utf8ArrayToString, stringToUtf8Array, binaryStringToArray, arrayToHexString } from '../../lib/utils';
 import {
     multipartSignedMessage,
     multipartSignedMessageBody,
