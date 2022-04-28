@@ -190,7 +190,6 @@ class KeyManagementApi {
     }
 
     async generateKey(options: WorkerGenerateKeyOptions) {
-        // TODO is passphrase needed?
         const { privateKey } = await generateKey({ ...options, format: 'object' });
         // Typescript guards against a passphrase input, but it's best to ensure the option wasn't given since for API simplicity we assume any PrivateKeyReference points to a decrypted key.
         if (!privateKey.isDecrypted()) throw new Error('Unexpected "passphrase" option on key generation. Use "exportPrivateKey" after key generation to obtain a transferable encrypted key.')
@@ -645,11 +644,13 @@ export class Api extends KeyManagementApi {
         const keyIsPrivate = key.isPrivate();
         const keyIsDecrypted = keyIsPrivate ? key.isDecrypted() : null;
         const fingerprint = key.getFingerprint();
+        const keyIDs = key.getKeyIDs().map((keyID) => keyID.toHex());
 
         return {
             keyIsPrivate,
             keyIsDecrypted,
-            fingerprint
+            fingerprint,
+            keyIDs
          };
     }
 

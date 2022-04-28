@@ -584,6 +584,8 @@ Z3SSOseslp6+4nnQ3zOqnisO
         expect(encryptedKeyInfo.keyIsPrivate).to.be.true;
         expect(encryptedKeyInfo.keyIsDecrypted).to.be.false;
         expect(encryptedKeyInfo.fingerprint).to.equal(encryptedPrivateKey.getFingerprint());
+        expect(encryptedKeyInfo.keyIDs).to.deep.equal(encryptedPrivateKey.getKeyIDs().map((keyID) => keyID.toHex()));
+
     });
 
     it('getArmoredKeys - it returns a valid armored key', async () => {

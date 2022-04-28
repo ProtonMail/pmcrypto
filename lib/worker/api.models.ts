@@ -172,6 +172,10 @@ export interface KeyInfo {
      */
     keyIsDecrypted: boolean | null,
     fingerprint: string,
+    /**
+     * Key IDs of primary key and subkeys in hex format
+     */
+    keyIDs: KeyID[]
 }
 
 export type WorkerPublicKeyImport = { armoredKey?: string, binaryKey?: Uint8Array };
@@ -183,7 +187,13 @@ export interface KeyReference {
     /** (Internal) key content identifier to determine equality */
     readonly _keyContentHash: string,
     getFingerprint(): string,
+    /**
+     * Key ID of primary key in hex format.
+     */
     getKeyID(): KeyID,
+    /**
+     * Key IDs of primary key and subkeys in hex format
+     */
     getKeyIDs(): KeyID[],
     getAlgorithmInfo(): AlgorithmInfo,
     getCreationTime(): Date,
