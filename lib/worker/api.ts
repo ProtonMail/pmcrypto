@@ -29,7 +29,8 @@ import {
     getCleartextMessage,
     verifyCleartextMessage,
     unsafeMD5,
-    SHA512
+    SHA512,
+    unsafeSHA1
 } from '../pmcrypto';
 import {
     arrayToHexString
@@ -710,7 +711,7 @@ export class Api extends KeyManagementApi {
         return sha256Fingerprints;
     }
 
-    async computeHash({ algorithm, data }: { algorithm: 'unsafeMD5' | 'SHA512' | 'SHA256', data: Uint8Array }) {
+    async computeHash({ algorithm, data }: { algorithm: 'unsafeMD5' | 'unsafeSHA1' | 'SHA512' | 'SHA256', data: Uint8Array }) {
         let hash;
         switch(algorithm) {
             case 'SHA512':
@@ -718,6 +719,9 @@ export class Api extends KeyManagementApi {
                 return hash;
             case 'SHA256':
                 hash = await SHA256(data);
+                return hash;
+            case 'unsafeSHA1':
+                hash = await unsafeSHA1(data);
                 return hash;
             case 'unsafeMD5':
                 hash = await unsafeMD5(data);

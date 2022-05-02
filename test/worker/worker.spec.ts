@@ -676,9 +676,12 @@ Z3SSOseslp6+4nnQ3zOqnisO
         expect(sha256Fingerprings).to.deep.equal(await getSHA256Fingerprints(key));
     });
 
-    it('computeHash - supports unsafeMD5 and SHA512', async () => {
+    it('computeHash', async () => {
         const testHashMD5 = await CryptoWorker.computeHash({ algorithm: 'unsafeMD5', data: binaryStringToArray('The quick brown fox jumps over the lazy dog') }).then(arrayToHexString);
         expect(testHashMD5).to.equal('9e107d9d372bb6826bd81d3542a419d6');
+
+        const testHashSHA1 = await CryptoWorker.computeHash({ algorithm: 'unsafeSHA1', data: new Uint8Array() }).then(arrayToHexString);
+        expect(testHashSHA1).to.equal('da39a3ee5e6b4b0d3255bfef95601890afd80709');
 
         const testHashSHA256 = await CryptoWorker.computeHash({ algorithm: 'SHA256', data: new Uint8Array() }).then(arrayToHexString);
         expect(testHashSHA256).to.equal('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
