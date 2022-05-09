@@ -296,7 +296,7 @@ export interface MIMEAttachment {
 }
 
 export interface ProcessMIMEResult {
-    body?: string,
+    body: string,
     attachments: MIMEAttachment[],
     verified: VERIFICATION_STATUS,
     encryptedSubject: string,
