@@ -28,7 +28,7 @@ type MaybeArray<T> = T | T[];
 
 export function init(): void;
 
-export { VERIFICATION_STATUS, SIGNATURE_TYPES};
+export { VERIFICATION_STATUS, SIGNATURE_TYPES, PartialConfig };
 
 export type OpenPGPKey = Key;
 export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing streaming support
@@ -95,7 +95,7 @@ export interface DecryptResultPmcrypto<T extends openpgp_DecryptMessageResult['d
     signatures: T extends WebStream<Data> ? Promise<OpenPGPSignature[]> : OpenPGPSignature[];
     filename: string;
     verified: T extends WebStream<Data> ? Promise<VERIFICATION_STATUS> : VERIFICATION_STATUS;
-    errors?: T extends WebStream<Data> ? Promise<Error[]> : Error[];
+    verificationErrors?: T extends WebStream<Data> ? Promise<Error[]> : Error[];
 }
 
 export function decryptMessage<T extends MaybeStream<Data>, F extends DecryptOptions['format'] = 'utf8'>(

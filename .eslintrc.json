@@ -43,6 +43,7 @@
         "no-sequences": "warn",
         "no-param-reassign": "warn",
         "no-return-assign": "warn",
+        "no-else-return": ["error", { "allowElseIf": true }],
         "no-shadow": "off",
         "no-unused-expressions": "off",
         "@typescript-eslint/no-unused-expressions": "off",
