@@ -41,7 +41,7 @@ describe('Worker Pool', () => {
         });
         expect(textDecryptionResult.data).to.equal('hello world');
         expect(textDecryptionResult.signatures).to.have.length(1);
-        expect(textDecryptionResult.errors).to.not.exist;
+        expect(textDecryptionResult.verificationErrors).to.not.exist;
         expect(textDecryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
 
         const { message: encryptedBinaryMessage } = await CryptoWorkerPool.encryptMessage({
@@ -59,7 +59,7 @@ describe('Worker Pool', () => {
         });
         expect(binaryDecryptionResult.data).to.deep.equal(new Uint8Array([1, 2, 3]));
         expect(binaryDecryptionResult.signatures).to.have.length(1);
-        expect(binaryDecryptionResult.errors).to.not.exist;
+        expect(binaryDecryptionResult.verificationErrors).to.not.exist;
         expect(binaryDecryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 

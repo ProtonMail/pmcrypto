@@ -72,7 +72,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         });
         expect(decryptionResult.data).to.equal('hello world');
         expect(decryptionResult.signatures).to.have.length(0);
-        expect(decryptionResult.errors).to.not.exist;
+        expect(decryptionResult.verificationErrors).to.not.exist;
         expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED)
 
         const decryptWithWrongPassword = CryptoWorker.decryptMessage({
@@ -101,9 +101,8 @@ GzGRkb+Rzb42pnKcuihith40374=
 
         expect(decryptionResult.data).to.equal('hello world');
         expect(decryptionResult.signatures).to.have.length(1);
-        expect(decryptionResult.errors).to.have.length(1);
-        expect(decryptionResult.errors![0]).instanceOf(Error); // Errors should be automatically reconstructed by comlink
-        expect(decryptionResult.errors![0]).to.match(/Could not find signing key/);
+        expect(decryptionResult.verificationErrors![0]).instanceOf(Error); // Errors should be automatically reconstructed by comlink
+        expect(decryptionResult.verificationErrors![0]).to.match(/Could not find signing key/);
         expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID)
     });
 
@@ -121,7 +120,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         });
         expect(decryptionResult.data).to.deep.equal(stringToUtf8Array('hello world'));
         expect(decryptionResult.signatures).to.have.length(0);
-        expect(decryptionResult.errors).to.not.exist;
+        expect(decryptionResult.verificationErrors).to.not.exist;
         expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
     });
 
@@ -135,7 +134,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         });
         expect(decryptionResult.data).to.equal(testMessageResult);
         expect(decryptionResult.signatures).to.have.length(0);
-        expect(decryptionResult.errors).to.not.exist;
+        expect(decryptionResult.verificationErrors).to.not.exist;
         expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
     });
 
@@ -150,7 +149,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         });
         expect(decryptionResult.data).to.equal(testMessageResult);
         expect(decryptionResult.signatures).to.have.length(1);
-        expect(decryptionResult.errors).to.not.exist;
+        expect(decryptionResult.verificationErrors).to.not.exist;
         expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
@@ -167,7 +166,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
             passwords: 'password'
         });
         expect(decryptionResult.signatures).to.have.length(0);
-        expect(decryptionResult.errors).to.not.exist;
+        expect(decryptionResult.verificationErrors).to.not.exist;
         expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED)
     });
 
@@ -211,7 +210,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         });
         expect(textDecryptionResult.data).to.equal('hello world');
         expect(textDecryptionResult.signatures).to.have.length(0);
-        expect(textDecryptionResult.errors).to.not.exist;
+        expect(textDecryptionResult.verificationErrors).to.not.exist;
         expect(textDecryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
 
         const { message: encryptedBinaryMessage } = await CryptoWorker.encryptMessage({
@@ -227,7 +226,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         });
         expect(binaryDecryptionResult.data).to.deep.equal(new Uint8Array([1, 2, 3]));
         expect(binaryDecryptionResult.signatures).to.have.length(0);
-        expect(binaryDecryptionResult.errors).to.not.exist;
+        expect(binaryDecryptionResult.verificationErrors).to.not.exist;
         expect(binaryDecryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
     });
 
@@ -243,7 +242,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         });
         expect(textDecryptionResult.data).to.equal('hello world');
         expect(textDecryptionResult.signatures).to.have.length(0);
-        expect(textDecryptionResult.errors).to.not.exist;
+        expect(textDecryptionResult.verificationErrors).to.not.exist;
         expect(textDecryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
     });
 
@@ -261,7 +260,7 @@ tBiO7HKQxoGj3FnUTJnI52Y0pIg=
         });
         expect(textDecryptionResult.data).to.equal('hello world');
         expect(textDecryptionResult.signatures).to.have.length(0);
-        expect(textDecryptionResult.errors).to.not.exist;
+        expect(textDecryptionResult.verificationErrors).to.not.exist;
         expect(textDecryptionResult.verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
     });
 
@@ -354,7 +353,7 @@ fLz+Lk0ZkB4L3nhM/c6sQKSsI9k2Tptm1VZ5+Qo=
         });
         expect(textDecryptionResult.data).to.equal('hello world');
         expect(textDecryptionResult.signatures).to.have.length(1);
-        expect(textDecryptionResult.errors).to.not.exist;
+        expect(textDecryptionResult.verificationErrors).to.not.exist;
         expect(textDecryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
 
         const { message: encryptedBinaryMessage } = await CryptoWorker.encryptMessage({
@@ -372,7 +371,7 @@ fLz+Lk0ZkB4L3nhM/c6sQKSsI9k2Tptm1VZ5+Qo=
         });
         expect(binaryDecryptionResult.data).to.deep.equal(new Uint8Array([1, 2, 3]));
         expect(binaryDecryptionResult.signatures).to.have.length(1);
-        expect(binaryDecryptionResult.errors).to.not.exist;
+        expect(binaryDecryptionResult.verificationErrors).to.not.exist;
         expect(binaryDecryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
@@ -402,7 +401,7 @@ fLz+Lk0ZkB4L3nhM/c6sQKSsI9k2Tptm1VZ5+Qo=
         });
         expect(decryptionResult.data).to.deep.equal(plaintext);
         expect(decryptionResult.signatures).to.have.length(1);
-        expect(decryptionResult.errors).to.not.exist;
+        expect(decryptionResult.verificationErrors).to.not.exist;
         expect(decryptionResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
 
         const decryptionResultWithEncryptedSignature = await CryptoWorker.decryptMessage({
@@ -414,7 +413,7 @@ fLz+Lk0ZkB4L3nhM/c6sQKSsI9k2Tptm1VZ5+Qo=
         });
         expect(decryptionResultWithEncryptedSignature.data).to.deep.equal(plaintext);
         expect(decryptionResultWithEncryptedSignature.signatures).to.have.length(1);
-        expect(decryptionResultWithEncryptedSignature.errors).to.not.exist;
+        expect(decryptionResultWithEncryptedSignature.verificationErrors).to.not.exist;
         expect(decryptionResultWithEncryptedSignature.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
