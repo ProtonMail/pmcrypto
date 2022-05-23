@@ -45,19 +45,6 @@ describe('Worker API and Proxy Integration', () => {
         await expect(CryptoWorker.init()).to.be.rejectedWith(/already initialised/);
     })
 
-    it('init - it applies the given OpenPGP configuration', async () => {
-        try {
-            await expect(CryptoWorker.importPublicKey({ armoredKey: ecc25519Key })).to.be.fulfilled;
-            await CryptoWorker.destroy();
-            const config = { maxUserIDLength: 0 };
-            await CryptoWorker.init({ openpgpConfig: config })
-            await expect(CryptoWorker.importPublicKey({ armoredKey: ecc25519Key })).to.be.rejectedWith(/User ID string is too long/)
-        } finally {
-            await CryptoWorker.destroy();
-            await CryptoWorker.init();
-        }
-    });
-
     it('decryptMessage - should decrypt message with correct password', async () => {
         const armoredMessage = `-----BEGIN PGP MESSAGE-----
 

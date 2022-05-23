@@ -1,10 +1,9 @@
 import { wrap, Remote, transferHandlers, releaseProxy } from 'comlink';
 import type { Api as CryptoApi, ApiInterface as CryptoApiInterface } from './api';
-import { OpenPGPConfig } from './api.models';
 import { mainThreadTransferHandlers } from './transferHandlers';
 
 interface WorkerPoolInterface extends CryptoApiInterface {
-    init(options?: { poolSize?: number, openpgpConfig?: OpenPGPConfig }): Promise<void>;
+    init(options?: { poolSize?: number }): Promise<void>;
     destroy(): Promise<void>;
 }
 
@@ -13,12 +12,12 @@ export const WorkerPool: WorkerPoolInterface = (() => {
     let workerPool: Remote<CryptoApi>[] | null = null;
     let i = -1;
 
-    const initWorker = async (openpgpConfig?: OpenPGPConfig) => {
+    const initWorker = async () => {
         // Webpack static analyser is not especially powerful at detecting web workers that require bundling,
         // see: https://github.com/webpack/webpack.js.org/issues/4898#issuecomment-823073304.
         // Harcoding the path here is the easiet way to get the worker to be bundled properly.
         const RemoteApi = wrap<typeof CryptoApi>(new Worker(new URL('./worker.ts', import.meta.url)));
-        const worker = await new RemoteApi(openpgpConfig);
+        const worker = await new RemoteApi();
         return worker;
     };
 
@@ -41,11 +40,11 @@ export const WorkerPool: WorkerPoolInterface = (() => {
     }
 
     return {
-        init: async ({ poolSize = navigator.hardwareConcurrency || 1, openpgpConfig } = {}) => {
+        init: async ({ poolSize = navigator.hardwareConcurrency || 1 } = {}) => {
             if (workerPool !== null) {
                 throw new Error('worker pool already initialised');
             }
-            workerPool = await Promise.all(new Array(poolSize).fill(null).map(() => initWorker(openpgpConfig)));
+            workerPool = await Promise.all(new Array(poolSize).fill(null).map(() => initWorker()));
             mainThreadTransferHandlers.forEach(({ name, handler }) => transferHandlers.set(name, handler));
         },
         destroy: async () => {
@@ -117,9 +116,7 @@ export const WorkerPool: WorkerPoolInterface = (() => {
         getSignatureInfo: (opts) => getWorker().getSignatureInfo(opts),
         getArmoredKeys: (opts) => getWorker().getArmoredKeys(opts),
         getArmoredSignature: (opts) => getWorker().getArmoredSignature(opts),
-        getArmoredMessage: (opts) => getWorker().getArmoredMessage(opts),
-        serverTime: () => getWorker().serverTime(),
-        updateServerTime: (opts) => getWorker().updateServerTime(opts)
+        getArmoredMessage: (opts) => getWorker().getArmoredMessage(opts)
     } as WorkerPoolInterface; // casting needed to 'reuse' CryptoApi's parametric types declarations and preserve dynamic inference of
     // the output types based on the input ones.
 })();

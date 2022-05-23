@@ -15,8 +15,6 @@ import {
     generateSessionKeyFromKeyPreferences,
     verifyMessage,
     getKey,
-    serverTime,
-    updateServerTime,
     decryptSessionKey,
     processMIME,
     SHA256,
@@ -41,7 +39,7 @@ import type {
     PublicKey,
     Key
 } from '../pmcrypto';
-import { decryptKey, encryptKey, MaybeArray, readPrivateKey, readKeys, enums, config as globalConfig, setConfig as setStandardOpenPGPConfig } from '../openpgp';
+import { decryptKey, encryptKey, MaybeArray, readPrivateKey, readKeys, enums } from '../openpgp';
 
 import {
     PublicKeyReference,
@@ -64,8 +62,7 @@ import {
     WorkerGetSignatureInfoOptions,
     WorkerGetKeyInfoOptions,
     KeyInfo,
-    WorkerVerifyCleartextOptions,
-    OpenPGPConfig
+    WorkerVerifyCleartextOptions
 } from './api.models';
 // Note:
 // - streams are currently not supported since they are not Transferable (not in all browsers).
@@ -291,33 +288,10 @@ class KeyManagementApi {
     }
 };
 
+/**
+ * Each instance keeps a dedicated key storage.
+ */
 export class Api extends KeyManagementApi {
-    /**
-     * Each instance keeps a dedicated key storage.
-     * @param openpgpConfig - Config entries to set as OpenPGP global configuration.
-     *                        Note: functions whose behaviour depends on it accept a `config` input option, that can be used to
-     *                        apply a configuration change limited to the single function call.
-     * @throws {Error} if the given configuration is invalid
-     */
-    constructor(openpgpConfig: OpenPGPConfig = {}) {
-        super();
-        setStandardOpenPGPConfig();
-
-        Object.entries(openpgpConfig).forEach(([prop, value]) => {
-            if (prop in globalConfig) {
-                // @ts-ignore limitation of Object.entries type def
-                globalConfig[prop] = value;
-            } else {
-                throw new Error(`Invalid configuration: unknown property ${prop}`)
-            }
-        });
-
-    }
-
-    // these are declared async so that exported type is a Promise and can be directly exposed by async proxy
-    async serverTime() { return serverTime() }
-
-    async updateServerTime(serverDate: Date) { return updateServerTime(serverDate) }
 
     async encryptMessage<
         T extends Data,
