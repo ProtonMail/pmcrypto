@@ -10,6 +10,9 @@ import {
     VerifyMessageResult as openpgp_VerifyMessageResult,
     reformatKey,
     generateKey,
+    readMessage,
+    readSignature,
+    readCleartextMessage,
     PrivateKey,
     PublicKey,
     SessionKey,
@@ -28,13 +31,13 @@ type MaybeArray<T> = T | T[];
 
 export function init(): void;
 
-export { VERIFICATION_STATUS, SIGNATURE_TYPES};
+export { VERIFICATION_STATUS, SIGNATURE_TYPES, PartialConfig };
 
 export type OpenPGPKey = Key;
 export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing streaming support
 export type OpenPGPSignature = Signature;
 
-export { generateKey, reformatKey };
+export { generateKey, reformatKey, readMessage, readSignature, readCleartextMessage };
 export type { PrivateKey, PublicKey, GenerateKeyOptions, Key, SessionKey };
 
 export interface ReformatKeyOptions {

@@ -84,18 +84,18 @@ export const WorkerPool: WorkerPoolInterface = (() => {
         generateKey: async (opts) => {
             const [first, ...rest] = getAllWorkers();
             const keyReference = await first.generateKey(opts);
-            const key = await first.exportPrivateKey({ keyReference, passphrase: null });
+            const key = await first.exportPrivateKey({ keyReference, passphrase: null, format: 'binary' });
             await Promise.all(rest.map(
-                (worker) => worker.importPrivateKey({ armoredKey: key, passphrase: null }, keyReference._idx))
+                (worker) => worker.importPrivateKey({ binaryKey: key, passphrase: null }, keyReference._idx))
             )
             return keyReference;
         },
         reformatKey: async (opts) => {
             const [first, ...rest] = getAllWorkers();
             const keyReference = await first.reformatKey(opts);
-            const key = await first.exportPrivateKey({ keyReference, passphrase: null });
+            const key = await first.exportPrivateKey({ keyReference, passphrase: null, format: 'binary' });
             await Promise.all(rest.map(
-                (worker) => worker.importPrivateKey({ armoredKey: key, passphrase: null }, keyReference._idx))
+                (worker) => worker.importPrivateKey({ binaryKey: key, passphrase: null }, keyReference._idx))
             )
             return keyReference;
         },

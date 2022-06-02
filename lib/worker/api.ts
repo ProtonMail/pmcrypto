@@ -8,14 +8,14 @@ import {
     signMessage,
     decryptMessage,
     decryptMessageLegacy,
-    getSignature,
-    getMessage,
     encryptSessionKey,
     generateSessionKey,
     generateSessionKeyFromKeyPreferences,
     verifyMessage,
     getKey,
     decryptSessionKey,
+    readMessage,
+    readSignature,
     processMIME,
     SHA256,
     isRevokedKey,
@@ -24,7 +24,7 @@ import {
     checkKeyStrength,
     getSHA256Fingerprints,
     armorBytes,
-    getCleartextMessage,
+    readCleartextMessage,
     verifyCleartextMessage,
     unsafeMD5,
     SHA512,
@@ -64,15 +64,30 @@ import {
     KeyInfo,
     WorkerVerifyCleartextOptions
 } from './api.models';
+
 // Note:
 // - streams are currently not supported since they are not Transferable (not in all browsers).
 // - when returning binary data, the values are always transferred.
 
-const getSignatureIfDefined = (serializedData?: string | Uint8Array) =>
-    serializedData ? getSignature(serializedData) : undefined;
+type SerializedSignatureOptions = { armoredSignature?: string; binarySignature?: Uint8Array };
+const getSignature = async ({ armoredSignature, binarySignature }: SerializedSignatureOptions) => {
+    if (armoredSignature) {
+        return readSignature({ armoredSignature })
+    } else if (binarySignature) {
+        return readSignature({ binarySignature })
+    }
+    throw new Error('Must provide `armoredSignature` or `binarySignature`')
+}
 
-const getMessageIfDefined = (serializedData?: string | Uint8Array) =>
-    serializedData ? getMessage(serializedData) : undefined;
+type SerializedMessageOptions = { armoredMessage?: string; binaryMessage?: Uint8Array };
+const getMessage = async ({ armoredMessage, binaryMessage }: SerializedMessageOptions) => {
+    if (armoredMessage) {
+        return readMessage({ armoredMessage })
+    } else if (binaryMessage) {
+        return readMessage({ binaryMessage })
+    }
+    throw new Error('Must provide `armoredMessage` or `binaryMessage`')
+}
 
 const toArray = <T>(maybeArray: MaybeArray<T>) => (Array.isArray(maybeArray) ? maybeArray : [maybeArray]);
 
@@ -243,6 +258,12 @@ class KeyManagementApi {
         return getPrivateKeyReference(decryptedKey, keyStoreID);
     }
 
+    /**
+     * Import a public key.
+     * Either `armoredKey` or `binaryKey` must be provided.
+     * Note: if a private key is given, it will be converted to a public key before import.
+     * @returns reference to imported public key
+     */
     async importPublicKey({ armoredKey, binaryKey }: WorkerPublicKeyImport, _customIdx?: number) {
         const publicKey = await getKey(binaryKey || armoredKey!);
         const keyStoreID = this.keyStore.add(publicKey, _customIdx);
@@ -250,6 +271,12 @@ class KeyManagementApi {
         return getPublicKeyReference(publicKey, keyStoreID);
     }
 
+    /**
+     * Get the serialized public key.
+     * Exporting a key does not invalidate the corresponding `keyReference`, nor does it remove the key from internal storage (use `clearKey()` for that).
+     * @param options.format - `'binary'` or `'armored'` format of serialized key
+     * @returns serialized public key
+     */
     async exportPublicKey<F extends SerialisedOutputFormat = 'armored'>({
         format = 'armored',
         keyReference
@@ -307,13 +334,14 @@ export class Api extends KeyManagementApi {
         config = {},
         ...options
     }: WorkerEncryptOptions<T> & { format?: F; detached?: D; returnSessionKey?: SK }) {
-        const signingKeys = await Promise.all(
-            toArray(signingKeyRefs).map((keyReference) => this.keyStore.get(keyReference._idx) as PrivateKey)
+        const signingKeys = toArray(signingKeyRefs).map(
+            (keyReference) => this.keyStore.get(keyReference._idx) as PrivateKey
         );
-        const encryptionKeys = await Promise.all(
-            toArray(encryptionKeyRefs).map((keyReference) => this.keyStore.get(keyReference._idx) as PublicKey)
+        const encryptionKeys = toArray(encryptionKeyRefs).map(
+            (keyReference) => this.keyStore.get(keyReference._idx) as PublicKey
         );
-        const inputSignature = await getSignatureIfDefined(binarySignature || armoredSignature);
+        const inputSignature = binarySignature || armoredSignature ?
+            await getSignature({ armoredSignature, binarySignature }) : undefined;
 
         if (config.preferredCompressionAlgorithm) {
             throw new Error('Passing `config.preferredCompressionAlgorithm` is not supported. Use `compress` option instead.')
@@ -341,8 +369,8 @@ export class Api extends KeyManagementApi {
         signingKeys: signingKeyRefs = [],
         ...options
     }: WorkerSignOptions<T> & { format?: F }) {
-        const signingKeys = await Promise.all(
-            toArray(signingKeyRefs).map((keyReference) => this.keyStore.get(keyReference._idx) as PrivateKey)
+        const signingKeys = toArray(signingKeyRefs).map(
+            (keyReference) => this.keyStore.get(keyReference._idx) as PrivateKey
         );
         const signResult = await signMessage<T, F, boolean>({
             ...options,
@@ -371,10 +399,10 @@ export class Api extends KeyManagementApi {
         verificationKeys: verificationKeyRefs = [],
         ...options
     }: WorkerVerifyOptions<T> & { format?: F }) {
-        const verificationKeys = await Promise.all(
-            toArray(verificationKeyRefs).map((keyReference) => this.keyStore.get(keyReference._idx))
+        const verificationKeys = toArray(verificationKeyRefs).map(
+            (keyReference) => this.keyStore.get(keyReference._idx)
         );
-        const signature = await getSignature(binarySignature || armoredSignature!);
+        const signature = await getSignature({ armoredSignature, binarySignature });
         const {
             signatures: signatureObjects, // extracting this is needed for proper type inference of `serialisedResult.signatures`
             ...verificationResultWithoutSignatures
@@ -399,10 +427,10 @@ export class Api extends KeyManagementApi {
         verificationKeys: verificationKeyRefs = [],
         ...options
     }: WorkerVerifyCleartextOptions) {
-        const verificationKeys = await Promise.all(
-            toArray(verificationKeyRefs).map((keyReference) => this.keyStore.get(keyReference._idx))
+        const verificationKeys = toArray(verificationKeyRefs).map(
+            (keyReference) => this.keyStore.get(keyReference._idx)
         );
-        const cleartextMessage = await getCleartextMessage(armoredCleartextMessage);
+        const cleartextMessage = await readCleartextMessage({ cleartextMessage: armoredCleartextMessage });
         const {
             signatures: signatureObjects, // extracting this is needed for proper type inference of `serialisedResult.signatures`
             ...verificationResultWithoutSignatures
@@ -419,24 +447,26 @@ export class Api extends KeyManagementApi {
     async decryptMessage<F extends WorkerDecryptionOptions['format'] = 'utf8'>({
         decryptionKeys: decryptionKeyRefs = [],
         verificationKeys: verificationKeyRefs = [],
-        binaryEncryptedSignature,
         armoredMessage,
         binaryMessage,
         armoredSignature,
         binarySignature,
-        armoredEncryptedSignature,
+        armoredEncryptedSignature: armoredEncSignature,
+        binaryEncryptedSignature: binaryEncSingature,
         ...options
     }: WorkerDecryptionOptions & { format?: F }) {
-        const decryptionKeys = await Promise.all(
-            toArray(decryptionKeyRefs).map((keyReference) => this.keyStore.get(keyReference._idx) as PrivateKey)
+        const decryptionKeys = toArray(decryptionKeyRefs).map(
+            (keyReference) => this.keyStore.get(keyReference._idx) as PrivateKey
         );
-        const verificationKeys = await Promise.all(
-            toArray(verificationKeyRefs).map((keyReference) => this.keyStore.get(keyReference._idx))
+        const verificationKeys = toArray(verificationKeyRefs).map(
+            (keyReference) => this.keyStore.get(keyReference._idx)
         );
 
-        const message = await getMessage(binaryMessage || armoredMessage!); // TODO check if defined too?
-        const signature = await getSignatureIfDefined(binarySignature || armoredSignature);
-        const encryptedSignature = await getMessageIfDefined(binaryEncryptedSignature || armoredEncryptedSignature);
+        const message = await getMessage({ binaryMessage, armoredMessage });
+        const signature = binarySignature || armoredSignature ?
+            await getSignature({ binarySignature, armoredSignature }) : undefined;
+        const encryptedSignature = binaryEncSingature || armoredEncSignature ?
+            await getMessage({ binaryMessage: binaryEncSingature, armoredMessage: armoredEncSignature }) : undefined;
 
         const {
             signatures: signatureObjects,
@@ -476,14 +506,15 @@ export class Api extends KeyManagementApi {
         binarySignature,
         ...options
     }: WorkerDecryptLegacyOptions & { format?: F }) {
-        const decryptionKeys = await Promise.all(
-            toArray(decryptionKeyRefs).map((keyReference) => this.keyStore.get(keyReference._idx) as PrivateKey)
+        const decryptionKeys = toArray(decryptionKeyRefs).map(
+            (keyReference) => this.keyStore.get(keyReference._idx) as PrivateKey
         );
-        const verificationKeys = await Promise.all(
-            toArray(verificationKeyRefs).map((keyReference) => this.keyStore.get(keyReference._idx))
+        const verificationKeys = toArray(verificationKeyRefs).map(
+            (keyReference) => this.keyStore.get(keyReference._idx)
         );
 
-        const signature = await getSignatureIfDefined(binarySignature || armoredSignature);
+        const signature = binarySignature || armoredSignature ?
+            await getSignature({ binarySignature, armoredSignature }) : undefined;
 
         const {
             signatures: signatureObjects,
@@ -520,8 +551,8 @@ export class Api extends KeyManagementApi {
     async generateSessionKeyFromKeyPreferences({ targetKeys: targetKeyRefs = [] }: {
         targetKeys: MaybeArray<PublicKeyReference>;
     }) {
-        const targetKeys = await Promise.all(
-            toArray(targetKeyRefs).map((keyReference) => this.keyStore.get(keyReference._idx))
+        const targetKeys = toArray(targetKeyRefs).map(
+            (keyReference) => this.keyStore.get(keyReference._idx)
         );
         const sessionKey = await generateSessionKeyFromKeyPreferences(targetKeys);
         return sessionKey;
@@ -531,8 +562,8 @@ export class Api extends KeyManagementApi {
         encryptionKeys: encryptionKeyRefs = [],
         ...options
     }: WorkerEncryptSessionKeyOptions & { format?: F }): Promise<SerialisedOutputTypeFromFormat<F>> {
-        const encryptionKeys = await Promise.all(
-            toArray(encryptionKeyRefs).map((keyReference) => this.keyStore.get(keyReference._idx) as PublicKey)
+        const encryptionKeys = toArray(encryptionKeyRefs).map(
+            (keyReference) => this.keyStore.get(keyReference._idx) as PublicKey
         );
         const encryptedData = await encryptSessionKey<F>({
             ...options,
@@ -548,11 +579,11 @@ export class Api extends KeyManagementApi {
         binaryMessage,
         ...options
     }: WorkerDecryptionOptions) {
-        const decryptionKeys = await Promise.all(
-            toArray(decryptionKeyRefs).map((keyReference) => this.keyStore.get(keyReference._idx) as PrivateKey)
+        const decryptionKeys = toArray(decryptionKeyRefs).map(
+            (keyReference) => this.keyStore.get(keyReference._idx) as PrivateKey
         );
 
-        const message = await getMessage(binaryMessage || armoredMessage!); // TODO check if defined?
+        const message = await getMessage({ binaryMessage, armoredMessage });
 
         const sessionKey = await decryptSessionKey({
             ...options,
@@ -590,7 +621,7 @@ export class Api extends KeyManagementApi {
         armoredMessage,
         binaryMessage
     }: WorkerGetMessageInfoOptions<T>): Promise<MessageInfo> {
-        const message = await getMessage(binaryMessage || armoredMessage!);
+        const message = await getMessage({ binaryMessage, armoredMessage });
         const signingKeyIDs = message.getSigningKeyIDs().map((keyID) => keyID.toHex());
         const encryptionKeyIDs = message.getEncryptionKeyIDs().map((keyID) => keyID.toHex());
 
@@ -601,7 +632,7 @@ export class Api extends KeyManagementApi {
         armoredSignature,
         binarySignature
     }: WorkerGetSignatureInfoOptions<T>): Promise<SignatureInfo> {
-        const signature = await getSignature(binarySignature || armoredSignature!);
+        const signature = await getSignature({ binarySignature, armoredSignature });
         const signingKeyIDs = signature.getSigningKeyIDs().map((keyID) => keyID.toHex());
 
         return { signingKeyIDs };
@@ -629,8 +660,11 @@ export class Api extends KeyManagementApi {
          };
     }
 
+    /**
+     * Armor a message signature in binary form
+     */
     async getArmoredSignature({ binarySignature }: { binarySignature: Uint8Array }) {
-        const signature = await getSignature(binarySignature);
+        const signature = await getSignature({ binarySignature });
         return signature.armor();
     }
 
@@ -652,6 +686,10 @@ export class Api extends KeyManagementApi {
         return keys.map((key) => key.armor());
     }
 
+    /**
+     * Returns whether the primary key is revoked.
+     * @param options.date - date to use for signature verification, instead of the server time
+     */
     async isRevokedKey({ keyReference, date }: { keyReference: KeyReference, date?: Date }) {
         const key = this.keyStore.get(keyReference._idx);
         const isRevoked = await isRevokedKey(key, date);
@@ -660,6 +698,7 @@ export class Api extends KeyManagementApi {
 
     /**
      * Returns whether the primary key is expired, or its creation time is in the future.
+     * @param options.date - date to use for the expiration check, instead of the server time
      */
     async isExpiredKey({ keyReference, date }: { keyReference: KeyReference, date?: Date }) {
         const key = this.keyStore.get(keyReference._idx);
@@ -707,7 +746,7 @@ export class Api extends KeyManagementApi {
 
     /**
      * Replace the User IDs of the target key to match those of the source key.
-     * NOTE: this function mutates the target key in place.
+     * NOTE: this function mutates the target key in place, and does not update binding signatures.
      */
     async replaceUserIDs({
         sourceKey: sourceKeyReference,
@@ -719,12 +758,12 @@ export class Api extends KeyManagementApi {
             throw new Error('Cannot replace UserIDs of a different key');
         }
 
-        targetKey.users = await Promise.all(sourceKey.users.map((sourceUser) => {
+        targetKey.users = sourceKey.users.map((sourceUser) => {
             // @ts-ignore missing .clone() definition
             const destUser = sourceUser.clone();
             destUser.mainKey = targetKey;
             return destUser;
-        }))
+        });
     }
 };
 
