@@ -10,6 +10,7 @@ import {
     VerifyMessageResult as openpgp_VerifyMessageResult,
     reformatKey,
     generateKey,
+    generateSessionKey as openpgp_generateSessionKey,
     readMessage,
     readSignature,
     readCleartextMessage,
@@ -71,8 +72,12 @@ export function getFingerprint(key: OpenPGPKey): string;
 export function isExpiredKey(key: OpenPGPKey, date?: Date): Promise<boolean>;
 export function isRevokedKey(key: OpenPGPKey, date?: Date): Promise<boolean>;
 
-export function generateSessionKey(algoName: 'aes128' | 'aes192' | 'aes256'): Promise<Uint8Array>;
-export function generateSessionKeyFromKeyPreferences(publicKeys: OpenPGPKey | OpenPGPKey[]): Promise<SessionKey>;
+export function generateSessionKeyForAlgorithm(algoName: 'aes128' | 'aes192' | 'aes256'): Promise<Uint8Array>;
+type GenerateSessionKeyOptions = Parameters<typeof openpgp_generateSessionKey>[0];
+export interface GenerateSessionKeyOptionsPmcrypto extends Omit<GenerateSessionKeyOptions, 'encryptionKeys'> {
+    recipientKeys: MaybeArray<PublicKey>
+}
+export function generateSessionKey(options: GenerateSessionKeyOptionsPmcrypto): Promise<SessionKey>;
 
 export interface EncryptSessionKeyOptionsPmcrypto extends EncryptSessionKeyOptions {}
 export function encryptSessionKey<F extends EncryptSessionKeyOptionsPmcrypto['format'] = 'armored'>(

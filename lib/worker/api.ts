@@ -9,8 +9,8 @@ import {
     decryptMessage,
     decryptMessageLegacy,
     encryptSessionKey,
+    generateSessionKeyForAlgorithm,
     generateSessionKey,
-    generateSessionKeyFromKeyPreferences,
     verifyMessage,
     getKey,
     decryptSessionKey,
@@ -62,7 +62,8 @@ import {
     WorkerGetSignatureInfoOptions,
     WorkerGetKeyInfoOptions,
     KeyInfo,
-    WorkerVerifyCleartextOptions
+    WorkerVerifyCleartextOptions,
+    WorkerGenerateSessionKeyOptions
 } from './api.models';
 
 // Note:
@@ -537,24 +538,22 @@ export class Api extends KeyManagementApi {
     /**
      * Generating a session key for the specified symmetric algorithm.
      * To generate a session key based on some recipient's public key preferences,
-     * use `generateSessionKeyFromKeyPreferences()` instead.
+     * use `generateSessionKey()` instead.
      */
-    async generateSessionKey(algoName: Parameters<typeof generateSessionKey>[0]) {
-        const sessionKeyBytes = await generateSessionKey(algoName);
+    async generateSessionKeyForAlgorithm(algoName: Parameters<typeof generateSessionKeyForAlgorithm>[0]) {
+        const sessionKeyBytes = await generateSessionKeyForAlgorithm(algoName);
         return sessionKeyBytes;
     }
 
     /**
      * Generate a session key compatible with the given recipient keys.
-     * To get a session key for a specific symmetric algorithm, use `generateSessionKey` instead.
+     * To get a session key for a specific symmetric algorithm, use `generateSessionKeyForAlgorithm` instead.
      */
-    async generateSessionKeyFromKeyPreferences({ targetKeys: targetKeyRefs = [] }: {
-        targetKeys: MaybeArray<PublicKeyReference>;
-    }) {
-        const targetKeys = toArray(targetKeyRefs).map(
+    async generateSessionKey({ recipientKeys: recipientKeyRefs = [], ...options }: WorkerGenerateSessionKeyOptions) {
+        const recipientKeys = toArray(recipientKeyRefs).map(
             (keyReference) => this.keyStore.get(keyReference._idx)
         );
-        const sessionKey = await generateSessionKeyFromKeyPreferences(targetKeys);
+        const sessionKey = await generateSessionKey({ recipientKeys, ...options });
         return sessionKey;
     }
 

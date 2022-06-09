@@ -63,9 +63,9 @@ export const WorkerPool: WorkerPoolInterface = (() => {
         processMIME: (opts) => getWorker().processMIME(opts),
         computeHash: (opts) => getWorker().computeHash(opts),
 
-        generateSessionKey: (opts) => getWorker().generateSessionKey(opts),
-        generateSessionKeyFromKeyPreferences: (opts) => (
-            getWorker().generateSessionKeyFromKeyPreferences(opts)
+        generateSessionKeyForAlgorithm: (opts) => getWorker().generateSessionKeyForAlgorithm(opts),
+        generateSessionKey: (opts) => (
+            getWorker().generateSessionKey(opts)
         ),
         encryptSessionKey: (opts) => getWorker().encryptSessionKey(opts),
         decryptSessionKey: (opts) => getWorker().decryptSessionKey(opts),

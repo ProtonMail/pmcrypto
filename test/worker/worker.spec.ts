@@ -405,20 +405,20 @@ fLz+Lk0ZkB4L3nhM/c6sQKSsI9k2Tptm1VZ5+Qo=
     });
 
     it('generateSessionKey - should return session key of expected size', async () => {
-        const sessionKey128 = await CryptoWorker.generateSessionKey('aes128');
+        const sessionKey128 = await CryptoWorker.generateSessionKeyForAlgorithm('aes128');
         expect(sessionKey128.length).to.equal(16);
-        const sessionKey192 = await CryptoWorker.generateSessionKey('aes192');
+        const sessionKey192 = await CryptoWorker.generateSessionKeyForAlgorithm('aes192');
         expect(sessionKey192.length).to.equal(24);
-        const sessionKey256 = await CryptoWorker.generateSessionKey('aes256');
+        const sessionKey256 = await CryptoWorker.generateSessionKeyForAlgorithm('aes256');
         expect(sessionKey256.length).to.equal(32);
     });
 
-    it('generateSessionKeyFromKeyPreferences - should return shared algo preference', async () => {
+    it('generateSessionKey - should return shared algo preference', async () => {
         const aliceKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'alice', email: 'alice@test.com' } });
         const bobKeyRef = await CryptoWorker.generateKey({ userIDs: { name: 'bob', email: 'bob@test.com' } });
 
-        const sessionKey = await CryptoWorker.generateSessionKeyFromKeyPreferences({
-            targetKeys: [aliceKeyRef, bobKeyRef]
+        const sessionKey = await CryptoWorker.generateSessionKey({
+            recipientKeys: [aliceKeyRef, bobKeyRef]
         });
         expect(sessionKey.algorithm).to.equal('aes256');
     });

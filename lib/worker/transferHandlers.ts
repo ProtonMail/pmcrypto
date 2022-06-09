@@ -50,7 +50,7 @@ const KeyReferenceSerializer = {
 };
 
 const KeyOptionsSerializer = {
-    _optionNames: ['verificationKeys', 'signingKeys', 'encryptionKeys', 'decryptionKeys', 'keyReference', 'targetKeys', 'targetKey', 'sourceKey'],
+    _optionNames: ['verificationKeys', 'signingKeys', 'encryptionKeys', 'decryptionKeys', 'keyReference', 'recipientKeys', 'targetKey', 'sourceKey'],
     canHandle: (options: any): options is KeyReference | KeyReference[] => {
         if (typeof options !== 'object') return false;
         return KeyOptionsSerializer._optionNames.some((name) => options[name]);

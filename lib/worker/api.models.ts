@@ -8,6 +8,7 @@ import type {
   VerifyMessageResult,
   AlgorithmInfo,
   GenerateKeyOptions,
+  GenerateSessionKeyOptionsPmcrypto,
   EncryptSessionKeyOptionsPmcrypto,
   DecryptSessionKeyOptionsPmcrypto,
   DecryptLegacyOptions,
@@ -133,6 +134,10 @@ export interface WorkerReformatKeyOptions extends Omit<ReformatKeyOptions, 'priv
 export interface WorkerEncryptSessionKeyOptions extends Omit<EncryptSessionKeyOptionsPmcrypto, 'encryptionKeys'> {
     format?: 'armored' | 'binary',
     encryptionKeys?: MaybeArray<PublicKeyReference>
+};
+
+export interface WorkerGenerateSessionKeyOptions extends Omit<GenerateSessionKeyOptionsPmcrypto, 'recipientKeys'> {
+    recipientKeys?: MaybeArray<PublicKeyReference>
 };
 
 export interface WorkerDecryptSessionKeyOptions extends Omit<DecryptSessionKeyOptionsPmcrypto, 'message' | 'decryptionKeys'> {
