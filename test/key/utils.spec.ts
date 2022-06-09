@@ -7,8 +7,8 @@ import {
     getKey,
     generateKey,
     getMatchingKey,
+    generateSessionKeyForAlgorithm,
     generateSessionKey,
-    generateSessionKeyFromKeyPreferences,
     // @ts-ignore missing keyCheck typings
     keyCheck
 } from '../../lib';
@@ -154,8 +154,8 @@ wSeOoh9ocbsA/joCCpHxxH061g/tjEhP76tWJX17ShZ9wT7KZ6aPejoM
         expect(getMatchingKey(signatureFromPrimaryKey, [key1, key2])).to.deep.equal(key2);
     });
 
-    it('generateSessionKey - it can generate an AES256 session key', async () => {
-        const sessionKey = await generateSessionKey('aes256');
+    it('generateSessionKeyForAlgorithm - it can generate an AES256 session key', async () => {
+        const sessionKey = await generateSessionKeyForAlgorithm('aes256');
         expect(sessionKey.length).to.equal(32);
     });
 
@@ -170,7 +170,7 @@ gm9nAQDY//xzc2hy6Efz8NqDJeLg1lh2sZkKcMXP3L+CJbhWJQEAuI6UDakE
 +XVcDsBS+CIi3qg74r/80Ysb7tmRC06znwA=
 =I0d7
 -----END PGP PRIVATE KEY BLOCK-----`});
-        const sessionKey = await generateSessionKeyFromKeyPreferences(key);
+        const sessionKey = await generateSessionKey({ recipientKeys: key });
         expect(sessionKey.data.length).to.equal(32);
         expect(sessionKey.algorithm).to.equal('aes256');
     });
