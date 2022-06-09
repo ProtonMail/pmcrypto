@@ -38,7 +38,7 @@
     "homepage": "https://github.com/ProtonMail/pmcrypto#readme",
     "dependencies": {
         "comlink": "^4.3.1",
-        "openpgp": "github:openpgpjs/openpgpjs#main",
+        "openpgp": "~5.3.0",
         "@openpgp/asmcrypto.js": "^2.3.2",
         "@openpgp/web-stream-tools": "^0.0.10",
         "@openpgp/tweetnacl": "^1.0.3"
