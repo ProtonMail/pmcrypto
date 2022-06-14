@@ -2,9 +2,7 @@
     "name": "@protontech/pmcrypto",
     "version": "6.7.1",
     "description": "",
-    "main": "./lib/index.js",
-    "types": "./lib/index.d.ts",
-    "module": "./lib/pmcrypto.js",
+    "main": "./lib/index.ts",
     "sideEffects": false,
     "browser": {
         "buffer": false,
@@ -15,7 +13,7 @@
         "lint": "eslint lib test --quiet",
         "pretty": "prettier --write $(find lib -type f -name '*.js')",
         "postversion": "git push && git push --tags",
-        "test-type-definitions": "tsc lib/index.d.ts"
+        "test-type-definitions": "tsc lib/pmcrypto.d.ts"
     },
     "husky": {
         "hooks": {
@@ -42,7 +40,7 @@
         "@openpgp/asmcrypto.js": "^2.3.2",
         "@openpgp/tweetnacl": "^1.0.3",
         "@openpgp/web-stream-tools": "0.0.6",
-        "openpgp": "~5.1.0"
+        "openpgp": "~5.3.0"
     },
     "devDependencies": {
         "@types/chai": "^4.3.0",
@@ -55,6 +53,7 @@
         "chai-as-promised": "^7.1.1",
         "eslint": "^8.4.1",
         "eslint-config-airbnb-base": "^15.0.0",
+        "eslint-config-airbnb-typescript": "^16.1.0",
         "eslint-config-prettier": "^8.3.0",
         "eslint-plugin-chai-friendly": "^0.7.2",
         "eslint-plugin-import": "^2.25.3",
@@ -69,6 +68,7 @@
         "prettier": "^1.14.3",
         "ts-loader": "^9.2.6",
         "typescript": "^4.2.4",
-        "webpack": "^5.66.0"
+        "webpack": "^5.66.0",
+        "webpack-cli": "^4.9.2"
     }
 }
