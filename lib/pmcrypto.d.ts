@@ -156,12 +156,10 @@ export interface EncryptOptionsPmcrypto<T extends MaybeStream<Data>> extends Omi
 
 // No reuse from OpenPGP's equivalent
 export interface EncryptResult<
-    HasSessionKeyType extends boolean,
     MessageType,
     SignatureType = undefined,
     EncryptedSingatureType = undefined
 > {
-    sessionKey: HasSessionKeyType extends true ? SessionKey : undefined;
     message: MessageType;
     signature: SignatureType;
     encryptedSignature: EncryptedSingatureType;
@@ -170,34 +168,31 @@ export interface EncryptResult<
 export function encryptMessage<
     DataType extends MaybeStream<Data>,
     FormatType extends EncryptOptions['format'] = 'armored', // extends 'string' also works, but it gives unclear error if passed unexpected 'format' values
-    DetachedType extends boolean = false,
-    ReturnSessionKeyType extends boolean = false
+    DetachedType extends boolean = false
 >(
     options: EncryptOptionsPmcrypto<DataType> & {
-        format?: FormatType; detached?: DetachedType; returnSessionKey?: ReturnSessionKeyType
+        format?: FormatType; detached?: DetachedType;
     }
 ): Promise<
     FormatType extends 'armored' ?
         DetachedType extends true ?
             DataType extends WebStream<Data> ?
-                EncryptResult<ReturnSessionKeyType, WebStream<string>, WebStream<string>, WebStream<string>> :
-                EncryptResult<ReturnSessionKeyType, string, string, string> :
+                EncryptResult<WebStream<string>, WebStream<string>, WebStream<string>> :
+                EncryptResult<string, string, string> :
             DataType extends WebStream<Data> ?
-                EncryptResult<ReturnSessionKeyType, WebStream<string>> : EncryptResult<ReturnSessionKeyType, string> :
+                EncryptResult<WebStream<string>> : EncryptResult<string> :
     FormatType extends 'binary' ?
         DetachedType extends true ?
             DataType extends WebStream<Data> ?
-                EncryptResult<
-                    ReturnSessionKeyType, WebStream<Uint8Array>, WebStream<Uint8Array>, WebStream<Uint8Array>
-                > :
-                EncryptResult<ReturnSessionKeyType, Uint8Array, Uint8Array, Uint8Array> :
+                EncryptResult<WebStream<Uint8Array>, WebStream<Uint8Array>, WebStream<Uint8Array>> :
+                EncryptResult<Uint8Array, Uint8Array, Uint8Array> :
             DataType extends WebStream<Data> ?
-                EncryptResult<ReturnSessionKeyType, WebStream<Uint8Array>> :
-                EncryptResult<ReturnSessionKeyType, Uint8Array> :
+                EncryptResult<WebStream<Uint8Array>> :
+                EncryptResult<Uint8Array> :
     FormatType extends 'object' ?
         DetachedType extends true ?
             never : // unsupported
-            EncryptResult<ReturnSessionKeyType, OpenPGPMessage> :
+            EncryptResult<OpenPGPMessage> :
     never
 >;
 
