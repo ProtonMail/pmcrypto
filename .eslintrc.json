@@ -1,13 +1,17 @@
 {
     "extends": [
         "airbnb-base",
-        "prettier",
-        "plugin:@typescript-eslint/recommended"
+        "airbnb-typescript/base",
+        "prettier"
     ],
+
+    "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "ecmaVersion": 2020,
-        "sourceType": "module"
+        "sourceType": "module",
+        "project": "tsconfig.eslint.json"
     },
+
     "globals": {
         "window": "readonly",
         "btoa": "readonly",
@@ -41,6 +45,7 @@
         "no-return-assign": "warn",
         "no-shadow": "off",
         "no-unused-expressions": "off",
+        "@typescript-eslint/no-unused-expressions": "off",
         "chai-friendly/no-unused-expressions": [ "error", { "allowShortCircuit": true } ],
         "arrow-body-style": "off",
         "space-before-function-paren": "off",
@@ -68,6 +73,10 @@
         "eol-last": ["error"],
         "camelcase": ["error", {"allow": ["openpgp_*"]}],
 
+        "@typescript-eslint/naming-convention": ["error", {
+            "selector": "typeLike",
+            "format": ["PascalCase", "UPPER_CASE"]
+          }],
         "@typescript-eslint/ban-ts-comment": "off",
         "@typescript-eslint/no-unused-vars": ["error"],
         "@typescript-eslint/no-empty-function": "off"
