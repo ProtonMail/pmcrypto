@@ -64,8 +64,8 @@ module.exports = function(config) {
 
         client: {
             mocha: {
-              // timeout for mocha tests, default is 2 seconds. Some streaming tests can take longer.
-              timeout : 12000
+                // timeout for mocha tests, default is 2 seconds. Some streaming tests can take longer.
+                timeout : 12000
             }
           }
     });
