@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-
 import { checkKeyStrength } from '../../lib';
-import { readKey } from '../../lib/openpgp';
+import { keyCheck } from '../../lib/key/check';
+import { readKey, enums } from '../../lib/openpgp';
 
 export const ecc25519Key = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -78,5 +78,28 @@ describe('key checks', () => {
         expect(
             () => checkKeyStrength(key)
         ).to.not.throw;
+    });
+
+    // Test issue https://github.com/ProtonMail/pmcrypto/issues/92
+    it('keyCheck - it can check userId against a given email', () => {
+        const info = {
+            version: 4,
+            userIDs: ['jb'],
+            algorithmName: 'ecdsa',
+            encrypt: {},
+            revocationSignatures: [],
+            sign: {},
+            user: {
+                hash: [enums.hash.sha256],
+                symmetric: [enums.symmetric.aes256],
+                userId: 'Jacky Black <jackyblack@foo.com>'
+            }
+        };
+
+        expect(keyCheck(info, 'jackyblack@foo.com')).to.deep.equal(info);
+
+        expect(
+            () => keyCheck(info, 'jack.black@foo.com')
+        ).to.throw(/UserID does not contain correct email address/);
     });
 });
