@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { enums, PrivateKey, readKey, revokeKey, sign, createMessage } from '../../lib/openpgp';
+import { PrivateKey, readKey, revokeKey, sign, createMessage } from '../../lib/openpgp';
 import {
     isExpiredKey,
     isRevokedKey,
@@ -9,33 +9,28 @@ import {
     getMatchingKey,
     generateSessionKeyForAlgorithm,
     generateSessionKey,
-    // @ts-ignore missing keyCheck typings
-    keyCheck
+    getSHA256Fingerprints
 } from '../../lib';
 
 describe('key utils', () => {
+    it('sha256 fingerprints - v4 key', async () => {
+        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: false }, format: 'object'  });
+        const fingerprints = publicKey.getKeys().map((key) => key.getFingerprint());
+        const sha256Fingerprints = await getSHA256Fingerprints(publicKey);
+        expect(sha256Fingerprints.length).to.equal(fingerprints.length);
+        sha256Fingerprints.forEach((sha256Fingerprint, i) => {
+            expect(sha256Fingerprint).to.not.equal(fingerprints[i]);
+        });
+    });
 
-    // Test issue https://github.com/ProtonMail/pmcrypto/issues/92
-    it('keyCheck - it can check userId against a given email', () => {
-        const info = {
-            version: 4,
-            userIDs: ['jb'],
-            algorithmName: 'ecdsa',
-            encrypt: {},
-            revocationSignatures: [],
-            sign: {},
-            user: {
-                hash: [enums.hash.sha256],
-                symmetric: [enums.symmetric.aes256],
-                userId: 'Jacky Black <jackyblack@foo.com>'
-            }
-        };
-
-        expect(keyCheck(info, 'jackyblack@foo.com')).to.deep.equal(info);
-
-        expect(
-            () => keyCheck(info, 'jack.black@foo.com')
-        ).to.throw(/UserID does not contain correct email address/);
+    it('sha256 fingerprints - v5 key', async () => {
+        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: true }, format: 'object' });
+        const fingerprints = publicKey.getKeys().map((key) => key.getFingerprint());
+        const sha256Fingerprints = await getSHA256Fingerprints(publicKey);
+        expect(sha256Fingerprints.length).to.equal(fingerprints.length);
+        sha256Fingerprints.forEach((sha256Fingerprint, i) => {
+            expect(sha256Fingerprint).to.equal(fingerprints[i]);
+        });
     });
 
     it('generateKey - it has valid default creation time', async () => {

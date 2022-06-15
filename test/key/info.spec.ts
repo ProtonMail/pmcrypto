@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-// @ts-ignore missing keyInfo typings
-import { keyInfo, generateKey, getKey } from '../../lib';
+import { generateKey, getKey } from '../../lib';
+import keyInfo from '../../lib/key/info';
 import { enums, PrivateKey, reformatKey } from '../../lib/openpgp';
 
 const publickey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -103,7 +103,7 @@ describe('key info', () => {
             keyExpirationTime: 1
         });
         const expiringKeyInfo = await keyInfo(expiringKey);
-        expect(expiringKeyInfo.expires.getTime()).to.equal(new Date(+now + 1000).getTime());
+        expect((expiringKeyInfo.expires as Date).getTime()).to.equal(new Date(+now + 1000).getTime());
         expect(expiringKeyInfo.dateError).to.be.null;
     });
 
