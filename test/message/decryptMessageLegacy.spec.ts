@@ -6,7 +6,7 @@ describe('decryptMessageLegacy', () => {
     it('it can decrypt a legacy message', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
         const { data } = await decryptMessageLegacy({
-            message: testMessageEncryptedLegacy,
+            armoredMessage: testMessageEncryptedLegacy,
             decryptionKeys: [decryptedPrivateKey],
             messageDate: new Date('2015-01-01')
         });
@@ -17,7 +17,7 @@ describe('decryptMessageLegacy', () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
 
         const { data } = await decryptMessageLegacy({
-            message: testMessageEncryptedStandard,
+            armoredMessage: testMessageEncryptedStandard,
             decryptionKeys: [decryptedPrivateKey],
             messageDate: new Date('2015-01-01')
         });
