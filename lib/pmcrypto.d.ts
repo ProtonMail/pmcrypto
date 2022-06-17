@@ -16,6 +16,8 @@ import {
     SessionKey,
     EncryptSessionKeyOptions,
     decryptSessionKeys as openpgp_decryptSessionKeys,
+    decryptKey,
+    encryptKey,
     WebStream,
     CleartextMessage,
     KeyOptions as GenerateKeyOptions,
@@ -38,7 +40,7 @@ export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing strea
 export type OpenPGPSignature = Signature;
 
 export {
-    generateKey, reformatKey,
+    generateKey, reformatKey, decryptKey, encryptKey,
     readMessage, readSignature, readCleartextMessage,
     readKey, readKeys, readPrivateKey, readPrivateKeys
 };
@@ -63,9 +65,6 @@ export interface DecryptMimeOptions extends DecryptLegacyOptions {
     headerFilename?: string;
     sender?: string;
 }
-
-export function encryptPrivateKey(key: PrivateKey, password: string): Promise<string>;
-export function decryptPrivateKey(serialisedKey: string | Uint8Array, password: string): Promise<PrivateKey>;
 
 export function getKeys(serializedKeys: string | Uint8Array): Promise<OpenPGPKey[]>;
 export function getKey(serializedKey: string | Uint8Array): Promise<OpenPGPKey>;

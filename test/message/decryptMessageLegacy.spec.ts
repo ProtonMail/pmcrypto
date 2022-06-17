@@ -1,10 +1,11 @@
 import { expect } from 'chai';
-import { decryptPrivateKey, decryptMessageLegacy } from '../../lib';
+import { decryptMessageLegacy, decryptKey, readPrivateKey } from '../../lib';
 import { testMessageEncryptedLegacy, testPrivateKeyLegacy, testMessageResult, testMessageEncryptedStandard } from './decryptMessageLegacy.data';
 
 describe('decryptMessageLegacy', () => {
     it('it can decrypt a legacy message', async () => {
-        const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
+        const privateKey = await readPrivateKey({ armoredKey: testPrivateKeyLegacy });
+        const decryptedPrivateKey = await decryptKey({ privateKey, passphrase: '123' });
         const { data } = await decryptMessageLegacy({
             armoredMessage: testMessageEncryptedLegacy,
             decryptionKeys: [decryptedPrivateKey],
@@ -14,8 +15,8 @@ describe('decryptMessageLegacy', () => {
     });
 
     it('it can decrypt a non-legacy armored message', async () => {
-        const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-
+        const privateKey = await readPrivateKey({ armoredKey: testPrivateKeyLegacy });
+        const decryptedPrivateKey = await decryptKey({ privateKey, passphrase: '123' });
         const { data } = await decryptMessageLegacy({
             armoredMessage: testMessageEncryptedStandard,
             decryptionKeys: [decryptedPrivateKey],
