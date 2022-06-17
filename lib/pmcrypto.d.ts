@@ -20,6 +20,8 @@ import {
     CleartextMessage,
     KeyOptions as GenerateKeyOptions,
     UserID,
+    readMessage, readSignature, readCleartextMessage,
+    readKey, readKeys, readPrivateKey, readPrivateKeys,
     PartialConfig
 } from 'openpgp/lightweight';
 
@@ -35,7 +37,11 @@ export type OpenPGPKey = Key;
 export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing streaming support
 export type OpenPGPSignature = Signature;
 
-export { generateKey, reformatKey };
+export {
+    generateKey, reformatKey,
+    readMessage, readSignature, readCleartextMessage,
+    readKey, readKeys, readPrivateKey, readPrivateKeys
+};
 export type { PrivateKey, PublicKey, GenerateKeyOptions, Key, SessionKey };
 
 export interface ReformatKeyOptions {
@@ -216,10 +222,7 @@ export function signMessage<
     never
 >;
 export {
-    getMessage,
-    getSignature,
     splitMessage,
-    getCleartextMessage,
     armorBytes,
     stripArmor
 } from './message/utils';
