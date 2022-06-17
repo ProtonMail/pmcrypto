@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { config, readMessage, readPrivateKey } from '../../lib/openpgp';
-import { decryptMessage } from '../../lib';
+import { config, readPrivateKey } from '../../lib/openpgp';
+import { decryptMessage, readMessage } from '../../lib';
 
 const rsaSignOnly = `-----BEGIN PGP PRIVATE KEY BLOCK-----
 
