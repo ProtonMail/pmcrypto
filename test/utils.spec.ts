@@ -2,7 +2,7 @@ import { expect } from 'chai';
 // @ts-ignore missing isStream definitions
 import { isStream, readToEnd } from '@openpgp/web-stream-tools';
 import { concatArrays, decodeBase64, encodeBase64, hexToUint8Array, stringToUtf8Array, utf8ArrayToString } from '../lib/utils';
-import { Data } from '../lib';
+import type { Data } from '../lib';
 
 const streamFromChunks = <T extends Data>(chunks: T[]) => {
     const it = chunks.values();
