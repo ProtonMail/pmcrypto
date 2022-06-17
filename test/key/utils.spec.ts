@@ -1,10 +1,11 @@
 import { expect } from 'chai';
-import { PrivateKey, readKey, revokeKey, sign, createMessage } from '../../lib/openpgp';
+import { revokeKey, sign, createMessage } from '../../lib/openpgp';
 import {
     isExpiredKey,
     isRevokedKey,
     reformatKey,
-    getKey,
+    readKey,
+    readPrivateKey,
     generateKey,
     getMatchingKey,
     generateSessionKeyForAlgorithm,
@@ -128,8 +129,8 @@ wSeOoh9ocbsA/joCCpHxxH061g/tjEhP76tWJX17ShZ9wT7KZ6aPejoM
 =FkBc
 -----END PGP PRIVATE KEY BLOCK-----`;
 
-        const key1 = await getKey(keyWithSigningSubkey) as PrivateKey;
-        const key2 = await getKey(keyWithoutSubkeys) as PrivateKey;
+        const key1 = await readPrivateKey({ armoredKey: keyWithSigningSubkey });
+        const key2 = await readPrivateKey({ armoredKey: keyWithoutSubkeys });
 
         const signatureFromSubkey = await sign({
             message: await createMessage({ text: 'a message' }),

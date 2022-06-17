@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { generateKey, getKey } from '../../lib';
+import { generateKey, readPrivateKey, reformatKey } from '../../lib';
 import keyInfo from '../../lib/key/info';
-import { enums, PrivateKey, reformatKey } from '../../lib/openpgp';
+import { enums } from '../../lib/openpgp';
 
 const publickey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -162,7 +162,7 @@ oRqcHrieqMQU7fmKAskJGb+0E0wG15dek28A/2TI9YMe6rbH4yvHWw+MLvYJ
 0Z/fFLxYWQxNdcIETekM
 =aRnh
 -----END PGP PRIVATE KEY BLOCK-----`;
-        const privateKey = await getKey(keyWithUncompressedPrefs) as PrivateKey;
+        const privateKey = await readPrivateKey({ armoredKey: keyWithUncompressedPrefs });
 
         const { validationError: compressionPrefsError } = await keyInfo(privateKey.toPublic().armor());
         expect(compressionPrefsError).to.match(/Preferred compression algorithms must include zlib/);
