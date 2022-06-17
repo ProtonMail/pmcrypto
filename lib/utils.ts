@@ -41,21 +41,8 @@ export function concatArrays(arrays: Uint8Array[]): Uint8Array {
     return result;
 }
 
-const isString = (data: any):  data is string | String => {
+const isString = (data: any): data is string | String => {
     return typeof data === 'string' || data instanceof String;
-};
-
-/**
- * Convert a hex string to an array of 8-bit integers
- * @param hex  A hex string to convert
- * @returns An array of 8-bit integers
- */
-export const hexToUint8Array = (hex: string) => {
-    const result = new Uint8Array(hex.length >> 1);
-    for (let k = 0; k < hex.length >> 1; k++) {
-        result[k] = parseInt(hex.substr(k << 1, 2), 16);
-    }
-    return result;
 };
 
 /**
@@ -90,6 +77,20 @@ export const arrayToBinaryString = (bytes: Uint8Array) => {
         result.push(String.fromCharCode.apply(String, bytes.subarray(i, i + bs < j ? i + bs : j)));
     }
     return result.join('');
+};
+
+/**
+ * Convert a hex string to an array of 8-bit integers
+ * @param hex  A hex string to convert
+ * @returns An array of 8-bit integers
+ */
+export const hexStringToArray = (hex: string) => {
+    const result = new Uint8Array(hex.length >> 1);
+    for (let k = 0; k < result.length; k++) {
+        const i = k << 1;
+        result[k] = parseInt(hex.substring(i, i + 2), 16);
+    }
+    return result;
 };
 
 /**
@@ -129,13 +130,13 @@ export function stringToUtf8Array(str: MaybeStream<string>): MaybeStream<Uint8Ar
             const { value, done } = await reader.read();
 
             if (done) {
-              controller.close();
+                controller.close();
             } else {
-              controller.enqueue(encoder.encode(value));
+                controller.enqueue(encoder.encode(value));
             }
         },
         cancel() {
-            reader.cancel()
+            reader.cancel();
         }
     });
 
@@ -171,17 +172,9 @@ export function utf8ArrayToString(utf8: MaybeStream<Uint8Array>): MaybeStream<st
             }
         },
         cancel() {
-            reader.cancel()
+            reader.cancel();
         }
     });
 
     return transformedStream;
 }
-
-/* eslint-disable camelcase */
-export const encode_utf8 = encodeUtf8;
-export const decode_utf8 = decodeUtf8;
-export const encode_base64 = encodeBase64;
-export const decode_base64 = decodeBase64;
-export const encode_utf8_base64 = encodeUtf8Base64;
-export const decode_utf8_base64 = decodeUtf8Base64;
