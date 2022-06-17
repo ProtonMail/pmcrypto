@@ -58,7 +58,7 @@ export interface DecryptMimeOptions extends DecryptLegacyOptions {
     sender?: string;
 }
 
-export function encryptPrivateKey(key: OpenPGPKey, password: string): Promise<string>;
+export function encryptPrivateKey(key: PrivateKey, password: string): Promise<string>;
 export function decryptPrivateKey(serialisedKey: string | Uint8Array, password: string): Promise<PrivateKey>;
 
 export function getKeys(serializedKeys: string | Uint8Array): Promise<OpenPGPKey[]>;
@@ -215,24 +215,14 @@ export function signMessage<
         DetachedType extends true ? OpenPGPMessage : OpenPGPSignature :
     never
 >;
-
-export function getSignature(option: string | Uint8Array | OpenPGPSignature): Promise<OpenPGPSignature>;
-
-export function getMessage(message: OpenPGPMessage | Uint8Array | string): Promise<OpenPGPMessage>;
-export function getCleartextMessage(message: CleartextMessage | string): Promise<CleartextMessage>;
-
-export function splitMessage(message: OpenPGPMessage | Uint8Array | string): Promise<{
-    asymmetric: Uint8Array[];
-    signature: Uint8Array[];
-    symmetric: Uint8Array[];
-    compressed: Uint8Array[];
-    literal: Uint8Array[];
-    encrypted: Uint8Array[];
-    other: Uint8Array[];
-}>;
-
-export function armorBytes(value: Uint8Array | string): Promise<string>;
-export function stripArmor(value: string): Promise<Uint8Array>;
+export {
+    getMessage,
+    getSignature,
+    splitMessage,
+    getCleartextMessage,
+    armorBytes,
+    stripArmor
+} from './message/utils';
 
 export interface AlgorithmInfo {
     algorithm: string;
