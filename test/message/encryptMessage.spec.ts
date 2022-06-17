@@ -4,7 +4,7 @@ import { readToEnd, ReadableStream, WritableStream, toStream, WebStream } from '
 import { config, readMessage, CompressedDataPacket, enums } from '../../lib/openpgp';
 
 import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage, decryptMessage, getSignature, generateSessionKey } from '../../lib';
-import { hexToUint8Array, arrayToBinaryString, stringToUtf8Array } from '../../lib/utils';
+import { hexStringToArray, arrayToBinaryString, stringToUtf8Array } from '../../lib/utils';
 import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
@@ -58,7 +58,7 @@ describe('message encryption and decryption', () => {
     it('it can encrypt and decrypt a message with a given session key', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
         const sessionKey = {
-            data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+            data: hexStringToArray('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
         };
 
@@ -97,7 +97,7 @@ describe('message encryption and decryption', () => {
     it('it does not compress a message by default', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
         const sessionKey = {
-            data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+            data: hexStringToArray('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
         };
 
@@ -115,7 +115,7 @@ describe('message encryption and decryption', () => {
     it('it compresses the message if the compression option is specified', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
         const sessionKey = {
-            data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+            data: hexStringToArray('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
         };
 
@@ -182,7 +182,7 @@ describe('message encryption and decryption', () => {
     it('it can encrypt and decrypt a message with session key without setting returnSessionKey with a detached signature', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
         const sessionKey = {
-            data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+            data: hexStringToArray('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
         };
         const { message: encrypted, encryptedSignature } = await encryptMessage({
@@ -206,7 +206,7 @@ describe('message encryption and decryption', () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
         const { stream: inputStream, data: inputData }  = generateStreamOfData();
         const sessionKey = {
-            data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+            data: hexStringToArray('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
         };
 
@@ -233,7 +233,7 @@ describe('message encryption and decryption', () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
         const { stream: inputStream, data: inputData }  = generateStreamOfData();
         const sessionKey = {
-            data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+            data: hexStringToArray('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
         };
 
@@ -260,7 +260,7 @@ describe('message encryption and decryption', () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
         const { stream: inputStream, data: inputData }  = generateStreamOfData();
         const sessionKey = {
-            data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+            data: hexStringToArray('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
         };
 
@@ -289,7 +289,7 @@ describe('message encryption and decryption', () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
         const { stream: inputStream, data: inputData }  = generateStreamOfData();
         const sessionKey = {
-            data: hexToUint8Array('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+            data: hexStringToArray('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
         };
 
