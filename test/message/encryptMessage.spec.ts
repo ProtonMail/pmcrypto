@@ -13,7 +13,7 @@ const generateStreamOfData = (): { stream: WebStream<string>, data: string } => 
     data: 'string'.repeat(10000)
 });
 
-describe('encryptMessage', () => {
+describe('message encryption and decryption', () => {
     const { minRSABits } = config;
     before('downgrade openpgp config', () => {
         config.minRSABits = 512;
