@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { PublicKeyEncryptedSessionKeyPacket, readMessage, AEADEncryptedDataPacket } from '../../lib/openpgp';
-import { stripArmor, splitMessage, armorBytes } from '../../lib';
+import { PublicKeyEncryptedSessionKeyPacket, AEADEncryptedDataPacket } from '../../lib/openpgp';
+import { stripArmor, splitMessage, armorBytes, readMessage } from '../../lib';
 
 describe('message utils', () => {
     it('stripArmor - it can correctly dearmor a message', async () => {
@@ -55,7 +55,8 @@ sJFJxllC0j4wHCOS9uiSYsZ/pWCqxX/3sFh4VBFOpr0HAA==
 =S5ns
 -----END PGP MESSAGE-----`;
 
-        const packets = await splitMessage(armoredMessage);
+        const message = await readMessage({ armoredMessage });
+        const packets = await splitMessage(message);
         expect(packets.asymmetric).to.have.length(1);
         expect(packets.symmetric).to.have.length(0);
         expect(packets.encrypted).to.have.length(1);

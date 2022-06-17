@@ -1,8 +1,7 @@
 import { expect } from 'chai';
 // @ts-ignore missing web-stream-tools types
 import { WritableStream, ReadableStream, readToEnd, WebStream } from '@openpgp/web-stream-tools';
-import { readSignature } from '../../lib/openpgp';
-import { verifyMessage, signMessage, getSignature, generateKey } from '../../lib';
+import { verifyMessage, signMessage, generateKey, readSignature } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 import { stringToUtf8Array } from '../../lib/utils';
 
@@ -62,7 +61,7 @@ describe('message signing', () => {
             format: 'object'
         });
 
-        const signature = await signMessage({
+        const armoredSignature = await signMessage({
             binaryData: stringToUtf8Array('message'),
             signingKeys: [privateKey],
             detached: true
@@ -70,7 +69,7 @@ describe('message signing', () => {
 
         const verificationResult = await verifyMessage({
             binaryData: stringToUtf8Array('message'),
-            signature: await getSignature(signature),
+            signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey]
         });
 
@@ -100,7 +99,7 @@ describe('message signing', () => {
 
         const verificationResult = await verifyMessage({
             textData: inputData,
-            signature: await getSignature(armoredSignature),
+            signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey]
         });
 

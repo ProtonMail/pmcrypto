@@ -1,9 +1,9 @@
 import { expect } from 'chai';
 // @ts-ignore missing web-stream-tools types
 import { readToEnd, ReadableStream, WritableStream, toStream, WebStream } from '@openpgp/web-stream-tools';
-import { config, readMessage, CompressedDataPacket, enums } from '../../lib/openpgp';
+import { config, CompressedDataPacket, enums } from '../../lib/openpgp';
 
-import { decryptPrivateKey, getMessage, verifyMessage, encryptMessage, decryptMessage, getSignature, generateSessionKey } from '../../lib';
+import { decryptPrivateKey, verifyMessage, encryptMessage, decryptMessage, generateSessionKey, readSignature, readMessage } from '../../lib';
 import { hexStringToArray, arrayToBinaryString, stringToUtf8Array } from '../../lib/utils';
 import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
@@ -30,7 +30,7 @@ describe('message encryption and decryption', () => {
             signingKeys: [decryptedPrivateKey]
         });
         const { data: decrypted, verified } = await decryptMessage({
-            message: await getMessage(encrypted),
+            message: await readMessage({ armoredMessage: encrypted }),
             verificationKeys: [decryptedPrivateKey.toPublic()],
             decryptionKeys: [decryptedPrivateKey]
         });
@@ -46,7 +46,7 @@ describe('message encryption and decryption', () => {
             signingKeys: [decryptedPrivateKey]
         });
         const { data: decrypted, verified } = await decryptMessage({
-            message: await getMessage(encrypted),
+            message: await readMessage({ armoredMessage: encrypted }),
             verificationKeys: [decryptedPrivateKey.toPublic()],
             decryptionKeys: [decryptedPrivateKey],
             format: 'binary'
@@ -69,7 +69,7 @@ describe('message encryption and decryption', () => {
             sessionKey
         });
         const { data: decrypted, verified } = await decryptMessage({
-            message: await getMessage(encrypted),
+            message: await readMessage({ armoredMessage: encrypted }),
             verificationKeys: [decryptedPrivateKey.toPublic()],
             sessionKeys: sessionKey
         });
@@ -87,7 +87,7 @@ describe('message encryption and decryption', () => {
             sessionKey
         });
         const { data: decrypted, verified } = await decryptMessage({
-            message: await getMessage(encrypted),
+            message: await readMessage({ armoredMessage: encrypted }),
             decryptionKeys: decryptedPrivateKey
         });
         expect(decrypted).to.equal('Hello world!');
@@ -107,7 +107,7 @@ describe('message encryption and decryption', () => {
             signingKeys: [decryptedPrivateKey],
             sessionKey
         });
-        const encryptedMessage = await getMessage(encrypted);
+        const encryptedMessage = await readMessage({ armoredMessage: encrypted });
         const decryptedMessage = await encryptedMessage.decrypt([], [], [sessionKey]);
         expect(decryptedMessage.packets.findPacket(enums.packet.compressedData)).to.be.undefined;
     });
@@ -127,7 +127,7 @@ describe('message encryption and decryption', () => {
             // NB: the specified compression algo must appear in the encryption key preferences, or it won't be used
             config: { preferredCompressionAlgorithm: enums.compression.zlib }
         });
-        const encryptedMessage = await getMessage(encrypted);
+        const encryptedMessage = await readMessage({ armoredMessage: encrypted });
         const decryptedMessage = await encryptedMessage.decrypt([], [], [sessionKey]);
         const compressedPacket = decryptedMessage.packets.findPacket(
             enums.packet.compressedData
@@ -139,15 +139,15 @@ describe('message encryption and decryption', () => {
 
     it('it can encrypt and decrypt a message with an unencrypted detached signature', async () => {
         const decryptedPrivateKey = await decryptPrivateKey(testPrivateKeyLegacy, '123');
-        const { message: encrypted, signature } = await encryptMessage({
+        const { message: encrypted, signature: armoredSignature } = await encryptMessage({
             textData: 'Hello world!',
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey],
             detached: true
         });
         const { data: decrypted, verified } = await decryptMessage({
-            message: await getMessage(encrypted),
-            signature: await getSignature(signature),
+            message: await readMessage({ armoredMessage: encrypted }),
+            signature: await readSignature({ armoredSignature }),
             verificationKeys: [decryptedPrivateKey.toPublic()],
             decryptionKeys: [decryptedPrivateKey]
         });
@@ -155,7 +155,7 @@ describe('message encryption and decryption', () => {
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         const { verified: verifiedAgain } = await verifyMessage({
             textData: 'Hello world!',
-            signature: await getSignature(signature),
+            signature: await readSignature({ armoredSignature }),
             verificationKeys: [decryptedPrivateKey.toPublic()]
         });
         expect(verifiedAgain).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
@@ -170,8 +170,8 @@ describe('message encryption and decryption', () => {
             detached: true
         });
         const { data: decrypted, verified } = await decryptMessage({
-            message: await getMessage(encrypted),
-            encryptedSignature: await getMessage(encryptedSignature),
+            message: await readMessage({ armoredMessage: encrypted }),
+            encryptedSignature: await readMessage({ armoredMessage: encryptedSignature }),
             verificationKeys: [decryptedPrivateKey.toPublic()],
             decryptionKeys: [decryptedPrivateKey]
         });
@@ -193,9 +193,9 @@ describe('message encryption and decryption', () => {
             sessionKey
         });
         const { data: decrypted, verified } = await decryptMessage({
-            message: await getMessage(encrypted),
+            message: await readMessage({ armoredMessage: encrypted }),
             verificationKeys: [decryptedPrivateKey.toPublic()],
-            encryptedSignature: await getMessage(encryptedSignature),
+            encryptedSignature: await readMessage({ armoredMessage: encryptedSignature }),
             sessionKeys: sessionKey
         });
         expect(decrypted).to.equal('Hello world!');
@@ -301,7 +301,7 @@ describe('message encryption and decryption', () => {
             format: 'object'
         });
         const { data: decrypted, verified } = await decryptMessage({
-            message: await getMessage(encrypted),
+            message: encrypted,
             sessionKeys: sessionKey,
             verificationKeys: [decryptedPrivateKey.toPublic()],
             format: 'binary'
