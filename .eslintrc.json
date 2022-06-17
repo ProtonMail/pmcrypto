@@ -46,6 +46,7 @@
         "no-else-return": ["error", { "allowElseIf": true }],
         "no-shadow": "off",
         "no-unused-expressions": "off",
+        "no-undef": "error",
         "@typescript-eslint/no-unused-expressions": "off",
         "chai-friendly/no-unused-expressions": [ "error", { "allowShortCircuit": true } ],
         "arrow-body-style": "off",
@@ -59,6 +60,8 @@
         "import/prefer-default-export": "off",
         "import/no-extraneous-dependencies": "off",
         "import/no-unassigned-import": "error",
+        "import/named": "error",
+        "import/extensions": "error",
         "max-len": ["error", {
             "ignoreComments": true,
             "code": 120,
