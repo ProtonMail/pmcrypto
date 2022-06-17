@@ -66,9 +66,6 @@ export interface DecryptMimeOptions extends DecryptLegacyOptions {
     sender?: string;
 }
 
-export function getKeys(serializedKeys: string | Uint8Array): Promise<OpenPGPKey[]>;
-export function getKey(serializedKey: string | Uint8Array): Promise<OpenPGPKey>;
-
 export function getFingerprint(key: OpenPGPKey): string;
 
 export function isExpiredKey(key: OpenPGPKey, date?: Date): Promise<boolean>;
@@ -271,7 +268,7 @@ export function verifyCleartextMessage(
 
 export interface ProcessMIMEOptions {
     data: string,
-    verificationKeys?: PublicKey[],
+    verificationKeys?: MaybeArray<PublicKey>,
     date?: Date,
     headerFilename?: string;
     sender?: string;
