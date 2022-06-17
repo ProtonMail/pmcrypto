@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import { getKeys, processMIME } from '../../lib';
+import { readKey, processMIME } from '../../lib';
 import { utf8ArrayToString } from '../../lib/utils';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 import { Signature } from '../../lib/openpgp';
@@ -20,7 +20,7 @@ describe('processMIME', () => {
         const { body, verified, signatures, attachments, encryptedSubject } = await processMIME(
             {
                 data: multipartSignedMessage,
-                verificationKeys: await getKeys(key)
+                verificationKeys: await readKey({ armoredKey: key })
             }
         );
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
@@ -35,7 +35,7 @@ describe('processMIME', () => {
         const { body, verified,signatures } = await processMIME(
             {
                 data: extraMultipartSignedMessage,
-                verificationKeys: await getKeys(key)
+                verificationKeys: await readKey({ armoredKey: key })
             }
         );
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
@@ -47,7 +47,7 @@ describe('processMIME', () => {
         const { verified, body, signatures } = await processMIME(
             {
                 data: invalidMultipartSignedMessage,
-                verificationKeys: await getKeys(key)
+                verificationKeys: await readKey({ armoredKey: key })
             }
         );
         expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
@@ -59,7 +59,7 @@ describe('processMIME', () => {
         const { verified, body, signatures } = await processMIME(
             {
                 data: multiPartMessageWithSpecialCharacter,
-                verificationKeys: await getKeys(key)
+                verificationKeys: await readKey({ armoredKey: key })
             }
         );
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
@@ -70,7 +70,7 @@ describe('processMIME', () => {
     it('it can parse message with text attachment', async () => {
         const { verified, body, signatures, attachments } = await processMIME({
             data: multipartMessageWithAttachment,
-            verificationKeys: await getKeys(key)
+            verificationKeys: await readKey({ armoredKey: key })
         });
         expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
         expect(signatures.length).to.equal(0);
@@ -89,7 +89,7 @@ describe('processMIME', () => {
     it('it can parse message with encrypted subject', async () => {
         const { verified, body, signatures, encryptedSubject } = await processMIME({
             data: multipartMessageWithEncryptedSubject,
-            verificationKeys: await getKeys(key)
+            verificationKeys: await readKey({ armoredKey: key })
         });
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
         expect(signatures.length).to.equal(1);
