@@ -162,4 +162,30 @@ fLz+Lk0ZkB4L3nhM/c6sQKSsI9k2Tptm1VZ5+Qo=
         expect(errors).to.be.undefined;
         expect(signatureTimestamp).to.deep.equal(new Date('Fri, 25 Mar 2022 11:12:34 GMT'));
     });
+
+    it('verifyCleartextMessage - it does not verify a cleartext message given a wrong public key', async () => {
+        const cleartextMessage = `-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+hello world
+-----BEGIN PGP SIGNATURE-----
+
+wnUEARYKAAYFAmI9o6IAIQkQ0k/eZvRKo8YWIQQseK5K/i3v7uzoNYHST95m
+9EqjxoO3AP9xPAlk+qZ3sr/Y1lgWBIdoGeQ1ZGzLKVVzgrhH5sOcZQEA3AeS
+fLz+Lk0ZkB4L3nhM/c6sQKSsI9k2Tptm1VZ5+Qo=
+=1A38
+-----END PGP SIGNATURE-----
+`;
+
+        const publicKey = await readKey({ armoredKey: armoredPublicKey });
+
+        const { verified, signatureTimestamp, signatures, errors } = await verifyCleartextMessage({
+            cleartextMessage: await readCleartextMessage({ cleartextMessage }),
+            verificationKeys: [publicKey]
+        });
+        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(signatures.length).to.equal(1);
+        expect(errors).to.have.length(1);
+        expect(signatureTimestamp).to.be.null;
+    });
 });
