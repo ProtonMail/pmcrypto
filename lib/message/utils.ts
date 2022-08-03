@@ -10,15 +10,15 @@ import {
 import type { OpenPGPMessage } from '../pmcrypto';
 
 /**
- * Remove trailing spaces and tabs from each line (separated by \n characters)
+ * Remove trailing spaces, carriage returns and tabs from each line (separated by \n characters)
  */
 export const removeTrailingSpaces = (text: string) => {
     return text
         .split('\n')
         .map((line) => {
             let i = line.length - 1;
-            for (; i >= 0 && (line[i] === ' ' || line[i] === '\t'); i--);
-            return line.substr(0, i + 1);
+            for (; i >= 0 && (line[i] === ' ' || line[i] === '\t' || line[i] === '\r'); i--);
+            return line.substring(0, i + 1);
         })
         .join('\n');
 };
