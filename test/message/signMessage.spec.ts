@@ -9,8 +9,6 @@ describe('message signing', () => {
     it('signMessage/verifyMessage - it verifies a text message it has signed (format = armored)', async () => {
         const { privateKey, publicKey } = await generateKey({
             userIDs: [{ name: 'name', email: 'email@test.com' }],
-            date: new Date(),
-            keyExpirationTime: 10000,
             format: 'object'
         });
 
@@ -32,8 +30,6 @@ describe('message signing', () => {
     it('signMessage/verifyMessage - it verifies a text message it has signed (format = binary)', async () => {
         const { privateKey, publicKey } = await generateKey({
             userIDs: [{ name: 'name', email: 'email@test.com' }],
-            date: new Date(),
-            keyExpirationTime: 10000,
             format: 'object'
         });
 
@@ -56,8 +52,6 @@ describe('message signing', () => {
     it('signMessage/verifyMessage - it verifies a binary message it has signed', async () => {
         const { privateKey, publicKey } = await generateKey({
             userIDs: [{ name: 'name', email: 'email@test.com' }],
-            date: new Date(),
-            keyExpirationTime: 10000,
             format: 'object'
         });
 
