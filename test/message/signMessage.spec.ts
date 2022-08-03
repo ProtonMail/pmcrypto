@@ -76,6 +76,39 @@ describe('message signing', () => {
         expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
+    it('signMessage/verifyMessage - it normalises a text message with trailing whitespaces', async () => {
+        const textData = 'BEGIN:VCARD\r\nVERSION:4.0\r\nFN;PREF=1:   \r\nITEM1.EMAIL;TYPE=x-email;PREF=1:email@email.it\r\nPRODID;VALUE=TEXT:-//ProtonMail//ProtonMail vCard 1.0.0//EN\r\nUID:proton-web\r\nITEM1.X-PM-ENCRYPT:false\r\nITEM1.X-PM-SIGN:true\r\nITEM1.X-PM-SCHEME:pgp-mime\r\nEND:VCARD';
+
+        const { privateKey, publicKey } = await generateKey({
+            userIDs: [{ name: 'name', email: 'email@test.com' }],
+            format: 'object'
+        });
+
+        const armoredSignature = await signMessage({
+            textData,
+            stripTrailingSpaces: true,
+            signingKeys: [privateKey],
+            detached: true
+        });
+
+        await expect(verifyMessage({
+            textData, // stripTrailingSpaces: false
+            signature: await readSignature({ armoredSignature }),
+            verificationKeys: [publicKey],
+            expectSigned: true
+        })).to.be.rejectedWith(/Signed digest did not match/);
+
+        const verificationResult = await verifyMessage({
+            textData,
+            stripTrailingSpaces: true,
+            signature: await readSignature({ armoredSignature }),
+            verificationKeys: [publicKey],
+            expectSigned: true
+        });
+
+        expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+    });
+
     it('signMessage/verifyMessage - it verifies a streamed message it has signed', async () => {
         const inputStream: WebStream<string> = new ReadableStream({
             pull: (controller: WritableStream) => { for (let i = 0; i < 10000; i++) { controller.enqueue('string'); } controller.close(); }
