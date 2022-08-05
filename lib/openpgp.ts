@@ -9,6 +9,12 @@ export const setConfig = () => {
      */
     config.allowInsecureDecryptionWithSigningKeys = true;
 
+    /**
+     * This is necessary as we used to reformat keys on import, without setting the new binding signature creation time
+     * to match the key creation time.
+     */
+    config.allowInsecureVerificationWithReformattedKeys = true;
+
     // these minimum key settings apply to already imported (private) keys as well, so we cannot be too strict.
     // to enforce stricter checks e.g. on new key imports, `checkKeyStrength` should be called.
     config.rejectPublicKeyAlgorithms = new Set();
