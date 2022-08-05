@@ -16,7 +16,7 @@ const streamFromChunks = <T extends Data>(chunks: T[]) => {
             }
         }
     });
-}
+};
 
 describe('utils', () => {
     it('concatArrays - it can correctly concatenate a single array', async () => {

@@ -71,7 +71,7 @@ interface KeyInfoFingerprints {
 
 describe('key info', () => {
     it('sha256 fingerprints - v4 key', async () => {
-        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: false }  });
+        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: false } });
         const { fingerprints, sha256Fingerprints } : KeyInfoFingerprints = await keyInfo(publicKey);
         expect(sha256Fingerprints.length).to.equal(fingerprints.length);
         sha256Fingerprints.forEach((sha256Fingerprint, i) => {
@@ -147,7 +147,7 @@ describe('key info', () => {
     });
 
     it('key validation - reformatted key should be valid', async () => {
-    const keyWithUncompressedPrefs = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+        const keyWithUncompressedPrefs = `-----BEGIN PGP PRIVATE KEY BLOCK-----
 
 xVgEYY59gxYJKwYBBAHaRw8BAQdA3DNzk7qxgFfjGv2857uqzBUMZo+hg+4I
 vGrmYl8nNgQAAP97yy0+vpHCz6QagYd2rfWXuVJ5CoDKGrTEP4ZRiJIbtxFx

@@ -15,7 +15,7 @@ import {
 
 describe('key utils', () => {
     it('sha256 fingerprints - v4 key', async () => {
-        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: false }, format: 'object'  });
+        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: false }, format: 'object' });
         const fingerprints = publicKey.getKeys().map((key) => key.getFingerprint());
         const sha256Fingerprints = await getSHA256Fingerprints(publicKey);
         expect(sha256Fingerprints.length).to.equal(fingerprints.length);
@@ -165,7 +165,7 @@ AgECGQECGwMCHgEAIQkQJCJW2HYCeYIWIQTdZGjv9WwTyL+azOUkIlbYdgJ5
 gm9nAQDY//xzc2hy6Efz8NqDJeLg1lh2sZkKcMXP3L+CJbhWJQEAuI6UDakE
 +XVcDsBS+CIi3qg74r/80Ysb7tmRC06znwA=
 =I0d7
------END PGP PRIVATE KEY BLOCK-----`});
+-----END PGP PRIVATE KEY BLOCK-----` });
         const sessionKey = await generateSessionKey({ recipientKeys: key });
         expect(sessionKey.data.length).to.equal(32);
         expect(sessionKey.algorithm).to.equal('aes256');

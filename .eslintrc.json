@@ -1,8 +1,7 @@
 {
     "extends": [
         "airbnb-base",
-        "airbnb-typescript/base",
-        "prettier"
+        "airbnb-typescript/base"
     ],
 
     "parser": "@typescript-eslint/parser",
@@ -77,6 +76,7 @@
         "no-trailing-spaces": ["error"],
         "eol-last": ["error"],
         "camelcase": ["error", {"allow": ["openpgp_*"]}],
+        "padded-blocks": "off",
 
         "@typescript-eslint/naming-convention": ["error", {
             "selector": "typeLike",
@@ -84,6 +84,9 @@
           }],
         "@typescript-eslint/ban-ts-comment": "off",
         "@typescript-eslint/no-unused-vars": ["error"],
-        "@typescript-eslint/no-empty-function": "off"
+        "@typescript-eslint/no-empty-function": "off",
+        "@typescript-eslint/indent": ["error", 4],
+        "@typescript-eslint/comma-dangle": "off"
+
     }
 }

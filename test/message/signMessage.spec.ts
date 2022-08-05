@@ -78,7 +78,7 @@ describe('message signing', () => {
 
     it('signMessage/verifyMessage - it verifies a streamed message it has signed', async () => {
         const inputStream: WebStream<string> = new ReadableStream({
-            pull: (controller: WritableStream) => { for (let i = 0; i < 10000; i++ ) { controller.enqueue('string'); } controller.close() }
+            pull: (controller: WritableStream) => { for (let i = 0; i < 10000; i++) { controller.enqueue('string'); } controller.close(); }
         });
         const inputData = 'string'.repeat(10000);
 
@@ -106,4 +106,4 @@ describe('message signing', () => {
         expect(verificationResult.data).to.equal(inputData);
         expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
-})
+});

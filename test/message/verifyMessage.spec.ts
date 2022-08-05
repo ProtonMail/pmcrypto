@@ -96,7 +96,7 @@ describe('message verification', () => {
         expect(signatures.length).to.equal(2);
         expect(errors).to.not.be.undefined;
         expect(errors!.length).to.equal(2);
-        errors?.forEach((err) => expect(err.message).to.match(/Could not find signing key/))
+        errors?.forEach((err) => expect(err.message).to.match(/Could not find signing key/));
         expect(signatureTimestamp).to.be.null;
     });
 
@@ -137,7 +137,7 @@ T95m9EqjxqiLAP9sIlmYlCVgSiPZBmsixn9CL27Hv/Bgr2nc73v9K5OszAEA
 ypolW41xuLR+4D7vvxT66lwMMVagQSIisR+49QQP2w8=
 =rzuc
 -----END PGP PUBLIC KEY BLOCK-----
-`
+`;
         const cleartextMessage = `-----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA512
 
@@ -162,4 +162,4 @@ fLz+Lk0ZkB4L3nhM/c6sQKSsI9k2Tptm1VZ5+Qo=
         expect(errors).to.be.undefined;
         expect(signatureTimestamp).to.deep.equal(new Date('Fri, 25 Mar 2022 11:12:34 GMT'));
     });
-})
+});
