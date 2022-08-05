@@ -63,7 +63,7 @@ describe('key checks', () => {
         const key = await readKey({ armoredKey: rsa512BitsKey });
         expect(
             () => checkKeyStrength(key)
-        ).to.throw(/Keys shorter than 2047 bits are considered unsafe/)
+        ).to.throw(/Keys shorter than 2047 bits are considered unsafe/);
     });
 
     it('it warns on insecure subkey (ElGamal)', async () => {

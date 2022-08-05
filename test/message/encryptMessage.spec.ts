@@ -9,7 +9,7 @@ import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
 const generateStreamOfData = (): { stream: WebStream<string>, data: string } => ({
-    stream: new ReadableStream({ pull: (controller: WritableStream) => { for (let i = 0; i < 10000; i++ ) { controller.enqueue('string'); } controller.close() } }),
+    stream: new ReadableStream({ pull: (controller: WritableStream) => { for (let i = 0; i < 10000; i++) { controller.enqueue('string'); } controller.close(); } }),
     data: 'string'.repeat(10000)
 });
 
@@ -214,7 +214,7 @@ describe('message encryption and decryption', () => {
     it('it can encrypt and decrypt a streamed message with an unencrypted detached signature (format = armored)', async () => {
         const privateKey = await readPrivateKey({ armoredKey: testPrivateKeyLegacy });
         const decryptedPrivateKey = await decryptKey({ privateKey, passphrase: '123' });
-        const { stream: inputStream, data: inputData }  = generateStreamOfData();
+        const { stream: inputStream, data: inputData } = generateStreamOfData();
         const sessionKey = {
             data: hexStringToArray('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
@@ -242,7 +242,7 @@ describe('message encryption and decryption', () => {
     it('it can encrypt and decrypt a streamed message with an unencrypted detached signature (format = binary)', async () => {
         const privateKey = await readPrivateKey({ armoredKey: testPrivateKeyLegacy });
         const decryptedPrivateKey = await decryptKey({ privateKey, passphrase: '123' });
-        const { stream: inputStream, data: inputData }  = generateStreamOfData();
+        const { stream: inputStream, data: inputData } = generateStreamOfData();
         const sessionKey = {
             data: hexStringToArray('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
@@ -270,7 +270,7 @@ describe('message encryption and decryption', () => {
     it('it can encrypt and decrypt a binary streamed message with an encrypted detached signature', async () => {
         const privateKey = await readPrivateKey({ armoredKey: testPrivateKeyLegacy });
         const decryptedPrivateKey = await decryptKey({ privateKey, passphrase: '123' });
-        const { stream: inputStream, data: inputData }  = generateStreamOfData();
+        const { stream: inputStream, data: inputData } = generateStreamOfData();
         const sessionKey = {
             data: hexStringToArray('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
@@ -300,7 +300,7 @@ describe('message encryption and decryption', () => {
     it('it can encrypt and decrypt a binary streamed message with in-message signature', async () => {
         const privateKey = await readPrivateKey({ armoredKey: testPrivateKeyLegacy });
         const decryptedPrivateKey = await decryptKey({ privateKey, passphrase: '123' });
-        const { stream: inputStream, data: inputData }  = generateStreamOfData();
+        const { stream: inputStream, data: inputData } = generateStreamOfData();
         const sessionKey = {
             data: hexStringToArray('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
             algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
@@ -322,4 +322,4 @@ describe('message encryption and decryption', () => {
         expect(await readToEnd(decrypted).then(arrayToBinaryString)).to.equal(inputData);
         expect(await verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
-})
+});

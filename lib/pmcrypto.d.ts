@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/indent */
 import {
     DecryptOptions,
     DecryptMessageResult as openpgp_DecryptMessageResult,

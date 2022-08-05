@@ -7,7 +7,7 @@ export enum VERIFICATION_STATUS {
 export enum SIGNATURE_TYPES {
     BINARY = 0,
     CANONICAL_TEXT = 1
-};
+}
 
 export const MAX_ENC_HEADER_LENGTH = 1024;
 

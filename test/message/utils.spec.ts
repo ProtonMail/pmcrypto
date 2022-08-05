@@ -64,6 +64,6 @@ sJFJxllC0j4wHCOS9uiSYsZ/pWCqxX/3sFh4VBFOpr0HAA==
         expect(pkesk.packets[0]).to.be.instanceOf(PublicKeyEncryptedSessionKeyPacket);
         const aeadData = await readMessage({ binaryMessage: packets.encrypted[0] });
         expect(aeadData.packets[0]).to.be.instanceOf(AEADEncryptedDataPacket);
-    })
+    });
 
-})
+});
