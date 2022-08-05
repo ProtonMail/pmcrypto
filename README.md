@@ -157,8 +157,8 @@ const sessionKey = await decryptSessionKey({
 </details>
 
 ## Testing
-Headless Chrome is used for the tests.
-With Chrome installed, running `npm test` should work out of the box.
+Headless Chrome, Firefox and Webkit are used for the tests (if installed).
+With any of the browsers installed, running `npm test` should work out of the box.
 To use a different Chromium-based browser, set the environment variable `CHROME_BIN` to point to the corresponding executable.
 
 
