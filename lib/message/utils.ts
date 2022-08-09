@@ -9,20 +9,6 @@ import {
 } from '../openpgp';
 import type { OpenPGPMessage } from '../pmcrypto';
 
-/**
- * Remove trailing spaces, carriage returns and tabs from each line (separated by \n characters)
- */
-export const removeTrailingSpaces = (text: string) => {
-    return text
-        .split('\n')
-        .map((line) => {
-            let i = line.length - 1;
-            for (; i >= 0 && (line[i] === ' ' || line[i] === '\t' || line[i] === '\r'); i--);
-            return line.substring(0, i + 1);
-        })
-        .join('\n');
-};
-
 export async function splitMessage(message: OpenPGPMessage) {
     const keyFilter = (packet: AnyPacket) => {
         const packetTag = (packet.constructor as typeof OpenPGPPacket).tag;

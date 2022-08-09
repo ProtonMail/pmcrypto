@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 // @ts-ignore missing isStream definitions
 import { isStream, readToEnd } from '@openpgp/web-stream-tools';
-import { concatArrays, decodeBase64, encodeBase64, hexStringToArray, stringToUtf8Array, utf8ArrayToString } from '../lib/utils';
+import { concatArrays, decodeBase64, encodeBase64, hexStringToArray, removeTrailingSpaces, stringToUtf8Array, utf8ArrayToString } from '../lib/utils';
 import type { Data } from '../lib';
 
 const streamFromChunks = <T extends Data>(chunks: T[]) => {
@@ -79,5 +79,11 @@ describe('utils', () => {
 
     it('decodeBase64 - it can correctly decode base 64', async () => {
         expect(decodeBase64('Zm9v')).to.equal('foo');
+    });
+
+    it('removeTrailingSpaces - it can correctly normalise the text', async () => {
+        const data = 'BEGIN:VCARD\r\nVERSION:4.0\r\nFN;PREF=1:   \r\nEND:VCARD';
+        const expected = 'BEGIN:VCARD\nVERSION:4.0\nFN;PREF=1:\nEND:VCARD';
+        expect(removeTrailingSpaces(data)).to.equal(expected);
     });
 });

@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 import { PublicKeyEncryptedSessionKeyPacket, AEADEncryptedDataPacket } from '../../lib/openpgp';
 import { stripArmor, splitMessage, armorBytes, readMessage } from '../../lib';
-import { removeTrailingSpaces } from '../../lib/message/utils';
 
 describe('message utils', () => {
     it('stripArmor - it can correctly dearmor a message', async () => {
@@ -65,11 +64,5 @@ sJFJxllC0j4wHCOS9uiSYsZ/pWCqxX/3sFh4VBFOpr0HAA==
         expect(pkesk.packets[0]).to.be.instanceOf(PublicKeyEncryptedSessionKeyPacket);
         const aeadData = await readMessage({ binaryMessage: packets.encrypted[0] });
         expect(aeadData.packets[0]).to.be.instanceOf(AEADEncryptedDataPacket);
-    });
-
-    it('removeTrailingSpaces - it can correctly normalise the text', async () => {
-        const data = 'BEGIN:VCARD\r\nVERSION:4.0\r\nFN;PREF=1:   \r\nEND:VCARD';
-        const expected = 'BEGIN:VCARD\nVERSION:4.0\nFN;PREF=1:\nEND:VCARD';
-        expect(removeTrailingSpaces(data)).to.equal(expected);
     });
 });
