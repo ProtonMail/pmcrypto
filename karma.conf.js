@@ -5,9 +5,17 @@ module.exports = function(config) {
 
         // frameworks to use
         // available frameworks: https://www.npmjs.com/search?q=keywords:karma-adapter
-        frameworks: ['mocha', 'webpack'],
+        frameworks: ['mocha', 'webpack', 'detectBrowsers'],
 
-        plugins: ['karma-mocha', 'karma-chrome-launcher', 'karma-webpack', 'karma-mocha-reporter'],
+        plugins: [
+            'karma-mocha',
+            'karma-webpack',
+            'karma-mocha-reporter',
+            'karma-detect-browsers', // skip tests on browsers that are not installed
+            'karma-chrome-launcher',
+            'karma-firefox-launcher',
+            'karma-webkit-launcher'
+        ],
 
         // list of files / patterns to load in the browser
         files: [{ pattern: 'test/**/*.*', watched: false }],
@@ -50,9 +58,17 @@ module.exports = function(config) {
         // enable / disable watching file and executing tests whenever any file changes
         autoWatch: false,
 
-        // start these browsers
-        // available browser launchers: https://www.npmjs.com/search?q=keywords:karma-launcher
-        browsers: ['ChromeHeadless'],
+        detectBrowsers: {
+            usePhantomJS: false,
+            // use headless mode, for browsers that support it, default is false
+            preferHeadless: true,
+
+            // post processing of browsers list
+            postDetection: (availableBrowsers) => {
+                const testableBrowsers = new Set(['ChromeHeadless', 'FirefoxHeadless', 'WebkitHeadless']);
+                return availableBrowsers.filter((browser) => testableBrowsers.has(browser));
+            }
+        },
 
         // Continuous Integration mode
         // if true, Karma captures browsers, runs the tests and exits
@@ -67,6 +83,6 @@ module.exports = function(config) {
                 // timeout for mocha tests, default is 2 seconds. Some streaming tests can take longer.
                 timeout : 12000
             }
-          }
+        }
     });
 };
