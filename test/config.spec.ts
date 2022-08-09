@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { config, readPrivateKey } from '../../lib/openpgp';
-import { decryptMessage, readMessage } from '../../lib';
+import { config } from '../lib/openpgp';
+import { decryptMessage, readMessage, VERIFICATION_STATUS, verifyMessage, readKey, readSignature, readPrivateKey } from '../lib';
 
 const rsaSignOnly = `-----BEGIN PGP PRIVATE KEY BLOCK-----
 
@@ -37,12 +37,27 @@ BZou86lozq7ISvRg1RSIWZ0ZRA==
 -----END PGP PRIVATE KEY BLOCK-----
 `;
 
+const oldReformattedKey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEYWmlshYJKwYBBAHaRw8BAQdAAxpFNPiHxz9q4HBzWqveHdP/knjwlgv8
+pEQCMHDpIZIAAP9WFlwHDuVlvNb7CyoikwmG01nmdMDe9wXQRWA5vasWKA+g
+zSV0ZXN0QHJlZm9ybWF0LmNvbSA8dGVzdEByZWZvcm1hdC5jb20+wowEEBYK
+AB0FAmFppjQECwkHCAMVCAoEFgACAQIZAQIbAwIeAQAhCRAOZNKOg+/XQxYh
+BGqP/hIaYCSJsZ4TrQ5k0o6D79dD+c8BAIXdh2hrC+l49WPN/KZF+ZzvWCWa
+W5n+ozbp/sOGXvODAP4oGEj0RUDDA33b6x7fhQysBZxdrrnHxP9AXEdOTQC3
+CsddBGFppbISCisGAQQBl1UBBQEBB0Cjy8Z2K7rl6J6AK1lCfVozmyLE0Gbv
+1cspce6oCF6oCwMBCAcAAP9OL5V80EaYm2ic19aM+NtTj4UNOqKqIt10AaH9
+SlcdMBDgwngEGBYIAAkFAmFppjQCGwwAIQkQDmTSjoPv10MWIQRqj/4SGmAk
+ibGeE60OZNKOg+/XQx/EAQCM0UYrObp60YbOCxu07Dm6XjCVylbOcsaxCnE7
+2eMU4AD+OkgajZgbqSIdAR1ud76FW+W+3xlDi/SMFdU7D49SbQI=
+=ASQu
+-----END PGP PRIVATE KEY BLOCK-----
+`;
+
 describe('openpgp configuration', () => {
-    it('it sets the correct configuration', async () => {
-        expect(config.s2kIterationCountByte).to.equal(96);
+    it('it sets the correct configuration for `allowInsecureDecryptionWithSigningKeys`', async () => {
         expect(config.allowInsecureDecryptionWithSigningKeys).to.be.true;
 
-        // ensure that `allowInsecureDecryptionWithSigningKeys` is applied
         const encryptedRsaSignOnly = `-----BEGIN PGP MESSAGE-----
     
 wcBMAwr9x5ZY6oZmAQf+Lxghg4keIFpEq8a65gFkIfW+chHTDPlfI8xnx6U9
@@ -62,5 +77,28 @@ EBeLgD8oZHVsH3NLjPakPw==
             decryptionKeys: key
         });
         expect(data).to.equal('hi');
+    });
+
+    it('it sets the correct configuration for `allowInsecureVerificationWithReformattedKeys`', async () => {
+        expect(config.allowInsecureVerificationWithReformattedKeys).to.be.true;
+
+        const armoredSignature = `-----BEGIN PGP SIGNATURE-----
+
+wnUEARYKAAYFAmFppbIAIQkQDmTSjoPv10MWIQRqj/4SGmAkibGeE60OZNKO
+g+/XQw1sAQClJ0Vl4z9x01udtYg/w54CueJmEt33kM4Q6JIZGIzt1AD9GZbG
+EoSmib14fiYL0eQTz4I1XJ9OCVVZcaoFZzKnlQc=
+=+BzR
+-----END PGP SIGNATURE-----
+`;
+        // the key was reformatted and the message signature date preceeds the key self-signature creation date
+        const key = await readKey({ armoredKey: oldReformattedKey });
+
+        // since the key is valid at the current time, the message should be verifiable if the `config` allows it
+        const { verified } = await verifyMessage({
+            textData: 'plaintext',
+            signature: await readSignature({ armoredSignature }),
+            verificationKeys: key
+        });
+        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 });
