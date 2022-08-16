@@ -11,13 +11,12 @@ module.exports = function(config) {
 
         // frameworks to use
         // available frameworks: https://www.npmjs.com/search?q=keywords:karma-adapter
-        frameworks: ['mocha', 'webpack', 'detectBrowsers'],
+        frameworks: ['mocha', 'webpack'],
 
         plugins: [
             'karma-mocha',
             'karma-webpack',
             'karma-mocha-reporter',
-            'karma-detect-browsers', // skip tests on browsers that are not installed
             'karma-chrome-launcher',
             'karma-firefox-launcher',
             'karma-webkit-launcher'
@@ -64,17 +63,7 @@ module.exports = function(config) {
         // enable / disable watching file and executing tests whenever any file changes
         autoWatch: false,
 
-        detectBrowsers: {
-            usePhantomJS: false,
-            // use headless mode, for browsers that support it, default is false
-            preferHeadless: true,
-
-            // post processing of browsers list
-            postDetection: (availableBrowsers) => {
-                const testableBrowsers = new Set(['ChromeHeadless', 'FirefoxHeadless', 'WebkitHeadless']);
-                return availableBrowsers.filter((browser) => testableBrowsers.has(browser));
-            }
-        },
+        browsers: ['ChromeHeadless', 'FirefoxHeadless', 'WebkitHeadless'],
 
         // Continuous Integration mode
         // if true, Karma captures browsers, runs the tests and exits
