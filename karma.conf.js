@@ -1,3 +1,9 @@
+const { firefox, chromium, webkit } = require('playwright');
+
+process.env.CHROME_BIN = chromium.executablePath();
+process.env.FIREFOX_BIN = firefox.executablePath();
+process.env.WEBKIT_HEADLESS_BIN = webkit.executablePath();
+
 module.exports = function(config) {
     config.set({
         // base path that will be used to resolve all patterns (eg. files, exclude)
@@ -81,8 +87,10 @@ module.exports = function(config) {
         client: {
             mocha: {
                 // timeout for mocha tests, default is 2 seconds. Some streaming tests can take longer.
-                timeout : 12000
+                timeout: 20000
             }
-        }
+        },
+
+        browserDisconnectTimeout: 30000
     });
 };
