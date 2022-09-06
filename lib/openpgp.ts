@@ -18,6 +18,7 @@ export const setConfig = () => {
     // these minimum key settings apply to already imported (private) keys as well, so we cannot be too strict.
     // to enforce stricter checks e.g. on new key imports, `checkKeyStrength` should be called.
     config.rejectPublicKeyAlgorithms = new Set();
+    config.rejectCurves = new Set();
     config.minRSABits = 1023;
 };
 
