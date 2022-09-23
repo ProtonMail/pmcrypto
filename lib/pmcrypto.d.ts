@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/indent */
 import {
+    MaybeArray,
     DecryptOptions,
     DecryptMessageResult as openpgp_DecryptMessageResult,
     Message,
@@ -7,8 +8,6 @@ import {
     Signature,
     SignOptions,
     EncryptOptions,
-    VerifyOptions,
-    VerifyMessageResult as openpgp_VerifyMessageResult,
     reformatKey,
     generateKey,
     generateSessionKey as openpgp_generateSessionKey,
@@ -20,7 +19,6 @@ import {
     decryptKey,
     encryptKey,
     WebStream,
-    CleartextMessage,
     KeyOptions as GenerateKeyOptions,
     UserID,
     readMessage, readSignature, readCleartextMessage,
@@ -29,8 +27,6 @@ import {
 } from 'openpgp/lightweight';
 
 import { VERIFICATION_STATUS, SIGNATURE_TYPES } from './constants';
-
-type MaybeArray<T> = T | T[];
 
 export function init(): void;
 
@@ -235,69 +231,10 @@ export function SHA512(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeMD5(arg: Uint8Array): Promise<Uint8Array>;
 export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
 
-// Streaming not supported when verifying detached signatures
-export interface VerifyOptionsPmcrypto<T extends Data> extends Omit<VerifyOptions, 'message'> {
-    textData?: T extends string ? T : never;
-    binaryData?: T extends Uint8Array ? T : never;
-    stripTrailingSpaces?: T extends string ? boolean : never;
-}
+export { verifyMessage, verifyCleartextMessage } from './message/verify';
+export type { VerifyCleartextOptionsPmcrypto, VerifyMessageResult, VerifyOptionsPmcrypto } from './message/verify';
 
-export interface VerifyMessageResult<DataType extends openpgp_VerifyMessageResult['data'] = Data> {
-    data: DataType;
-    verified: VERIFICATION_STATUS;
-    signatures: OpenPGPSignature[];
-    signatureTimestamp: Date | null;
-    errors?: Error[];
-}
-export function verifyMessage<DataType extends Data, FormatType extends VerifyOptions['format'] = 'utf8'>(
-    options: VerifyOptionsPmcrypto<DataType> & { format?: FormatType }
-): Promise<
-    FormatType extends 'utf8' ?
-        VerifyMessageResult<string> :
-    FormatType extends 'binary' ?
-        VerifyMessageResult<Uint8Array> :
-    never
->;
-
-export interface VerifyCleartextOptionsPmcrypto extends Omit<VerifyOptions, 'message' | 'signature' | 'format'> {
-    cleartextMessage: CleartextMessage
-}
-// Cleartext message data is always of utf8 format
-export function verifyCleartextMessage(
-    options: VerifyCleartextOptionsPmcrypto
-): Promise<VerifyMessageResult<string>>;
-
-export interface ProcessMIMEOptions {
-    data: string,
-    verificationKeys?: MaybeArray<PublicKey>,
-    date?: Date,
-    headerFilename?: string;
-    sender?: string;
-}
-
-// TODO? this definition is copied as-is from the webapps; some fields declared as optional might actually always be present
-export interface MIMEAttachment {
-    checksum?: string;
-    content: Uint8Array;
-    contentDisposition?: string;
-    contentId?: string;
-    contentType?: string;
-    fileName?: string;
-    generatedFileName?: string;
-    length?: number;
-    transferEncoding?: string;
-}
-
-export interface ProcessMIMEResult {
-    body: string,
-    attachments: MIMEAttachment[],
-    verified: VERIFICATION_STATUS,
-    encryptedSubject: string,
-    mimetype?: 'text/html' | 'text/plain',
-    signatures: Signature[]
-}
-
-export function processMIME(options: ProcessMIMEOptions): Promise<ProcessMIMEResult>;
+export { MIMEAttachment, ProcessMIMEOptions, default as processMIME, ProcessMIMEResult } from './message/processMIME';
 
 export { serverTime, updateServerTime } from './serverTime';
 

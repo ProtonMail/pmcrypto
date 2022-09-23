@@ -195,3 +195,29 @@ WTyjgksKkPV68HhW1CIKZ4JIMe726uldjP6tgw8=
 -----END PGP SIGNATURE-----
 
 --------------w7atwMAiUaHQsKDKV5d0o0kr--`;
+
+export const multipartMessageWithUnnamedAttachments = `From: Some One <someone@example.com>
+To: "Someone Else" <someone-else@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="XXXXboundary text"
+
+This is a multipart message in MIME format.
+
+--XXXXboundary text
+Content-Type: text/plain
+
+this is the body text
+
+--XXXXboundary text
+Content-Type: text/plain;
+Content-Disposition: attachment;
+
+this is the first attachment text
+
+--XXXXboundary text
+Content-Type: text/plain;
+Content-Disposition: attachment;
+
+this is the second attachment text
+
+--XXXXboundary text--`;

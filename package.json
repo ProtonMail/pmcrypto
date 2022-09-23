@@ -12,7 +12,7 @@
         "test": "karma start karma.conf.js",
         "lint": "eslint lib test --quiet",
         "postversion": "git push && git push --tags",
-        "test-type-definitions": "tsc lib/pmcrypto.d.ts"
+        "test-type-definitions": "tsc -p tsconfig.test.json"
     },
     "repository": {
         "type": "git",
@@ -28,6 +28,7 @@
         "@openpgp/asmcrypto.js": "^2.3.3-0",
         "@openpgp/tweetnacl": "^1.0.3",
         "@openpgp/web-stream-tools": "^0.0.12",
+        "jsmimeparser": "npm:@protontech/jsmimeparser@^1.0.4",
         "openpgp": "npm:@protontech/openpgp@~5.4.0"
     },
     "devDependencies": {
