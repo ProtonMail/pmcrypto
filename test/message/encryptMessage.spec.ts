@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 // @ts-ignore missing web-stream-tools types
-import { readToEnd, ReadableStream, WritableStream, toStream, WebStream } from '@openpgp/web-stream-tools';
+import { readToEnd, toStream, WebStream } from '@openpgp/web-stream-tools';
+
 import { config, CompressedDataPacket, enums } from '../../lib/openpgp';
 
 import { decryptKey, readPrivateKey, verifyMessage, encryptMessage, decryptMessage, generateSessionKey, readSignature, readMessage } from '../../lib';
@@ -9,7 +10,7 @@ import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
 const generateStreamOfData = (): { stream: WebStream<string>, data: string } => ({
-    stream: new ReadableStream({ pull: (controller: WritableStream) => { for (let i = 0; i < 10000; i++) { controller.enqueue('string'); } controller.close(); } }),
+    stream: new ReadableStream({ pull: (controller) => { for (let i = 0; i < 10000; i++) { controller.enqueue('string'); } controller.close(); } }),
     data: 'string'.repeat(10000)
 });
 
