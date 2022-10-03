@@ -96,18 +96,12 @@ export const hexStringToArray = (hex: string) => {
  * @returns Hexadecimal representation of the array
  */
 export const arrayToHexString = (bytes: Uint8Array) => {
-    const r = [];
-    const e = bytes.length;
-    let c = 0;
-    let h;
-    while (c < e) {
-        h = bytes[c++].toString(16);
-        while (h.length < 2) {
-            h = '0' + h;
-        }
-        r.push('' + h);
+    const res = [];
+    for (let c = 0; c < bytes.length; c++) {
+        const hex = bytes[c].toString(16);
+        res.push(hex.length < 2 ? '0' + hex : hex);
     }
-    return r.join('');
+    return res.join('');
 };
 
 /**
