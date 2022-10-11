@@ -8,6 +8,10 @@
         "buffer": false,
         "stream": false
     },
+    "files": [
+        "lib/",
+        "tsconfig.json"
+    ],
     "scripts": {
         "test": "karma start karma.conf.js",
         "lint": "eslint lib test --quiet",
