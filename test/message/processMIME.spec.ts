@@ -12,7 +12,8 @@ import {
     multiPartMessageWithSpecialCharacter,
     multipartMessageWithAttachment,
     multipartMessageWithEncryptedSubject,
-    key
+    key,
+    multipartMessageWithUnnamedAttachments
 } from './processMIME.data';
 
 describe('processMIME', () => {
@@ -78,12 +79,11 @@ describe('processMIME', () => {
         expect(attachments.length).to.equal(1);
         const [attachment] = attachments;
         expect(attachment.fileName).to.equal('test.txt');
-        expect(attachment.generatedFileName).to.equal('test.txt');
         expect(attachment.contentType).to.equal('text/plain');
         expect(attachment.contentDisposition).to.equal('attachment');
-        expect(attachment.checksum).to.equal('94ee2b41f2016f2ec79a7b3a2faf920e');
+        expect(attachment.contentId.indexOf('pmcrypto')).to.not.equal(-1);
         expect(attachment.content).to.be.instanceOf(Uint8Array);
-        expect(utf8ArrayToString(attachment.content)).to.equal('this is the attachment text\r\n');
+        expect(utf8ArrayToString(attachment.content)).to.equal('this is the attachment text\n');
     });
 
     it('it can parse message with encrypted subject', async () => {
@@ -95,5 +95,15 @@ describe('processMIME', () => {
         expect(signatures.length).to.equal(1);
         expect(encryptedSubject).to.equal('Encrypted subject');
         expect(body).to.equal('hello');
+    });
+
+    it('it generates different filenames for multiple attachments with empty names', async () => {
+        const { attachments } = await processMIME({
+            data: multipartMessageWithUnnamedAttachments
+        });
+        expect(attachments).to.have.length(2);
+        expect(attachments[0].fileName).to.equal('attachment.txt');
+        expect(attachments[1].fileName).to.equal('attachment.txt (1)');
+        expect(attachments[0].contentId).to.not.equal(attachments[1].contentId);
     });
 });
