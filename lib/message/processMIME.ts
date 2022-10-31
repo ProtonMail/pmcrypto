@@ -74,20 +74,12 @@ const verifySignature = async (
  * inherit the verified status from the message verified status, as they are included in the body. For more
  * information see: https://tools.ietf.org/html/rfc2045, https://tools.ietf.org/html/rfc2046 and
  * https://tools.ietf.org/html/rfc2387.
- * @param {Object} options
- * @param {String} [options.headerFilename] - The file name a memoryhole header should have
- * @param {String} [options.sender] - the address of the sender of this message
- * @param {String} [content] - mail content to parse
- * @param {VERIFICATION_STATUS} [verified]
- * @param {Signature[]} [signatures]
- * @returns {Promise<{
- *      body: String,
- *      attachments: Object[],
- *      verified: VERIFICATION_STATUS,
- *      encryptedSubject: String,
- *      mimetype: 'text/html' | 'text/plain' | undefined,
- *      signatures: Signature[]
- * }>}
+ * @param options
+ * @param options.headerFilename - The file name a memoryhole header should have
+ * @param options.sender - the address of the sender of this message
+ * @param content - mail content to parse
+ * @param verified
+ * @param signatures
  */
 const parse = async (
     { headerFilename = 'Encrypted Headers.txt', sender = '' },
@@ -196,25 +188,17 @@ export interface ProcessMIMEResult {
     attachments: MIMEAttachment[],
     verified: VERIFICATION_STATUS,
     encryptedSubject: string,
-    mimeType?: 'text/html' | 'text/plain', // TODO rename to mimeType
+    mimeType?: 'text/html' | 'text/plain',
     signatures: OpenPGPSignature[]
 }
 /**
  * Process the mime structure in the right attachment.
- * @param {Object} options - options for signature verification and MIME processing
- * @param {String} options.data - MIME data to process
- * @param {PublicKey[]} [options.verificationKeys]
- * @param {Date} [options.date] - to use for signature verification, instead of the server time
- * @param {String} [options.headerFilename] - the file name a memoryhole header should have
- * @param {String} [options.sender] - the address of the sender of this message
- * @return {Promise<{
- *      body: String,
- *      attachments: Object[],
- *      verified: VERIFICATION_STATUS,
- *      encryptedSubject: String,
- *      mimetype: 'text/html' | 'text/plain' | undefined,
- *      signatures: Signature[]
- * }>}
+ * @param options - options for signature verification and MIME processing
+ * @param options.data - MIME data to process
+ * @param options.verificationKeys
+ * @param options.date - to use for signature verification, instead of the server time
+ * @param options.headerFilename - the file name a memoryhole header should have
+ * @param options.sender - the address of the sender of this message
  */
 export default async function processMIME({ data, ...options }: ProcessMIMEOptions): Promise<ProcessMIMEResult> {
     const { subdata, verified, signatures } = await verifySignature(options, data);
