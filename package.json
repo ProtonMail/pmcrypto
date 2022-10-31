@@ -33,7 +33,7 @@
         "@openpgp/tweetnacl": "^1.0.3",
         "@openpgp/web-stream-tools": "^0.0.12",
         "jsmimeparser": "npm:@protontech/jsmimeparser@^1.0.4",
-        "openpgp": "npm:@protontech/openpgp@~5.4.0"
+        "openpgp": "npm:@protontech/openpgp@~5.5.0"
     },
     "devDependencies": {
         "@types/chai": "^4.3.0",
