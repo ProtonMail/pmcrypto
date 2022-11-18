@@ -10,7 +10,7 @@ import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
 const generateStreamOfData = (): { stream: WebStream<string>, data: string } => ({
-    stream: new ReadableStream({ pull: (controller) => { for (let i = 0; i < 10000; i++) { controller.enqueue('string'); } controller.close(); } }),
+    stream: new ReadableStream<string>({ pull: (controller) => { for (let i = 0; i < 10000; i++) { controller.enqueue('string'); } controller.close(); } }),
     data: 'string'.repeat(10000)
 });
 

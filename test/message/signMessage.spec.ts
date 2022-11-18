@@ -103,7 +103,7 @@ describe('message signing', () => {
     });
 
     it('signMessage/verifyMessage - it verifies a streamed message it has signed', async () => {
-        const inputStream: WebStream<string> = new ReadableStream({
+        const inputStream: WebStream<string> = new ReadableStream<string>({
             pull: (controller) => { for (let i = 0; i < 10000; i++) { controller.enqueue('string'); } controller.close(); }
         });
         const inputData = 'string'.repeat(10000);
