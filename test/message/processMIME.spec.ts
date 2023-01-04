@@ -13,7 +13,8 @@ import {
     multipartMessageWithAttachment,
     multipartMessageWithEncryptedSubject,
     key,
-    multipartMessageWithUnnamedAttachments
+    multipartMessageWithUnnamedAttachments,
+    multipartMessageWithEncryptedSubjectUTF8
 } from './processMIME.data';
 
 describe('processMIME', () => {
@@ -105,5 +106,14 @@ describe('processMIME', () => {
         expect(attachments[0].fileName).to.equal('attachment.txt');
         expect(attachments[1].fileName).to.equal('attachment.txt (1)');
         expect(attachments[0].contentId).to.not.equal(attachments[1].contentId);
+    });
+
+    it('it can parse message with encrypted subject containing non-ASCII chars', async () => {
+        const { body, encryptedSubject } = await processMIME({
+            data: multipartMessageWithEncryptedSubjectUTF8,
+            verificationKeys: []
+        });
+        expect(encryptedSubject).to.equal('subject with emojis 😃😇');
+        expect(body).to.equal('test utf8 in encrypted subject\n');
     });
 });

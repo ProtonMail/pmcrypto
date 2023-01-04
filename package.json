@@ -32,7 +32,7 @@
         "@openpgp/asmcrypto.js": "^2.3.3-0",
         "@openpgp/tweetnacl": "^1.0.3",
         "@openpgp/web-stream-tools": "^0.0.13",
-        "jsmimeparser": "npm:@protontech/jsmimeparser@^1.0.4",
+        "jsmimeparser": "npm:@protontech/jsmimeparser@^2.0.1",
         "openpgp": "npm:@protontech/openpgp@~5.5.0"
     },
     "devDependencies": {
