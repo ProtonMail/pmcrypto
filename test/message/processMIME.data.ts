@@ -221,3 +221,56 @@ Content-Disposition: attachment;
 this is the second attachment text
 
 --XXXXboundary text--`;
+
+// NB: this message signature is invalid and not verifiable using `key`.
+export const multipartMessageWithEncryptedSubjectUTF8 = `Content-Type: multipart/signed; micalg=pgp-sha256;
+ protocol="application/pgp-signature";
+ boundary="------------3mBgKY4DhzDe0cOovVcT4QQv"
+
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--------------3mBgKY4DhzDe0cOovVcT4QQv
+Content-Type: multipart/mixed; boundary="------------7VgK7B2dk0pUYjHBY0Zi2Fda";
+ protected-headers="v1"
+Subject: =?UTF-8?B?c3ViamVjdCB3aXRoIGVtb2ppcyDwn5iD8J+Yhw==?=
+From: Sender <sender@example.com>
+To: receiver@example.com
+Message-ID: <7daafa18-8595-8065-3eba-b08c07becf36@example.com>
+
+--------------7VgK7B2dk0pUYjHBY0Zi2Fda
+Content-Type: multipart/mixed; boundary="------------D5jH01SvFZAwYShsjQamYW8w"
+
+--------------D5jH01SvFZAwYShsjQamYW8w
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: base64
+
+dGVzdCB1dGY4IGluIGVuY3J5cHRlZCBzdWJqZWN0DQo=
+--------------D5jH01SvFZAwYShsjQamYW8w
+Content-Type: application/pgp-keys; name="OpenPGP_0xabc.asc"
+Content-Disposition: attachment; filename="OpenPGP_0xabc.asc"
+Content-Description: OpenPGP public key
+Content-Transfer-Encoding: quoted-printable
+
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+...
+-----END PGP PUBLIC KEY BLOCK-----
+
+--------------D5jH01SvFZAwYShsjQamYW8w--
+
+--------------7VgK7B2dk0pUYjHBY0Zi2Fda--
+
+--------------3mBgKY4DhzDe0cOovVcT4QQv
+Content-Type: application/pgp-signature; name="OpenPGP_signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="OpenPGP_signature"
+
+-----BEGIN PGP SIGNATURE-----
+
+wnUEARYKAAYFAmIwlfMAIQkQdqGsuYvE1jgWIQRGvajOG9a8ZbdysiN2oay5
+i8TWOBX5AP0V5H79/eiraXKKBCvpqwcEzrv1DHfhvrjTHk9L6PIadgD/fXdv
+WTyjgksKkPV68HhW1CIKZ4JIMe726uldjP6tgw8=
+=nHao
+-----END PGP SIGNATURE-----
+
+--------------3mBgKY4DhzDe0cOovVcT4QQv--
+`;

@@ -127,13 +127,7 @@ const parse = async (
         if (!attachmentSubject || !from) {
             continue;
         }
-        const fromEmail = from
-            .split('<')
-            .pop()
-            ?.replace('>', '')
-            .trim()
-            .toLowerCase() || '';
-        if (fromEmail !== sender.toLowerCase()) {
+        if (from.email.toLowerCase() !== sender.toLowerCase()) {
             continue;
         }
         // found the encrypted subject:
