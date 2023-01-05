@@ -11,6 +11,8 @@ export enum SIGNATURE_TYPES {
 
 export const MAX_ENC_HEADER_LENGTH = 1024;
 
-// Offset needed for key generation to ensure key (incl. certification signatures) validity across different servers,
-// which might have slightly mismatching server time
+/**
+ * Offset needed for key generation to ensure key (incl. certification signatures) validity
+ * across different servers, which might have slightly mismatching server time
+ */
 export const DEFAULT_OFFSET = -60000;
