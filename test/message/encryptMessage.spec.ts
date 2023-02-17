@@ -178,9 +178,13 @@ describe('message encryption and decryption', () => {
             signingKeys: [decryptedPrivateKey],
             detached: true
         });
+
+        const parsedEncryptedSignature = await readMessage({ armoredMessage: encryptedSignature });
+        expect(parsedEncryptedSignature.getSigningKeyIDs()).to.have.length(0); // the encrypted message containing the signature should not be signed
+
         const { data: decrypted, verified } = await decryptMessage({
             message: await readMessage({ armoredMessage: encrypted }),
-            encryptedSignature: await readMessage({ armoredMessage: encryptedSignature }),
+            encryptedSignature: parsedEncryptedSignature,
             verificationKeys: [decryptedPrivateKey.toPublic()],
             decryptionKeys: [decryptedPrivateKey]
         });
