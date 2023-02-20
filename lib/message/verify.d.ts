@@ -7,12 +7,14 @@ import type {
     Signature as OpenPGPSignature
 } from 'openpgp/lightweight';
 import { VERIFICATION_STATUS } from '../constants';
+import { ContextVerificationOptions } from './context';
 
 // Streaming not supported when verifying detached signatures
 export interface VerifyOptionsPmcrypto<T extends Data> extends Omit<VerifyOptions, 'message'> {
     textData?: T extends string ? T : never;
     binaryData?: T extends Uint8Array ? T : never;
     stripTrailingSpaces?: T extends string ? boolean : never;
+    context?: ContextVerificationOptions;
 }
 
 export interface VerifyMessageResult<DataType extends openpgp_VerifyMessageResult['data'] = Data> {

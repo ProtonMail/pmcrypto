@@ -27,10 +27,12 @@ import {
 } from 'openpgp/lightweight';
 
 import { VERIFICATION_STATUS, SIGNATURE_TYPES } from './constants';
+import type { ContextSigningOptions, ContextVerificationOptions } from './message/context';
 
 export function init(): void;
 
 export { VERIFICATION_STATUS, SIGNATURE_TYPES, PartialConfig };
+export { ContextError } from './message/context';
 
 export type OpenPGPKey = Key;
 export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing streaming support
@@ -92,6 +94,7 @@ export function decryptSessionKey(options: DecryptSessionKeyOptionsPmcrypto): Pr
 export interface DecryptOptionsPmcrypto<T extends MaybeStream<Data>> extends DecryptOptions {
     message: Message<T>;
     encryptedSignature?: Message<MaybeStream<Data>>;
+    context?: ContextVerificationOptions
 }
 
 export interface DecryptResultPmcrypto<DataType extends openpgp_DecryptMessageResult['data'] = MaybeStream<Data>> {
@@ -139,11 +142,12 @@ export type MaybeStream<T extends Uint8Array | string> = T | WebStream<T>;
 export type Data = string | Uint8Array;
 export { WebStream };
 
-export interface EncryptOptionsPmcrypto<T extends MaybeStream<Data>> extends Omit<EncryptOptions, 'message'> {
+export interface EncryptOptionsPmcrypto<T extends MaybeStream<Data>> extends Omit<EncryptOptions, 'message' | 'signatureNotations'> {
     textData?: T extends MaybeStream<string> ? T : never;
     binaryData?: T extends MaybeStream<Uint8Array> ? T : never;
     stripTrailingSpaces?: T extends MaybeStream<string> ? boolean : never;
     detached?: boolean;
+    context?: ContextSigningOptions;
 }
 
 // No reuse from OpenPGP's equivalent
@@ -193,10 +197,11 @@ export function getMatchingKey(
     publicKeys: OpenPGPKey[]
 ): OpenPGPKey | undefined;
 
-export interface SignOptionsPmcrypto<T extends MaybeStream<Data>> extends Omit<SignOptions, 'message'> {
+export interface SignOptionsPmcrypto<T extends MaybeStream<Data>> extends Omit<SignOptions, 'message' | 'signatureNotations'> {
     textData?: T extends MaybeStream<string> ? T : never;
     binaryData?: T extends MaybeStream<Uint8Array> ? T : never;
     stripTrailingSpaces?: T extends MaybeStream<string> ? boolean : never;
+    context?: ContextSigningOptions;
 }
 
 export function signMessage<
@@ -230,6 +235,7 @@ export { SHA256, SHA512, unsafeMD5, unsafeSHA1 } from './crypto/hash';
 
 export { verifyMessage, verifyCleartextMessage } from './message/verify';
 export type { VerifyCleartextOptionsPmcrypto, VerifyMessageResult, VerifyOptionsPmcrypto } from './message/verify';
+export type { ContextSigningOptions, ContextVerificationOptions };
 
 export { MIMEAttachment, ProcessMIMEOptions, default as processMIME, ProcessMIMEResult } from './message/processMIME';
 

@@ -94,3 +94,10 @@ export const stripArmor = async (input: string) => {
     const bytes = await readToEnd(data);
     return bytes;
 };
+
+/**
+ * Normalise date to compare it to other OpenPGP timestamps
+ * @param time - date to normalise
+ * @returns date with reduced precision (seconds)
+ */
+export const normalizeDate = (time: Date) => new Date(Math.floor(+time / 1000) * 1000);
