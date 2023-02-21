@@ -1,7 +1,7 @@
 import { config } from 'openpgp/lightweight';
 
 export const setConfig = () => {
-    config.s2kIterationCountByte = 96;
+    config.s2kIterationCountByte = 255;
     /**
      * This option is needed because we have some old messages from 2015-2016
      * that were encrypted using non-encryption RSA keys, due to an openpgpjs bug.
