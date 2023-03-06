@@ -226,10 +226,7 @@ export interface AlgorithmInfo {
     curve?: string; // if algorithm == 'ecdh' | 'eddsa' | 'ecdsa'
 }
 
-export function SHA256(arg: Uint8Array): Promise<Uint8Array>;
-export function SHA512(arg: Uint8Array): Promise<Uint8Array>;
-export function unsafeMD5(arg: Uint8Array): Promise<Uint8Array>;
-export function unsafeSHA1(arg: Uint8Array): Promise<Uint8Array>;
+export { SHA256, SHA512, unsafeMD5, unsafeSHA1 } from './crypto/hash';
 
 export { verifyMessage, verifyCleartextMessage } from './message/verify';
 export type { VerifyCleartextOptionsPmcrypto, VerifyMessageResult, VerifyOptionsPmcrypto } from './message/verify';

@@ -17,6 +17,28 @@ describe('hash functions', () => {
         expect(testHash).to.equal('a9993e364706816aba3e25717850c26c9cd0d89d');
     });
 
+    it('sha1 basic test (streaming)', async () => {
+        const dataStreamEmpty = new ReadableStream<Uint8Array>({
+            pull: (controller) => {
+                controller.enqueue(new Uint8Array());
+                controller.close();
+            }
+        });
+        const dataStreamTest = new ReadableStream<Uint8Array>({
+            pull: (controller) => {
+                const data = binaryStringToArray('abc');
+                for (let i = 0; i < data.length; i++) {
+                    controller.enqueue(data.subarray(i, i + 1));
+                }
+                controller.close();
+            }
+        });
+        const emptyHash = await unsafeSHA1(dataStreamEmpty).then(arrayToHexString);
+        const testHash = await unsafeSHA1(dataStreamTest).then(arrayToHexString);
+        expect(emptyHash).to.equal('da39a3ee5e6b4b0d3255bfef95601890afd80709');
+        expect(testHash).to.equal('a9993e364706816aba3e25717850c26c9cd0d89d');
+    });
+
     it('sha256 basic test', async () => {
         const emptyInput = binaryStringToArray('');
         const emptyDigest = await SHA256(emptyInput).then(arrayToHexString);
