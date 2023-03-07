@@ -2,9 +2,9 @@ import { expect } from 'chai';
 // @ts-ignore missing web-stream-tools types
 import { readToEnd, toStream, WebStream } from '@openpgp/web-stream-tools';
 
-import { config, CompressedDataPacket, enums } from '../../lib/openpgp';
+import { config as globalConfig, CompressedDataPacket, enums, SymEncryptedSessionKeyPacket, PartialConfig } from '../../lib/openpgp';
 
-import { decryptKey, readPrivateKey, verifyMessage, encryptMessage, decryptMessage, generateSessionKey, readSignature, readMessage } from '../../lib';
+import { decryptKey, readPrivateKey, verifyMessage, encryptMessage, decryptMessage, generateSessionKey, readSignature, readMessage, encryptSessionKey, decryptSessionKey } from '../../lib';
 import { hexStringToArray, arrayToBinaryString, stringToUtf8Array } from '../../lib/utils';
 import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
@@ -15,12 +15,12 @@ const generateStreamOfData = (): { stream: WebStream<string>, data: string } => 
 });
 
 describe('message encryption and decryption', () => {
-    const { minRSABits } = config;
+    const { minRSABits } = globalConfig;
     before('downgrade openpgp config', () => {
-        config.minRSABits = 512;
+        globalConfig.minRSABits = 512;
     });
     after('restore openpgp config', async () => {
-        config.minRSABits = minRSABits;
+        globalConfig.minRSABits = minRSABits;
     });
 
     it('it can encrypt and decrypt a text message', async () => {
@@ -56,6 +56,23 @@ describe('message encryption and decryption', () => {
         });
         expect(decrypted).to.deep.equal(stringToUtf8Array('Hello world!'));
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+    });
+
+    it('can encrypt with argon2 s2k', async () => {
+        const config: PartialConfig = { s2kType: enums.s2k.argon2 };
+        const passwords = 'password';
+        const sessionKey = {
+            algorithm: enums.read(enums.symmetric, enums.symmetric.aes128),
+            data: hexStringToArray('01FE16BBACFD1E7B78EF3B865187374F')
+        };
+        const encrypted = await encryptSessionKey({ ...sessionKey, passwords, config, format: 'object' });
+        expect(encrypted.packets).to.have.length(1);
+        const skesk = encrypted.packets[0] as SymEncryptedSessionKeyPacket;
+        expect(skesk).to.be.instanceOf(SymEncryptedSessionKeyPacket);
+        // @ts-ignore missing s2k field declaration
+        expect(skesk.s2k.type).to.equal('argon2');
+        const decryptedSessionKey = await decryptSessionKey({ message: encrypted, passwords });
+        expect(decryptedSessionKey).to.deep.equal(sessionKey);
     });
 
     it('it can encrypt and decrypt a message with a given session key', async () => {
