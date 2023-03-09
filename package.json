@@ -9,6 +9,7 @@
         "stream": false
     },
     "files": [
+        "dist/",
         "lib/",
         "tsconfig.json"
     ],
