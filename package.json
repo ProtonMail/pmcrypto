@@ -1,6 +1,6 @@
 {
     "name": "@lkpch/protontech-pmcrypto",
-    "version": "7.6.0-next.0",
+    "version": "7.6.1-0",
     "description": "",
     "main": "./lib/index.ts",
     "sideEffects": false,
