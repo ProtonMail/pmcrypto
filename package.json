@@ -19,7 +19,7 @@
         "postversion": "git push && git push --tags",
         "test-type-definitions": "tsc",
         "build": "tsc -p tsconfig.build.json",
-        "prepublish": "npm run build"
+        "prepack": "npm run build"
     },
     "repository": {
         "type": "git",
