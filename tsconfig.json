@@ -6,7 +6,9 @@
         "strict": true,
         "sourceMap": true,
         "allowJs": true,
+        "noEmit": true,
         "noEmitOnError": true,
+        "types": ["webpack-env", "mocha"], // avoid pulling in node types
         "lib": ["dom", "esnext"]
     },
     "include": [
