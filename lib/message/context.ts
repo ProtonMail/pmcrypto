@@ -3,8 +3,8 @@
  * It's implemented by adding notation data to signatures, which may be marked as critical, so that
  * the resulting signature can only be verified by a verifier who expects the context to be present.
  */
-import { SignaturePacket, RawNotation, PartialConfig } from '../openpgp';
-import { normalizeDate } from './utils';
+import type { SignaturePacket, RawNotation, PartialConfig } from '../openpgp';
+import { normalizeDate } from '../utils';
 
 // Different contexts will affect the notation's value, not the name
 const CONTEXT_NOTATION_NAME = 'context@proton.ch';
@@ -90,12 +90,8 @@ export const getConfigForContextVerification = (config: PartialConfig) => ({
  * Thrown if e.g. context information is not present in the signature, or it does not match the expected context.
  */
 export class ContextError extends Error {
-    constructor(...params: any[]) {
-        super(...params);
-
-        if (Error.captureStackTrace) {
-            Error.captureStackTrace(this, ContextError);
-        }
+    constructor(message: string) {
+        super(message);
 
         this.name = 'ContextError';
     }
