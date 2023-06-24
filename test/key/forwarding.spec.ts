@@ -1,10 +1,11 @@
 import { expect } from 'chai';
-import { ExtendedPoint as Point } from '@openpgp/noble-curves/ed25519';
+import { ec as EllipticCurve } from 'elliptic';
+import BN from 'bn.js';
 
 import { enums, KeyID } from '../../lib/openpgp';
 import { generateKey, generateForwardingMaterial, encryptMessage, decryptMessage, readMessage } from '../../lib';
 import { computeProxyParameter } from '../../lib/key/forwarding';
-import { arrayToHexString, hexStringToArray, concatArrays } from '../../lib/utils';
+import { hexStringToArray, concatArrays } from '../../lib/utils';
 
 async function proxyTransform(
     armoredCiphertext: string,
@@ -12,19 +13,20 @@ async function proxyTransform(
     originalSubKeyID: KeyID,
     finalRecipientSubKeyID: KeyID
 ) {
+    const curve = new EllipticCurve('curve25519');
+
     const ciphertext = await readMessage({ armoredMessage: armoredCiphertext });
     ciphertext.packets.filterByTag(enums.packet.publicKeyEncryptedSessionKey).forEach((packet: any) => {
         if (packet.publicKeyID.equals(originalSubKeyID)) {
-            const bG = hexStringToArray('40aaea7b3bb92f5f545d023ccb15b50f84ba1bdd53be7f5cfadcfb0106859bf77e')//packet.encrypted.V;
-            proxyParameter = hexStringToArray('83c57cbe645a132477af55d5020281305860201608e81a1de43ff83f245fb302')
-            const point = Point.fromHex(bG.subarray(1));
-            const bkG = hexStringToArray(
-                point.multiply(
-                    BigInt(`0x${arrayToHexString(proxyParameter)}`)
-                ).x.toString(16)
+            const bG = packet.encrypted.V;
+            const point = curve.curve.decodePoint(bG.subarray(1).reverse());
+            const bkG = new Uint8Array(
+                point
+                    .mul(new BN(proxyParameter, 'le'))
+                    .getX()
+                    .toArray('le', 32)
             );
-            const encoded = concatArrays([new Uint8Array([0x40]), bkG.reverse()]);
-            console.log('res', arrayToHexString(encoded))
+            const encoded = concatArrays([new Uint8Array([0x40]), bkG]);
             packet.encrypted.V = encoded;
             packet.publicKeyID = finalRecipientSubKeyID;
         }
@@ -69,7 +71,7 @@ describe('forwarding', () => {
         });
         const plaintext = 'Hello Bob, hello world';
 
-        const { proxyFactor, finalRecipientKey: charlieKey } = await generateForwardingMaterial(bobKey, [
+        const { proxyParameter, finalRecipientKey: charlieKey } = await generateForwardingMaterial(bobKey, [
             { name: 'Charlie', email: 'info@charlie.com', comment: 'Forwarded from Bob' }
         ]);
 
@@ -80,7 +82,7 @@ describe('forwarding', () => {
 
         const transformedCiphertext = await proxyTransform(
             originalCiphertext,
-            proxyFactor,
+            proxyParameter,
             bobKey.subkeys[0].getKeyID(),
             charlieKey.subkeys[0].getKeyID()
         );

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/indent */
-import { KeyID } from 'openpgp';
 import {
     MaybeArray,
     DecryptOptions,
@@ -24,7 +23,8 @@ import {
     UserID,
     readMessage, readSignature, readCleartextMessage,
     readKey, readKeys, readPrivateKey, readPrivateKeys,
-    PartialConfig
+    PartialConfig,
+    KeyID
 } from 'openpgp/lightweight';
 
 import { VERIFICATION_STATUS, SIGNATURE_TYPES } from './constants';
@@ -50,7 +50,7 @@ export function generateForwardingMaterial(
     originalKey: PrivateKey,
     forwardingUserIDs: UserID[],
     subkeyID?: KeyID[]
-): Promise<{ proxyFactor: Uint8Array, finalRecipientKey: PrivateKey }>;
+): Promise<{ proxyParameter: Uint8Array, finalRecipientKey: PrivateKey }>;
 
 export interface ReformatKeyOptions {
     privateKey: PrivateKey;
