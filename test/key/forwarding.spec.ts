@@ -41,7 +41,7 @@ describe('forwarding', () => {
         const secretCharlie = hexStringToArray('684da6225bcd44d880168fc5bec7d2f746217f014c8019005f144cc148f16a00');
 
         const expectedProxyFactor = hexStringToArray('e89786987c3a3ec761a679bc372cd11a425eda72bd5265d78ad0f5f32ee64f02');
-        const actualProxyFactor = computeProxyParameter(secretBob, secretCharlie);
+        const actualProxyFactor = await computeProxyParameter(secretBob, secretCharlie);
 
         expect(actualProxyFactor).to.deep.equal(expectedProxyFactor);
     });
