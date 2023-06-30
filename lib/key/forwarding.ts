@@ -74,7 +74,7 @@ export async function generateForwardingMaterial(
     const { hash, cipher } = forwardeeSubkeyPacket.publicParams.kdfParams;
     // @ts-ignore missing publicParams definition
     forwardeeSubkeyPacket.publicParams.kdfParams = new KDFParams({
-        version: 2,
+        version: 0xFF,
         hash,
         cipher,
         replacementFingerprint: forwarderSubkeyPacket.getFingerprintBytes()!.subarray(0, 20)

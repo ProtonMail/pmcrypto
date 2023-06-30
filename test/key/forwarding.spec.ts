@@ -3,7 +3,7 @@ import { ec as EllipticCurve } from 'elliptic';
 import BN from 'bn.js';
 
 import { enums, KeyID, PacketList } from '../../lib/openpgp';
-import { generateKey, generateForwardingMaterial, encryptMessage, decryptMessage, readMessage } from '../../lib';
+import { generateKey, generateForwardingMaterial, encryptMessage, decryptMessage, readMessage, readKey } from '../../lib';
 import { computeProxyParameter } from '../../lib/key/forwarding';
 import { hexStringToArray, concatArrays } from '../../lib/utils';
 
@@ -53,7 +53,8 @@ describe('forwarding', () => {
     it('generate forwarding key', async () => {
         const { privateKey: bobKey } = await generateKey({ userIDs: [{ name: 'Bob', email: 'info@bob.com' }], format: 'object' });
 
-        const { forwardeeKey: charlieKey } = await generateForwardingMaterial(bobKey, [{ name: 'Charlie', email: 'info@charlie.com' }]);
+        const { forwardeeKey } = await generateForwardingMaterial(bobKey, [{ name: 'Charlie', email: 'info@charlie.com' }]);
+        const charlieKey = await readKey({ armoredKey: forwardeeKey.armor() }); // ensure key is correctly serialized and parsed
 
         // Check subkey differences
         const bobSubkey = await bobKey.getEncryptionKey();
@@ -62,7 +63,7 @@ describe('forwarding', () => {
         expect(charlieSubkey.keyPacket.publicParams.oid).to.deep.equal(bobSubkey.keyPacket.publicParams.oid);
         // Check KDF params
         // @ts-ignore kdfParams field not defined
-        expect(charlieSubkey.keyPacket.publicParams.kdfParams.version).to.equal(2);
+        expect(charlieSubkey.keyPacket.publicParams.kdfParams.version).to.equal(0xFF);
         expect(
             // @ts-ignore kdfParams field not defined
             charlieSubkey.keyPacket.publicParams.kdfParams.replacementFingerprint
