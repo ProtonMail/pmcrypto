@@ -1,5 +1,5 @@
 import BigIntegerInterface from '@openpgp/noble-hashes/esm/biginteger/interface';
-import { KDFParams } from '../openpgp';
+import { KDFParams, KeyID, PrivateKey, UserID, SecretSubkeyPacket } from '../openpgp';
 import { generateKey, reformatKey } from './utils';
 
 let loadedBigInteger = false;
@@ -24,13 +24,13 @@ const getBigInteger = async () => {
     return BigIntegerInterface;
 };
 
-export async function computeProxyParameter(originalSecret, finalRecipientSecret) {
+export async function computeProxyParameter(forwarderSecret: Uint8Array, forwardeeSecret: Uint8Array) {
     const BigInteger = await getBigInteger();
 
-    const dB = BigInteger.new(originalSecret);
-    const dC = BigInteger.new(finalRecipientSecret);
+    const dB = BigInteger.new(forwarderSecret);
+    const dC = BigInteger.new(forwardeeSecret);
     const n = BigInteger.new('0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed'); // 2^252 + 0x14def9dea2f79cd65812631a5cf5d3ed
-    const proxyParameter = dC.modInv(n).mul(dB).mod(n).toUint8Array('le');
+    const proxyParameter = dC.modInv(n).mul(dB).mod(n).toUint8Array('le', forwardeeSecret.length);
 
     return proxyParameter;
 }
@@ -38,49 +38,57 @@ export async function computeProxyParameter(originalSecret, finalRecipientSecret
 /**
  * Generate a forwarding key for the final recipient, as well as the corresponding proxy factor.
  * The key in input must be a v4 primary key and must have at least one ECDH subkey using curve25519 (legacy format)
- * @param originalKey       ECC primary key of original recipient
+ * @param forwarderKey       ECC primary key of original recipient
  * @param forwardingUserIds array of user IDs of forwarding key
- * @param subkeyId          (optional) keyid of the ECDH subKey to use for the original recipient
- * @returns {Promise<Object>}                   The generated key object in the form:
- *          { proxyFactor: Uint8Array, finalRecipientKey: PrivateKey }
+ * @param subkeyID          (optional) keyid of the ECDH subKey to use for the original recipient
+ * @returns The generated forwarding material
  * @async
- * @static
  */
-export async function generateForwardingMaterial(originalKey, forwardingUserIDs, subKeyId) {
+export async function generateForwardingMaterial(
+    forwarderKey: PrivateKey,
+    forwardingUserIDs: UserID[],
+    subkeyID?: KeyID
+) {
     const curveName = 'curve25519';
 
-    const { privateKey: forwardingKey } = await generateKey({ type: 'ecc', userIDs: forwardingUserIDs, format: 'object' });
     // Setup subKey: find ECDH subkey to override
-    const originalSubKey = await originalKey.getEncryptionKey(subKeyId);
+    const forwarderSubkey = await forwarderKey.getEncryptionKey(subkeyID);
     if (
-        !originalSubKey ||
-        originalSubKey.getAlgorithmInfo().algorithm !== 'ecdh' ||
-        originalSubKey.getAlgorithmInfo().curve !== curveName
+        !forwarderSubkey ||
+        !forwarderSubkey.isDecrypted() ||
+        forwarderSubkey.getAlgorithmInfo().algorithm !== 'ecdh' ||
+        forwarderSubkey.getAlgorithmInfo().curve !== curveName
     ) {
         throw new Error('Could not find a suitable ECDH encryption key packet');
     }
+    const forwarderSubkeyPacket = forwarderSubkey.keyPacket as SecretSubkeyPacket; // this is necessarily an encryption subkey (ECDH keys cannot sign)
 
-    const forwardingSubkey = forwardingKey.subkeys[0];
+    const { privateKey: forwardeeKeyToSetup } = await generateKey({ type: 'ecc', userIDs: forwardingUserIDs, format: 'object' });
+    const forwardeeSubkeyPacket = forwardeeKeyToSetup.subkeys[0].keyPacket as SecretSubkeyPacket;
 
     // Add KDF params for forwarding
-    const { hash, cipher } = forwardingSubkey.keyPacket.publicParams.kdfParams;
-    forwardingSubkey.keyPacket.publicParams.kdfParams = new KDFParams({
+    // @ts-ignore missing publicParams definition
+    const { hash, cipher } = forwardeeSubkeyPacket.publicParams.kdfParams;
+    // @ts-ignore missing publicParams definition
+    forwardeeSubkeyPacket.publicParams.kdfParams = new KDFParams({
         version: 2,
         hash,
         cipher,
-        replacementFingerprint: originalSubKey.keyPacket.getFingerprintBytes().subarray(0, 20)
+        replacementFingerprint: forwarderSubkeyPacket.getFingerprintBytes()!.subarray(0, 20)
     });
 
     // Update subkey binding signatures to account for updated KDF params
-    const { privateKey: finalRecipientKey } = await reformatKey({
-        privateKey: forwardingKey, userIDs: forwardingUserIDs, format: 'object'
+    const { privateKey: finalForwardeeKey } = await reformatKey({
+        privateKey: forwardeeKeyToSetup, userIDs: forwardingUserIDs, format: 'object'
     });
 
     // Generate proxy factor k (server secret)
     const proxyParameter = await computeProxyParameter(
-        originalSubKey.keyPacket.privateParams.d,
-        forwardingSubkey.keyPacket.privateParams.d
+        // @ts-ignore privateParams fields are not defined
+        forwarderSubkeyPacket.privateParams!.d,
+        // @ts-ignore privateParams fields are not defined
+        forwardeeSubkeyPacket.privateParams!.d
     );
 
-    return { proxyParameter, finalRecipientKey };
+    return { proxyParameter, forwardeeKey: finalForwardeeKey };
 }

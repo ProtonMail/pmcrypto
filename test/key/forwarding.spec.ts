@@ -2,22 +2,26 @@ import { expect } from 'chai';
 import { ec as EllipticCurve } from 'elliptic';
 import BN from 'bn.js';
 
-import { enums, KeyID } from '../../lib/openpgp';
+import { enums, KeyID, PacketList } from '../../lib/openpgp';
 import { generateKey, generateForwardingMaterial, encryptMessage, decryptMessage, readMessage } from '../../lib';
 import { computeProxyParameter } from '../../lib/key/forwarding';
 import { hexStringToArray, concatArrays } from '../../lib/utils';
 
-async function proxyTransform(
+// this is only intended for testing purposes, due to BN.js dependency, which is huge
+async function testProxyTransform(
     armoredCiphertext: string,
     proxyParameter: Uint8Array,
-    originalSubKeyID: KeyID,
-    finalRecipientSubKeyID: KeyID
+    originalSubkeyID: KeyID,
+    finalRecipientSubkeyID: KeyID
 ) {
     const curve = new EllipticCurve('curve25519');
 
     const ciphertext = await readMessage({ armoredMessage: armoredCiphertext });
-    ciphertext.packets.filterByTag(enums.packet.publicKeyEncryptedSessionKey).forEach((packet: any) => {
-        if (packet.publicKeyID.equals(originalSubKeyID)) {
+    for (
+        // missing PublicKeyEncryptedSessionKeyPacket field declarations
+        const packet of ciphertext.packets.filterByTag(enums.packet.publicKeyEncryptedSessionKey) as PacketList<any>
+    ) {
+        if (packet.publicKeyID.equals(originalSubkeyID)) {
             const bG = packet.encrypted.V;
             const point = curve.curve.decodePoint(bG.subarray(1).reverse());
             const bkG = new Uint8Array(
@@ -28,9 +32,9 @@ async function proxyTransform(
             );
             const encoded = concatArrays([new Uint8Array([0x40]), bkG]);
             packet.encrypted.V = encoded;
-            packet.publicKeyID = finalRecipientSubKeyID;
+            packet.publicKeyID = finalRecipientSubkeyID;
         }
-    });
+    }
 
     return ciphertext.armor();
 }
@@ -49,20 +53,20 @@ describe('forwarding', () => {
     it('generate forwarding key', async () => {
         const { privateKey: bobKey } = await generateKey({ userIDs: [{ name: 'Bob', email: 'info@bob.com' }], format: 'object' });
 
-        const { finalRecipientKey: charlieKey } = await generateForwardingMaterial(bobKey, [{ name: 'Charlie', email: 'info@charlie.com' }]);
+        const { forwardeeKey: charlieKey } = await generateForwardingMaterial(bobKey, [{ name: 'Charlie', email: 'info@charlie.com' }]);
 
         // Check subkey differences
-        const bobSubKey = await bobKey.getEncryptionKey();
-        const charlieSubKey = await charlieKey.getEncryptionKey();
+        const bobSubkey = await bobKey.getEncryptionKey();
+        const charlieSubkey = await charlieKey.getEncryptionKey();
         // @ts-ignore oid field not defined
-        expect(charlieSubKey.keyPacket.publicParams.oid).to.deep.equal(bobSubKey.keyPacket.publicParams.oid);
+        expect(charlieSubkey.keyPacket.publicParams.oid).to.deep.equal(bobSubkey.keyPacket.publicParams.oid);
         // Check KDF params
         // @ts-ignore kdfParams field not defined
-        expect(charlieSubKey.keyPacket.publicParams.kdfParams.version).to.equal(2);
+        expect(charlieSubkey.keyPacket.publicParams.kdfParams.version).to.equal(2);
         expect(
             // @ts-ignore kdfParams field not defined
-            charlieSubKey.keyPacket.publicParams.kdfParams.replacementFingerprint
-        ).to.deep.equal(bobSubKey.keyPacket.getFingerprintBytes());
+            charlieSubkey.keyPacket.publicParams.kdfParams.replacementFingerprint
+        ).to.deep.equal(bobSubkey.keyPacket.getFingerprintBytes());
     });
 
     it('decryption with forwarding - v4 key', async () => {
@@ -71,7 +75,7 @@ describe('forwarding', () => {
         });
         const plaintext = 'Hello Bob, hello world';
 
-        const { proxyParameter, finalRecipientKey: charlieKey } = await generateForwardingMaterial(bobKey, [
+        const { proxyParameter, forwardeeKey: charlieKey } = await generateForwardingMaterial(bobKey, [
             { name: 'Charlie', email: 'info@charlie.com', comment: 'Forwarded from Bob' }
         ]);
 
@@ -80,7 +84,7 @@ describe('forwarding', () => {
             encryptionKeys: bobKey
         });
 
-        const transformedCiphertext = await proxyTransform(
+        const transformedCiphertext = await testProxyTransform(
             originalCiphertext,
             proxyParameter,
             bobKey.subkeys[0].getKeyID(),
