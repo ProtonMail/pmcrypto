@@ -1,4 +1,4 @@
-import { KDFParams, KeyID, PrivateKey, UserID, SecretSubkeyPacket } from '../openpgp';
+import { KDFParams, KeyID, PrivateKey, UserID, SecretSubkeyPacket, MaybeArray } from '../openpgp';
 import { generateKey, reformatKey } from './utils';
 
 // TODO (investigate): top-level import of BigIntegerInterface causes issues in Jest tests in web-clients;
@@ -38,17 +38,18 @@ export async function computeProxyParameter(forwarderSecret: Uint8Array, forward
 }
 
 /**
- * Generate a forwarding key for the final recipient, as well as the corresponding proxy factor.
- * The key in input must be a v4 primary key and must have at least one ECDH subkey using curve25519 (legacy format)
- * @param forwarderKey       ECC primary key of original recipient
- * @param forwardingUserIds array of user IDs of forwarding key
- * @param subkeyID          (optional) keyid of the ECDH subKey to use for the original recipient
+ * Generate a forwarding key for the final recipient ('forwardee'), as well as the corresponding proxy parameter,
+ * needed to transform the forwarded ciphertext.
+ * The key in input must be a v4 primary key and must have at least one ECDH subkey using curve25519 (legacy format).
+ * @param forwarderKey - ECC primary key of original recipient
+ * @param userIDsForForwardeeKey - user IDs for generated key
+ * @param subkeyID - keyID of the ECDH subKey to use for the original recipient
  * @returns The generated forwarding material
  * @async
  */
 export async function generateForwardingMaterial(
     forwarderKey: PrivateKey,
-    forwardingUserIDs: UserID[],
+    userIDsForForwardeeKey: MaybeArray<UserID>,
     subkeyID?: KeyID
 ) {
     const curveName = 'curve25519';
@@ -65,7 +66,7 @@ export async function generateForwardingMaterial(
     }
     const forwarderSubkeyPacket = forwarderSubkey.keyPacket as SecretSubkeyPacket; // this is necessarily an encryption subkey (ECDH keys cannot sign)
 
-    const { privateKey: forwardeeKeyToSetup } = await generateKey({ type: 'ecc', userIDs: forwardingUserIDs, format: 'object' });
+    const { privateKey: forwardeeKeyToSetup } = await generateKey({ type: 'ecc', userIDs: userIDsForForwardeeKey, format: 'object' });
     const forwardeeSubkeyPacket = forwardeeKeyToSetup.subkeys[0].keyPacket as SecretSubkeyPacket;
 
     // Add KDF params for forwarding
@@ -81,7 +82,7 @@ export async function generateForwardingMaterial(
 
     // Update subkey binding signatures to account for updated KDF params
     const { privateKey: finalForwardeeKey } = await reformatKey({
-        privateKey: forwardeeKeyToSetup, userIDs: forwardingUserIDs, format: 'object'
+        privateKey: forwardeeKeyToSetup, userIDs: userIDsForForwardeeKey, format: 'object'
     });
 
     // Generate proxy factor k (server secret)
