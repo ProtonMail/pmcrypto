@@ -5,7 +5,7 @@ import type {
     VerifyMessageResult as openpgp_VerifyMessageResult,
     CleartextMessage,
     Signature as OpenPGPSignature
-} from 'openpgp/lightweight';
+} from '../openpgp';
 import { VERIFICATION_STATUS } from '../constants';
 import { ContextVerificationOptions } from './context';
 

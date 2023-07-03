@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/indent */
 import {
-    MaybeArray,
     DecryptOptions,
     DecryptMessageResult as openpgp_DecryptMessageResult,
     Message,
@@ -8,19 +7,14 @@ import {
     Signature,
     SignOptions,
     EncryptOptions,
-    reformatKey,
-    generateKey,
-    generateSessionKey as openpgp_generateSessionKey,
-    PrivateKey,
     PublicKey,
+    PrivateKey,
     SessionKey,
     EncryptSessionKeyOptions,
     decryptSessionKeys as openpgp_decryptSessionKeys,
     decryptKey,
     encryptKey,
     WebStream,
-    KeyOptions as GenerateKeyOptions,
-    UserID,
     readMessage, readSignature, readCleartextMessage,
     readKey, readKeys, readPrivateKey, readPrivateKeys,
     PartialConfig
@@ -39,21 +33,23 @@ export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing strea
 export type OpenPGPSignature = Signature;
 
 export {
-    generateKey, reformatKey, decryptKey, encryptKey,
-    readMessage, readSignature, readCleartextMessage,
-    readKey, readKeys, readPrivateKey, readPrivateKeys
-};
-export type { PrivateKey, PublicKey, GenerateKeyOptions, Key, SessionKey };
+    generateKey, reformatKey,
+    generateSessionKey, generateSessionKeyForAlgorithm,
+    isExpiredKey, isRevokedKey, canKeyEncrypt,
+    getFingerprint, getSHA256Fingerprints,
+    getMatchingKey
+} from './key/utils';
 
-export interface ReformatKeyOptions {
-    privateKey: PrivateKey;
-    userIDs?: MaybeArray<UserID>;
-    passphrase?: string;
-    keyExpirationTime?: number;
-    date?: Date,
-    format?: GenerateKeyOptions['format'],
-    config?: PartialConfig
-}
+export type { GenerateKeyOptions, ReformatKeyOptions, GenerateSessionKeyOptionsPmcrypto } from './key/utils';
+
+export {
+    decryptKey, encryptKey,
+    readMessage, readSignature, readCleartextMessage,
+    readKey, readKeys, readPrivateKey, readPrivateKeys,
+    PrivateKey, PublicKey, Key, SessionKey
+};
+
+export { generateForwardingMaterial } from './key/forwarding';
 
 export interface DecryptLegacyOptions extends Omit<DecryptOptions, 'message'> {
     armoredMessage: string; // no streaming support for legacy messages
@@ -64,18 +60,6 @@ export interface DecryptMimeOptions extends DecryptLegacyOptions {
     headerFilename?: string;
     sender?: string;
 }
-
-export function getFingerprint(key: OpenPGPKey): string;
-
-export function isExpiredKey(key: OpenPGPKey, date?: Date): Promise<boolean>;
-export function isRevokedKey(key: OpenPGPKey, date?: Date): Promise<boolean>;
-
-export function generateSessionKeyForAlgorithm(algoName: 'aes128' | 'aes192' | 'aes256'): Promise<Uint8Array>;
-type GenerateSessionKeyOptions = Parameters<typeof openpgp_generateSessionKey>[0];
-export interface GenerateSessionKeyOptionsPmcrypto extends Omit<GenerateSessionKeyOptions, 'encryptionKeys'> {
-    recipientKeys: MaybeArray<PublicKey>
-}
-export function generateSessionKey(options: GenerateSessionKeyOptionsPmcrypto): Promise<SessionKey>;
 
 export interface EncryptSessionKeyOptionsPmcrypto extends EncryptSessionKeyOptions {}
 export function encryptSessionKey<FormatType extends EncryptSessionKeyOptionsPmcrypto['format'] = 'armored'>(
@@ -192,11 +176,6 @@ export function encryptMessage<
     never
 >;
 
-export function getMatchingKey(
-    signature: OpenPGPSignature | OpenPGPMessage,
-    publicKeys: OpenPGPKey[]
-): OpenPGPKey | undefined;
-
 export interface SignOptionsPmcrypto<T extends MaybeStream<Data>> extends Omit<SignOptions, 'message' | 'signatureNotations'> {
     textData?: T extends MaybeStream<string> ? T : never;
     binaryData?: T extends MaybeStream<Uint8Array> ? T : never;
@@ -240,9 +219,4 @@ export type { ContextSigningOptions, ContextVerificationOptions };
 export { MIMEAttachment, ProcessMIMEOptions, default as processMIME, ProcessMIMEResult } from './message/processMIME';
 
 export { serverTime, updateServerTime } from './serverTime';
-
-export function getSHA256Fingerprints(key: OpenPGPKey): Promise<string[]>;
-
-export function canKeyEncrypt(key: OpenPGPKey, date?: Date): Promise<boolean>;
-
 export function checkKeyStrength(key: OpenPGPKey): void;
