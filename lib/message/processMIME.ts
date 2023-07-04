@@ -122,7 +122,7 @@ const parse = async (
         // the headers for this current message shouldn't be carried over to the next message.
         attachment.fileName = `${headerFilename}.txt`;
         attachment.contentDisposition = 'attachment';
-        const { from, subject: attachmentSubject } = await parseMail(utf8ArrayToString(parsedAttachment.content));
+        const { from, subject: attachmentSubject } = await parseMail(parsedAttachment.content);
         // check for subject headers and from headers to match the current message with the right sender.
         if (!attachmentSubject || !from) {
             continue;

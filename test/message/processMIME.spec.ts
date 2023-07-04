@@ -18,6 +18,27 @@ import {
 } from './processMIME.data';
 
 describe('processMIME', () => {
+    it('it correctly decodes UTF-8 body with 8bit transfer encoding', async () => {
+        const { body } = await processMIME({
+            data: `From: Some One <someone@example.com>
+To: "Someone Else" <someone-else@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed;
+    boundary="------------cJMvmFk1NneB7MT4jwYHY7ap"
+
+This is a multi-part message in MIME format.
+--------------cJMvmFk1NneB7MT4jwYHY7ap
+Content-Type: text/plain; charset=UTF-8;
+Content-Transfer-Encoding: 8bit
+
+Import HTML cöntäct//Subjεέςτ//
+
+--------------cJMvmFk1NneB7MT4jwYHY7ap--`,
+            verificationKeys: []
+        });
+        expect(body).to.equal('Import HTML cöntäct//Subjεέςτ//\n');
+    });
+
     it('it can process multipart/signed mime messages and verify the signature', async () => {
         const { body, verified, signatures, attachments, encryptedSubject } = await processMIME(
             {
