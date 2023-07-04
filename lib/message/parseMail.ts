@@ -5,7 +5,7 @@ export type { Attachment } from 'jsmimeparser';
  * Parse a mail into an object format, splitting, headers, html, text/plain and attachments.
  * As jsmime is not a small library, we only want to import it if it's actually used.
  */
-export const parseMail = (mail: string) => import('jsmimeparser').then(({ parseMail: jsmimeParseEmail }) => jsmimeParseEmail(mail));
+export const parseMail = (mail: string | Uint8Array) => import('jsmimeparser').then(({ parseMail: jsmimeParseEmail }) => jsmimeParseEmail(mail));
 
 // Mapping between mime types to the corresponding extensions.
 // This is only used if the parsed attachment does not include a filename.
