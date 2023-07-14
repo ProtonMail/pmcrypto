@@ -274,3 +274,17 @@ WTyjgksKkPV68HhW1CIKZ4JIMe726uldjP6tgw8=
 
 --------------3mBgKY4DhzDe0cOovVcT4QQv--
 `;
+
+export const messageWithEmptyBody = `Content-Type: multipart/mixed; boundary="------------P7E1gxp6rCvfn0to5n3PZ2h0";
+protected-headers="v1"
+From: Sender <sender@test.com>
+To: receiver@pm.me
+Message-ID: <39b3134c-0fcd-4618-b1bd-2b20481bf2af>
+Subject: Empty message test
+
+--------------P7E1gxp6rCvfn0to5n3PZ2h0
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+
+
+--------------P7E1gxp6rCvfn0to5n3PZ2h0--`;
