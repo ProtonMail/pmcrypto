@@ -136,7 +136,7 @@ const parse = async (
 
     const encryptedSubject = encryptedSubjectHeader || mimeSubject;
 
-    if (html) {
+    if (html !== null) {
         return {
             body: html,
             attachments,
@@ -146,7 +146,7 @@ const parse = async (
             signatures
         };
     }
-    if (text) {
+    if (text !== null) {
         return {
             body: text,
             attachments,

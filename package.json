@@ -33,7 +33,7 @@
         "@openpgp/noble-hashes": "^1.3.2-1",
         "@openpgp/tweetnacl": "^1.0.3",
         "@openpgp/web-stream-tools": "^0.0.13",
-        "jsmimeparser": "npm:@protontech/jsmimeparser@^2.1.0",
+        "jsmimeparser": "npm:@protontech/jsmimeparser@^3.0.0",
         "openpgp": "npm:@protontech/openpgp@~5.9.0"
     },
     "devDependencies": {

@@ -14,7 +14,8 @@ import {
     multipartMessageWithEncryptedSubject,
     key,
     multipartMessageWithUnnamedAttachments,
-    multipartMessageWithEncryptedSubjectUTF8
+    multipartMessageWithEncryptedSubjectUTF8,
+    messageWithEmptyBody
 } from './processMIME.data';
 
 describe('processMIME', () => {
@@ -88,6 +89,13 @@ Import HTML cöntäct//Subjεέςτ//
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         expect(signatures.length).to.equal(1);
         expect(body).to.equal('hello');
+    });
+
+    it('it can parse message with empty body', async () => {
+        const { body } = await processMIME({
+            data: messageWithEmptyBody
+        });
+        expect(body).to.equal('');
     });
 
     it('it can parse message with text attachment', async () => {
