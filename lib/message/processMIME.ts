@@ -51,7 +51,15 @@ const verifySignature = async (
     }
     const sigData = utf8ArrayToString(sigAttachmentContent);
 
-    const signature = await readSignature({ armoredSignature: sigData });
+    let signature;
+    try {
+        signature = await readSignature({ armoredSignature: sigData });
+    } catch {
+        // sigData will be returned as attachment by `parse`
+        console.error('Failed to read signature over MIME message');
+        return { subdata: data, verified: 0, signatures: [] };
+    }
+
     const body = parts[1];
 
     const {
