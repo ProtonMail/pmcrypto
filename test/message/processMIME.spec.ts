@@ -15,7 +15,8 @@ import {
     key,
     multipartMessageWithUnnamedAttachments,
     multipartMessageWithEncryptedSubjectUTF8,
-    messageWithEmptyBody
+    messageWithEmptyBody,
+    messageWithEmptySignature
 } from './processMIME.data';
 
 describe('processMIME', () => {
@@ -56,7 +57,7 @@ Import HTML cöntäct//Subjεέςτ//
     });
 
     it('it can process multipart/signed mime messages and verify the signature with extra parts at the end', async () => {
-        const { body, verified, signatures } = await processMIME(
+        const { body, verified, signatures, attachments } = await processMIME(
             {
                 data: extraMultipartSignedMessage,
                 verificationKeys: await readKey({ armoredKey: key })
@@ -65,6 +66,7 @@ Import HTML cöntäct//Subjεέςτ//
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         expect(body).to.equal('hello');
         expect(signatures.length).to.equal(1);
+        expect(attachments.length).to.equal(0);
     });
 
     it('it does not verify invalid messages', async () => {
@@ -96,6 +98,17 @@ Import HTML cöntäct//Subjεέςτ//
             data: messageWithEmptyBody
         });
         expect(body).to.equal('');
+    });
+
+    it('it can parse message with empty signature', async () => {
+        const { body, signatures, verified, attachments } = await processMIME({
+            data: messageWithEmptySignature
+        });
+        expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
+        expect(signatures).to.have.length(0);
+        expect(body).to.equal('<div>Hello</div>\n');
+        expect(attachments).to.have.length(1); // signature part that failed to parse
+        expect(attachments[0].content).to.have.length(0);
     });
 
     it('it can parse message with text attachment', async () => {
