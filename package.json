@@ -1,6 +1,6 @@
 {
     "name": "@protontech/pmcrypto",
-    "version": "7.9.5",
+    "version": "7.10.0",
     "description": "",
     "main": "./lib/index.ts",
     "sideEffects": false,
