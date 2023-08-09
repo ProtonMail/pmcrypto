@@ -49,7 +49,7 @@ export {
     PrivateKey, PublicKey, Key, SessionKey
 };
 
-export { generateForwardingMaterial } from './key/forwarding';
+export { generateForwardingMaterial, doesKeySupportForwarding } from './key/forwarding';
 
 export interface DecryptLegacyOptions extends Omit<DecryptOptions, 'message'> {
     armoredMessage: string; // no streaming support for legacy messages

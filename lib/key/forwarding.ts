@@ -1,4 +1,4 @@
-import { KDFParams, KeyID, PrivateKey, UserID, SecretSubkeyPacket, MaybeArray } from '../openpgp';
+import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, MaybeArray, Subkey, config as defaultConfig } from '../openpgp';
 import { generateKey, reformatKey } from './utils';
 
 // TODO (investigate): top-level import of BigIntegerInterface causes issues in Jest tests in web-clients;
@@ -26,7 +26,10 @@ const getBigInteger = async () => {
     return BigIntegerInterface;
 };
 
-export async function computeProxyParameter(forwarderSecret: Uint8Array, forwardeeSecret: Uint8Array) {
+export async function computeProxyParameter(
+    forwarderSecret: Uint8Array,
+    forwardeeSecret: Uint8Array
+): Promise<Uint8Array> {
     const BigInteger = await getBigInteger();
 
     const dB = BigInteger.new(forwarderSecret);
@@ -37,61 +40,90 @@ export async function computeProxyParameter(forwarderSecret: Uint8Array, forward
     return proxyParameter;
 }
 
+async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey) {
+    const curveName = 'curve25519';
+    const forwarderEncryptionKeys = await forwarderKey.getDecryptionKeys(
+        undefined,
+        undefined,
+        undefined,
+        { ...defaultConfig, allowInsecureDecryptionWithSigningKeys: false }
+    ) as any as (PrivateKey | Subkey)[]; // TODO wrong TS defintion for `getDecryptionKeys`
+
+    if (forwarderEncryptionKeys.some((forwarderSubkey) => (
+        !forwarderSubkey ||
+        !forwarderSubkey.isDecrypted() ||
+        forwarderSubkey.getAlgorithmInfo().algorithm !== 'ecdh' ||
+        forwarderSubkey.getAlgorithmInfo().curve !== curveName
+    ))) {
+        throw new Error('One or more encryption key packets are unsuitable for forwarding');
+    }
+
+    return forwarderEncryptionKeys;
+}
+
+/**
+ * Whether the given key can be used as input to `generateForwardingMaterial` to setup forwarding.
+ */
+export const doesKeySupportForwarding = (forwarderKey: PrivateKey) => (
+    getEncryptionKeysForForwarding(forwarderKey)
+        .then((keys) => keys.length > 0)
+        .catch(() => false)
+);
+
 /**
  * Generate a forwarding key for the final recipient ('forwardee'), as well as the corresponding proxy parameter,
  * needed to transform the forwarded ciphertext.
- * The key in input must be a v4 primary key and must have at least one ECDH subkey using curve25519 (legacy format).
+ * The key in input must be a v4 primary key and its encryption subkeys must be of type ECDH curve25519 (legacy format).
  * @param forwarderKey - ECC primary key of original recipient
  * @param userIDsForForwardeeKey - user IDs for generated key
- * @param subkeyID - keyID of the ECDH subKey to use for the original recipient
  * @returns The generated forwarding material
  * @async
  */
 export async function generateForwardingMaterial(
     forwarderKey: PrivateKey,
-    userIDsForForwardeeKey: MaybeArray<UserID>,
-    subkeyID?: KeyID
+    userIDsForForwardeeKey: MaybeArray<UserID>
 ) {
     const curveName = 'curve25519';
-
-    // Setup subKey: find ECDH subkey to override
-    const forwarderSubkey = await forwarderKey.getEncryptionKey(subkeyID);
-    if (
-        !forwarderSubkey ||
-        !forwarderSubkey.isDecrypted() ||
-        forwarderSubkey.getAlgorithmInfo().algorithm !== 'ecdh' ||
-        forwarderSubkey.getAlgorithmInfo().curve !== curveName
-    ) {
-        throw new Error('Could not find a suitable ECDH encryption key packet');
-    }
-    const forwarderSubkeyPacket = forwarderSubkey.keyPacket as SecretSubkeyPacket; // this is necessarily an encryption subkey (ECDH keys cannot sign)
-
-    const { privateKey: forwardeeKeyToSetup } = await generateKey({ type: 'ecc', userIDs: userIDsForForwardeeKey, format: 'object' });
-    const forwardeeSubkeyPacket = forwardeeKeyToSetup.subkeys[0].keyPacket as SecretSubkeyPacket;
-
-    // Add KDF params for forwarding
-    // @ts-ignore missing publicParams definition
-    const { hash, cipher } = forwardeeSubkeyPacket.publicParams.kdfParams;
-    // @ts-ignore missing publicParams definition
-    forwardeeSubkeyPacket.publicParams.kdfParams = new KDFParams({
-        version: 0xFF,
-        hash,
-        cipher,
-        replacementFingerprint: forwarderSubkeyPacket.getFingerprintBytes()!.subarray(0, 20)
+    const forwarderEncryptionKeys = await getEncryptionKeysForForwarding(forwarderKey);
+    const { privateKey: forwardeeKeyToSetup } = await generateKey({
+        type: 'ecc',
+        userIDs: userIDsForForwardeeKey,
+        subkeys: new Array(forwarderEncryptionKeys.length).fill({ curve: curveName }),
+        format: 'object'
     });
+
+    // Setup forwardee encryption subkeys and generated corresponding proxy params
+    const proxyParameters = await Promise.all(forwarderEncryptionKeys.map(async (forwarderSubkey, i) => {
+
+        const forwarderSubkeyPacket = forwarderSubkey.keyPacket as SecretSubkeyPacket;
+        const forwardeeSubkeyPacket = forwardeeKeyToSetup.subkeys[i].keyPacket as SecretSubkeyPacket;
+
+        // Add KDF params for forwarding
+        // @ts-ignore missing publicParams definition
+        const { hash, cipher } = forwardeeSubkeyPacket.publicParams.kdfParams;
+        // @ts-ignore missing publicParams definition
+        forwardeeSubkeyPacket.publicParams.kdfParams = new KDFParams({
+            version: 0xFF,
+            hash,
+            cipher,
+            replacementFingerprint: forwarderSubkeyPacket.getFingerprintBytes()!.subarray(0, 20)
+        });
+
+        // Generate proxy factor k (server secret)
+        const proxyParameter = await computeProxyParameter(
+            // @ts-ignore privateParams fields are not defined
+            forwarderSubkeyPacket.privateParams!.d,
+            // @ts-ignore privateParams fields are not defined
+            forwardeeSubkeyPacket.privateParams!.d
+        );
+
+        return proxyParameter;
+    }));
 
     // Update subkey binding signatures to account for updated KDF params
     const { privateKey: finalForwardeeKey } = await reformatKey({
         privateKey: forwardeeKeyToSetup, userIDs: userIDsForForwardeeKey, format: 'object'
     });
 
-    // Generate proxy factor k (server secret)
-    const proxyParameter = await computeProxyParameter(
-        // @ts-ignore privateParams fields are not defined
-        forwarderSubkeyPacket.privateParams!.d,
-        // @ts-ignore privateParams fields are not defined
-        forwardeeSubkeyPacket.privateParams!.d
-    );
-
-    return { proxyParameter, forwardeeKey: finalForwardeeKey };
+    return { proxyParameters, forwardeeKey: finalForwardeeKey };
 }
