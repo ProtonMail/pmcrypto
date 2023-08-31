@@ -5,7 +5,7 @@ import BN from 'bn.js';
 import { enums, KeyID, PacketList } from '../../lib/openpgp';
 import { generateKey, generateForwardingMaterial, doesKeySupportForwarding, encryptMessage, decryptMessage, readMessage, readKey, readPrivateKey } from '../../lib';
 import { computeProxyParameter } from '../../lib/key/forwarding';
-import { hexStringToArray, concatArrays } from '../../lib/utils';
+import { hexStringToArray, concatArrays, arrayToHexString } from '../../lib/utils';
 
 // this is only intended for testing purposes, due to BN.js dependency, which is huge
 async function testProxyTransform(
@@ -103,10 +103,18 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
         });
         const plaintext = 'Hello Bob, hello world';
 
-        const { proxyParameters, forwardeeKey: charlieKey } = await generateForwardingMaterial(bobKey, [
+        const { proxyInstances, forwardeeKey: charlieKey } = await generateForwardingMaterial(bobKey, [
             { name: 'Charlie', email: 'info@charlie.com', comment: 'Forwarded from Bob' }
         ]);
-        expect(proxyParameters).to.have.length(1);
+        expect(proxyInstances).to.have.length(1);
+        // check proxyInstance data
+        expect(proxyInstances[0].keyVersion).to.equal(4);
+        expect(
+            arrayToHexString(proxyInstances[0].forwarderKeyFingerprint)
+        ).to.include(bobKey.subkeys[0].getKeyID().toHex());
+        expect(
+            arrayToHexString(proxyInstances[0].forwardeeKeyFingerprint)
+        ).to.include(charlieKey.subkeys[0].getKeyID().toHex());
 
         const { message: originalCiphertext } = await encryptMessage({
             textData: plaintext,
@@ -115,7 +123,7 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
 
         const transformedCiphertext = await testProxyTransform(
             originalCiphertext,
-            proxyParameters[0],
+            proxyInstances[0].proxyParameter,
             bobKey.subkeys[0].getKeyID(),
             charlieKey.subkeys[0].getKeyID()
         );
@@ -142,10 +150,21 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
         });
         const plaintext = 'Hello Bob, hello world';
 
-        const { proxyParameters, forwardeeKey: charlieKey } = await generateForwardingMaterial(bobKey, [
+        const { proxyInstances, forwardeeKey: charlieKey } = await generateForwardingMaterial(bobKey, [
             { name: 'Charlie', email: 'info@charlie.com', comment: 'Forwarded from Bob' }
         ]);
-        expect(proxyParameters).to.have.length(2);
+        expect(proxyInstances).to.have.length(2);
+        const bobForwardedSubkeys = [bobKey.subkeys[0], bobKey.subkeys[2]]; // exclude signing subkey
+
+        proxyInstances.forEach((proxyInstance, i) => {
+            expect(proxyInstance.keyVersion).to.equal(4);
+            expect(
+                arrayToHexString(proxyInstance.forwarderKeyFingerprint)
+            ).to.include(bobForwardedSubkeys[i].getKeyID().toHex());
+            expect(
+                arrayToHexString(proxyInstance.forwardeeKeyFingerprint)
+            ).to.include(charlieKey.subkeys[i].getKeyID().toHex());
+        });
 
         // test first encryption subkey
         const { message: originalCiphertext1 } = await encryptMessage({
@@ -154,8 +173,8 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
         });
         const transformedCiphertext1 = await testProxyTransform(
             originalCiphertext1,
-            proxyParameters[0],
-            bobKey.subkeys[0].getKeyID(),
+            proxyInstances[0].proxyParameter,
+            bobForwardedSubkeys[0].getKeyID(),
             charlieKey.subkeys[0].getKeyID()
         );
         const { data: decryptedData1 } = await decryptMessage({
@@ -167,7 +186,7 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
         // test second encryption subkey
         // @ts-ignore missing `clone` definition
         const bobKeySecondEncryptionKey = bobKey.clone();
-        bobKeySecondEncryptionKey.subkeys = [bobKey.subkeys[2]]; // keep second encryption subkey only
+        bobKeySecondEncryptionKey.subkeys = [bobForwardedSubkeys[1]]; // keep second encryption subkey only
 
         const { message: originalCiphertext2 } = await encryptMessage({
             textData: plaintext,
@@ -175,8 +194,8 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
         });
         const transformedCiphertext2 = await testProxyTransform(
             originalCiphertext2,
-            proxyParameters[1],
-            bobKey.subkeys[2].getKeyID(),
+            proxyInstances[1].proxyParameter,
+            bobForwardedSubkeys[1].getKeyID(),
             charlieKey.subkeys[1].getKeyID()
         );
         const { data: decryptedData2 } = await decryptMessage({
