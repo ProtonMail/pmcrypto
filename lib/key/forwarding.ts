@@ -52,6 +52,7 @@ async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey) {
     if (forwarderEncryptionKeys.some((forwarderSubkey) => (
         !forwarderSubkey ||
         !forwarderSubkey.isDecrypted() ||
+        forwarderSubkey.keyPacket.version !== 4 || // TODO add support for v6
         forwarderSubkey.getAlgorithmInfo().algorithm !== 'ecdh' ||
         forwarderSubkey.getAlgorithmInfo().curve !== curveName
     ))) {
@@ -85,7 +86,7 @@ export async function generateForwardingMaterial(
 ) {
     const curveName = 'curve25519';
     const forwarderEncryptionKeys = await getEncryptionKeysForForwarding(forwarderKey);
-    const { privateKey: forwardeeKeyToSetup } = await generateKey({
+    const { privateKey: forwardeeKeyToSetup } = await generateKey({ // TODO handle v6 keys
         type: 'ecc',
         userIDs: userIDsForForwardeeKey,
         subkeys: new Array(forwarderEncryptionKeys.length).fill({ curve: curveName }),
@@ -93,7 +94,7 @@ export async function generateForwardingMaterial(
     });
 
     // Setup forwardee encryption subkeys and generated corresponding proxy params
-    const proxyParameters = await Promise.all(forwarderEncryptionKeys.map(async (forwarderSubkey, i) => {
+    const proxyInstances = await Promise.all(forwarderEncryptionKeys.map(async (forwarderSubkey, i) => {
 
         const forwarderSubkeyPacket = forwarderSubkey.keyPacket as SecretSubkeyPacket;
         const forwardeeSubkeyPacket = forwardeeKeyToSetup.subkeys[i].keyPacket as SecretSubkeyPacket;
@@ -117,7 +118,16 @@ export async function generateForwardingMaterial(
             forwardeeSubkeyPacket.privateParams!.d
         );
 
-        return proxyParameter;
+        // fingerprint to be updated with the new KDFParams
+        // @ts-ignore `computeFingerprintAndKeyID` not declared
+        await forwardeeSubkeyPacket.computeFingerprintAndKeyID();
+
+        return {
+            keyVersion: forwarderSubkeyPacket.version,
+            proxyParameter,
+            forwarderKeyFingerprint: forwarderSubkeyPacket.getFingerprintBytes()!,
+            forwardeeKeyFingerprint: forwardeeSubkeyPacket.getFingerprintBytes()!
+        };
     }));
 
     // Update subkey binding signatures to account for updated KDF params
@@ -125,5 +135,5 @@ export async function generateForwardingMaterial(
         privateKey: forwardeeKeyToSetup, userIDs: userIDsForForwardeeKey, format: 'object'
     });
 
-    return { proxyParameters, forwardeeKey: finalForwardeeKey };
+    return { proxyInstances, forwardeeKey: finalForwardeeKey };
 }
