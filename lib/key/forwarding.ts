@@ -1,4 +1,4 @@
-import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, MaybeArray, Subkey, config as defaultConfig } from '../openpgp';
+import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, MaybeArray, Subkey, config as defaultConfig, SubkeyOptions } from '../openpgp';
 import { generateKey, reformatKey } from './utils';
 
 // TODO (investigate): top-level import of BigIntegerInterface causes issues in Jest tests in web-clients;
@@ -89,7 +89,7 @@ export async function generateForwardingMaterial(
     const { privateKey: forwardeeKeyToSetup } = await generateKey({ // TODO handle v6 keys
         type: 'ecc',
         userIDs: userIDsForForwardeeKey,
-        subkeys: new Array(forwarderEncryptionKeys.length).fill({ curve: curveName }),
+        subkeys: new Array<SubkeyOptions>(forwarderEncryptionKeys.length).fill({ curve: curveName, forwarding: true }),
         format: 'object'
     });
 
