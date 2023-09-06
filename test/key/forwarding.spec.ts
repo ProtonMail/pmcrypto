@@ -40,6 +40,47 @@ async function testProxyTransform(
 }
 
 describe('forwarding', () => {
+    it('can decrypt forwarded ciphertext', async () => {
+        const charlieKeyArmored = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEZAdtGBYJKwYBBAHaRw8BAQdAcNgHyRGEaqGmzEqEwCobfUkyrJnY8faBvsf9
+R2c5ZzYAAP9bFL4nPBdo04ei0C2IAh5RXOpmuejGC3GAIn/UmL5cYQ+XzRtjaGFy
+bGVzIDxjaGFybGVzQHByb3Rvbi5tZT7CigQTFggAPAUCZAdtGAmQFXJtmBzDhdcW
+IQRl2gNflypl1XjRUV8Vcm2YHMOF1wIbAwIeAQIZAQILBwIVCAIWAAIiAQAAJKYA
+/2qY16Ozyo5erNz51UrKViEoWbEpwY3XaFVNzrw+b54YAQC7zXkf/t5ieylvjmA/
+LJz3/qgH5GxZRYAH9NTpWyW1AsdxBGQHbRgSCisGAQQBl1UBBQEBB0CxmxoJsHTW
+TiETWh47ot+kwNA1hCk1IYB9WwKxkXYyIBf/CgmKXzV1ODP/mRmtiBYVV+VQk5MF
+EAAA/1NW8D8nMc2ky140sPhQrwkeR7rVLKP2fe5n4BEtAnVQEB3CeAQYFggAKgUC
+ZAdtGAmQFXJtmBzDhdcWIQRl2gNflypl1XjRUV8Vcm2YHMOF1wIbUAAAl/8A/iIS
+zWBsBR8VnoOVfEE+VQk6YAi7cTSjcMjfsIez9FYtAQDKo9aCMhUohYyqvhZjn8aS
+3t9mIZPc+zRJtCHzQYmhDg==
+=lESj
+-----END PGP PRIVATE KEY BLOCK-----`;
+
+        const fwdCiphertextArmored = `-----BEGIN PGP MESSAGE-----
+
+wV4DB27Wn97eACkSAQdA62TlMU2QoGmf5iBLnIm4dlFRkLIg+6MbaatghwxK+Ccw
+yGZuVVMAK/ypFfebDf4D/rlEw3cysv213m8aoK8nAUO8xQX3XQq3Sg+EGm0BNV8E
+0kABEPyCWARoo5klT1rHPEhelnz8+RQXiOIX3G685XCWdCmaV+tzW082D0xGXSlC
+7lM8r1DumNnO8srssko2qIja
+=pVRa
+-----END PGP MESSAGE-----`;
+        const charlieKey = await readPrivateKey({ armoredKey: charlieKeyArmored });
+
+        await expect(decryptMessage({
+            message: await readMessage({ armoredMessage: fwdCiphertextArmored }),
+            decryptionKeys: charlieKey
+        })).to.be.rejectedWith(/Error decrypting message/); // missing config flag
+
+        const result = await decryptMessage({
+            message: await readMessage({ armoredMessage: fwdCiphertextArmored }),
+            decryptionKeys: charlieKey,
+            config: { allowForwardedMessages: true }
+        });
+
+        expect(result.data).to.equal('Message for Bob');
+    });
+
     it('proxy parameter computation is correct', async () => {
         const secretBob = hexStringToArray('5989216365053dcf9e35a04b2a1fc19b83328426be6bb7d0a2ae78105e2e3188');
         const secretCharlie = hexStringToArray('684da6225bcd44d880168fc5bec7d2f746217f014c8019005f144cc148f16a00');
@@ -58,7 +99,9 @@ describe('forwarding', () => {
 
         // Check subkey differences
         const bobSubkey = await bobKey.getEncryptionKey();
-        const charlieSubkey = await charlieKey.getEncryptionKey();
+        const charlieSubkey = charlieKey.subkeys[0];
+
+        expect(charlieSubkey.bindingSignatures[0].keyFlags![0]).to.equal(enums.keyFlags.forwardedCommunication);
         // @ts-ignore oid field not defined
         expect(charlieSubkey.keyPacket.publicParams.oid).to.deep.equal(bobSubkey.keyPacket.publicParams.oid);
         // Check KDF params
@@ -129,14 +172,16 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
         );
         const { data: decryptedData } = await decryptMessage({
             message: await readMessage({ armoredMessage: transformedCiphertext }),
-            decryptionKeys: charlieKey
+            decryptionKeys: charlieKey,
+            config: { allowForwardedMessages: true }
         });
         expect(decryptedData).to.equal(plaintext);
 
         // Charlie cannot decrypt the original ciphertext
         const decryptionTrialPromise = decryptMessage({
             message: await readMessage({ armoredMessage: originalCiphertext }),
-            decryptionKeys: charlieKey
+            decryptionKeys: charlieKey,
+            config: { allowForwardedMessages: true }
         });
         expect(decryptionTrialPromise).to.be.rejectedWith(/Session key decryption failed/);
     });
@@ -179,7 +224,8 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
         );
         const { data: decryptedData1 } = await decryptMessage({
             message: await readMessage({ armoredMessage: transformedCiphertext1 }),
-            decryptionKeys: charlieKey
+            decryptionKeys: charlieKey,
+            config: { allowForwardedMessages: true }
         });
         expect(decryptedData1).to.equal(plaintext);
 
@@ -200,7 +246,8 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
         );
         const { data: decryptedData2 } = await decryptMessage({
             message: await readMessage({ armoredMessage: transformedCiphertext2 }),
-            decryptionKeys: charlieKey
+            decryptionKeys: charlieKey,
+            config: { allowForwardedMessages: true }
         });
         expect(decryptedData2).to.equal(plaintext);
     });
