@@ -1,4 +1,4 @@
-import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, MaybeArray, Subkey, config as defaultConfig, SubkeyOptions } from '../openpgp';
+import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, MaybeArray, Subkey, config as defaultConfig, SubkeyOptions, enums } from '../openpgp';
 import { generateKey, reformatKey } from './utils';
 
 // TODO (investigate): top-level import of BigIntegerInterface causes issues in Jest tests in web-clients;
@@ -68,6 +68,16 @@ async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey) {
 export const doesKeySupportForwarding = (forwarderKey: PrivateKey) => (
     getEncryptionKeysForForwarding(forwarderKey)
         .then((keys) => keys.length > 0)
+        .catch(() => false)
+);
+
+/**
+ * Whether all the encryption-capable (sub)keys are setup as forwarding keys
+ */
+export const isForwardingKey = (keyToCheck: PrivateKey) => (
+    getEncryptionKeysForForwarding(keyToCheck)
+        // @ts-ignore missing `bindingSignatures` definition
+        .then((keys) => keys.every((key) => key.bindingSignatures[0].keyFlags & enums.keyFlags.forwardedCommunication))
         .catch(() => false)
 );
 
