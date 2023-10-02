@@ -1,4 +1,4 @@
-import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, MaybeArray, Subkey, config as defaultConfig, SubkeyOptions, enums } from '../openpgp';
+import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, SecretKeyPacket, MaybeArray, Subkey, config as defaultConfig, SubkeyOptions, enums } from '../openpgp';
 import { generateKey, reformatKey } from './utils';
 
 // TODO (investigate): top-level import of BigIntegerInterface causes issues in Jest tests in web-clients;
@@ -51,7 +51,8 @@ async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey) {
 
     if (forwarderEncryptionKeys.some((forwarderSubkey) => (
         !forwarderSubkey ||
-        !forwarderSubkey.isDecrypted() ||
+        !(forwarderSubkey.keyPacket instanceof SecretKeyPacket) || // SecretSubkeyPacket is a subclass
+        forwarderSubkey.keyPacket.isDummy() ||
         forwarderSubkey.keyPacket.version !== 4 || // TODO add support for v6
         forwarderSubkey.getAlgorithmInfo().algorithm !== 'ecdh' ||
         forwarderSubkey.getAlgorithmInfo().curve !== curveName
@@ -65,14 +66,22 @@ async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey) {
 /**
  * Whether the given key can be used as input to `generateForwardingMaterial` to setup forwarding.
  */
-export const doesKeySupportForwarding = (forwarderKey: PrivateKey) => (
-    getEncryptionKeysForForwarding(forwarderKey)
-        .then((keys) => keys.length > 0)
-        .catch(() => false)
-);
+export async function doesKeySupportForwarding(forwarderKey: PrivateKey): Promise<boolean> {
+    if (!forwarderKey.isDecrypted()) {
+        return false;
+    }
+
+    try {
+        const keys = await getEncryptionKeysForForwarding(forwarderKey);
+        return keys.length > 0;
+    } catch {
+        return false;
+    }
+}
 
 /**
- * Whether all the encryption-capable (sub)keys are setup as forwarding keys
+ * Whether all the encryption-capable (sub)keys are setup as forwarding keys.
+ * This function also supports encrypted private keys.
  */
 export const isForwardingKey = (keyToCheck: PrivateKey) => (
     getEncryptionKeysForForwarding(keyToCheck)
@@ -94,6 +103,10 @@ export async function generateForwardingMaterial(
     forwarderKey: PrivateKey,
     userIDsForForwardeeKey: MaybeArray<UserID>
 ) {
+    if (!forwarderKey.isDecrypted()) {
+        throw new Error('Forwarder key must be decrypted');
+    }
+
     const curveName = 'curve25519';
     const forwarderEncryptionKeys = await getEncryptionKeysForForwarding(forwarderKey);
     const { privateKey: forwardeeKeyToSetup } = await generateKey({ // TODO handle v6 keys
