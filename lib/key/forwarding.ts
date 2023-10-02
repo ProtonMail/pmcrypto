@@ -66,7 +66,7 @@ async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey) {
 /**
  * Whether the given key can be used as input to `generateForwardingMaterial` to setup forwarding.
  */
-export const doesKeySupportForwarding = (forwarderKey: PrivateKey) => (
+export const doesKeySupportForwarding = async (forwarderKey: PrivateKey) => (
     forwarderKey.isDecrypted() && getEncryptionKeysForForwarding(forwarderKey)
         .then((keys) => keys.length > 0)
         .catch(() => false)
