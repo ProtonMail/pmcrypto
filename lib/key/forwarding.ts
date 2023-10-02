@@ -40,7 +40,7 @@ export async function computeProxyParameter(
     return proxyParameter;
 }
 
-async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey) {
+async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey, expectDecrypted = true) {
     const curveName = 'curve25519';
     const forwarderEncryptionKeys = await forwarderKey.getDecryptionKeys(
         undefined,
@@ -51,7 +51,7 @@ async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey) {
 
     if (forwarderEncryptionKeys.some((forwarderSubkey) => (
         !forwarderSubkey ||
-        !forwarderSubkey.isDecrypted() ||
+        (expectDecrypted && !forwarderSubkey.isDecrypted()) ||
         forwarderSubkey.keyPacket.version !== 4 || // TODO add support for v6
         forwarderSubkey.getAlgorithmInfo().algorithm !== 'ecdh' ||
         forwarderSubkey.getAlgorithmInfo().curve !== curveName
@@ -72,10 +72,11 @@ export const doesKeySupportForwarding = (forwarderKey: PrivateKey) => (
 );
 
 /**
- * Whether all the encryption-capable (sub)keys are setup as forwarding keys
+ * Whether all the encryption-capable (sub)keys are setup as forwarding keys.
+ * This function also supports encrypted private keys.
  */
 export const isForwardingKey = (keyToCheck: PrivateKey) => (
-    getEncryptionKeysForForwarding(keyToCheck)
+    getEncryptionKeysForForwarding(keyToCheck, false)
         // @ts-ignore missing `bindingSignatures` definition
         .then((keys) => keys.every((key) => key.bindingSignatures[0].keyFlags & enums.keyFlags.forwardedCommunication))
         .catch(() => false)

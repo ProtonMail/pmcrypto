@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { ec as EllipticCurve } from 'elliptic';
 import BN from 'bn.js';
 
-import { enums, KeyID, PacketList } from '../../lib/openpgp';
+import { decryptKey, enums, KeyID, PacketList } from '../../lib/openpgp';
 import { generateKey, generateForwardingMaterial, doesKeySupportForwarding, encryptMessage, decryptMessage, readMessage, readKey, readPrivateKey } from '../../lib';
 import { computeProxyParameter, isForwardingKey } from '../../lib/key/forwarding';
 import { hexStringToArray, concatArrays, arrayToHexString } from '../../lib/utils';
@@ -324,21 +324,26 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
     });
 
     it('isForwardingKey', async () => {
-        const charlieKey = await readPrivateKey({ armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
+        const charlieKeyEncrypted = await readPrivateKey({ armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
 
-xVgEZAdtGBYJKwYBBAHaRw8BAQdAcNgHyRGEaqGmzEqEwCobfUkyrJnY8faBvsf9
-R2c5ZzYAAP9bFL4nPBdo04ei0C2IAh5RXOpmuejGC3GAIn/UmL5cYQ+XzRtjaGFy
-bGVzIDxjaGFybGVzQHByb3Rvbi5tZT7CigQTFggAPAUCZAdtGAmQFXJtmBzDhdcW
-IQRl2gNflypl1XjRUV8Vcm2YHMOF1wIbAwIeAQIZAQILBwIVCAIWAAIiAQAAJKYA
-/2qY16Ozyo5erNz51UrKViEoWbEpwY3XaFVNzrw+b54YAQC7zXkf/t5ieylvjmA/
-LJz3/qgH5GxZRYAH9NTpWyW1AsdxBGQHbRgSCisGAQQBl1UBBQEBB0CxmxoJsHTW
-TiETWh47ot+kwNA1hCk1IYB9WwKxkXYyIBf/CgmKXzV1ODP/mRmtiBYVV+VQk5MF
-EAAA/1NW8D8nMc2ky140sPhQrwkeR7rVLKP2fe5n4BEtAnVQEB3CeAQYFggAKgUC
-ZAdtGAmQFXJtmBzDhdcWIQRl2gNflypl1XjRUV8Vcm2YHMOF1wIbUAAAl/8A/iIS
-zWBsBR8VnoOVfEE+VQk6YAi7cTSjcMjfsIez9FYtAQDKo9aCMhUohYyqvhZjn8aS
-3t9mIZPc+zRJtCHzQYmhDg==
-=lESj
+xYYEZAdtGBYJKwYBBAHaRw8BAQdAcNgHyRGEaqGmzEqEwCobfUkyrJnY8faB
+vsf9R2c5Zzb+CQMI0YEeYODMnX7/8Bm7rq3beejbyFxINLDKMehud14ePBBw
+0t2bzVTtdpNDh1ck070XBO5oRF8zRzFw2ziyShz5KyA0MwQxu+B0q9rbJ2pl
+C80bY2hhcmxlcyA8Y2hhcmxlc0Bwcm90b24ubWU+wooEExYIADwFAmQHbRgJ
+kBVybZgcw4XXFiEEZdoDX5cqZdV40VFfFXJtmBzDhdcCGwMCHgECGQECCwcC
+FQgCFgACIgEAACSmAP9qmNejs8qOXqzc+dVKylYhKFmxKcGN12hVTc68Pm+e
+GAEAu815H/7eYnspb45gPyyc9/6oB+RsWUWAB/TU6VsltQLHnwRkB20YEgor
+BgEEAZdVAQUBAQdAsZsaCbB01k4hE1oeO6LfpMDQNYQpNSGAfVsCsZF2MiAX
+/woJil81dTgz/5kZrYgWFVflUJOTBRD+CQMIjcTRUSYiwLP/ectAkFq9iyz9
+qXjJe4T8RAwMG7UDIhE89gwTwfbSBOxKWpg5v3H/Yk4Fi7LKrg5K3pdVxvrL
+sAAEJmKlJMGXnZ4HOB75NsJ4BBgWCAAqBQJkB20YCZAVcm2YHMOF1xYhBGXa
+A1+XKmXVeNFRXxVybZgcw4XXAhtQAACX/wD+IhLNYGwFHxWeg5V8QT5VCTpg
+CLtxNKNwyN+wh7P0Vi0BAMqj1oIyFSiFjKq+FmOfxpLe32Yhk9z7NEm0IfNB
+iaEO
+=Szic
 -----END PGP PRIVATE KEY BLOCK-----` });
+
+        const charlieKey = await decryptKey({ privateKey: charlieKeyEncrypted, passphrase: 'passphrase' });
 
         const bobKey = await readPrivateKey({ armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
 
@@ -355,6 +360,7 @@ siLL+xMJ+Hy4AhsMAAAKagEA4Knj6S6nG24nuXfqkkytPlFTHwzurjv3+qqXwWL6
 =un5O
 -----END PGP PRIVATE KEY BLOCK-----` });
 
+        await expect(isForwardingKey(charlieKeyEncrypted)).to.eventually.be.true;
         await expect(isForwardingKey(charlieKey)).to.eventually.be.true;
         await expect(isForwardingKey(bobKey)).to.eventually.be.false;
     });
