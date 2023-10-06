@@ -106,10 +106,56 @@ yGZuVVMAK/ypFfebDf4D/rlEw3cysv213m8aoK8nAUO8xQX3XQq3Sg+EGm0BNV8E
         expect(charlieSubkey.keyPacket.publicParams.oid).to.deep.equal(bobSubkey.keyPacket.publicParams.oid);
         // Check KDF params
         // @ts-ignore kdfParams field not defined
-        expect(charlieSubkey.keyPacket.publicParams.kdfParams.version).to.equal(0xFF);
+        const charlieSubkeyKDFParams = charlieSubkey.keyPacket.publicParams.kdfParams;
+        // @ts-ignore kdfParams field not defined
+        const bobSubkeyKDFParams = bobSubkey.keyPacket.publicParams.kdfParams;
+        expect(charlieSubkeyKDFParams.hash).to.equal(bobSubkeyKDFParams.hash);
+        expect(charlieSubkeyKDFParams.cipher).to.equal(bobSubkeyKDFParams.cipher);
+        expect(charlieSubkeyKDFParams.version).to.equal(0xFF);
         expect(
-            // @ts-ignore kdfParams field not defined
-            charlieSubkey.keyPacket.publicParams.kdfParams.replacementFingerprint
+            charlieSubkeyKDFParams.replacementFingerprint
+        ).to.deep.equal(bobSubkey.keyPacket.getFingerprintBytes());
+    });
+
+    it('generate forwarding key - KDF params hash and cipher are correctly copied over', async () => {
+        // sha512 and aes256 as KDFParams options
+        const bobKey = await readPrivateKey({ armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEZR5v2hYJKwYBBAHaRw8BAQdANGEppfpOvm+WZ2q2GZxRSo8FR3eIgJxC
+Caeey6SO5KUAAP9Ipt8zxY7LnnNBGzlgcGiBA4qQNBZ6VecLdNgShl8AEg35
+zQ48dGVzdEB0ZXN0Lml0PsKMBBAWCgA+BYJlH8uEBAsJBwgJkHXYKIC+P8wd
+AxUICgQWAAIBAhkBApsDAh4BFiEEhJYaMQwPxUSp5y0BddgogL4/zB0AAL4i
+AP9UkQvVedKAxiNvr4mGQOLRlOEHw1sZjil3wm6I0mcbnQD/e5zWQj7ToEOL
+Pq5wc5guttKvMi5vXO+N7SjFdV7KTwPHXQRlHm/aEgorBgEEAZdVAQUBAQdA
+jNr0MP98DXFIB4Ge1ydzGV0GW2W+OrVvVSioj7p/PU0DAQoJAAD/bZITV/Pf
+5Xz6Btg820PoeZY8AseQT0vOkJ5R3pOW8KgS38J4BBgWCAAqBYJlH8uECZB1
+2CiAvj/MHQKbDBYhBISWGjEMD8VEqectAXXYKIC+P8wdAACdTgEA6vGgdMfI
+S6CP/U6uXws66mIgL7CmFVMKqLLJaASqcQwA/isDrUVgBnhkwF+IPZvEUZY3
+P0GnopWOyFNNFWK77LQN
+=Lyee
+-----END PGP PRIVATE KEY BLOCK-----` });
+
+        const { forwardeeKey } = await generateForwardingMaterial(bobKey, [{ name: 'Charlie', email: 'info@charlie.com' }]);
+        const charlieKey = await readKey({ armoredKey: forwardeeKey.armor() }); // ensure key is correctly serialized and parsed
+
+        // Check subkey differences
+        const bobSubkey = await bobKey.getEncryptionKey();
+        const charlieSubkey = charlieKey.subkeys[0];
+
+        expect(charlieSubkey.bindingSignatures[0].keyFlags![0]).to.equal(enums.keyFlags.forwardedCommunication);
+        // @ts-ignore oid field not defined
+        expect(charlieSubkey.keyPacket.publicParams.oid).to.deep.equal(bobSubkey.keyPacket.publicParams.oid);
+
+        // Check KDF params
+        // @ts-ignore kdfParams field not defined
+        const charlieSubkeyKDFParams = charlieSubkey.keyPacket.publicParams.kdfParams;
+        // @ts-ignore kdfParams field not defined
+        const bobSubkeyKDFParams = bobSubkey.keyPacket.publicParams.kdfParams;
+        expect(charlieSubkeyKDFParams.hash).to.equal(bobSubkeyKDFParams.hash);
+        expect(charlieSubkeyKDFParams.cipher).to.equal(bobSubkeyKDFParams.cipher);
+        expect(charlieSubkeyKDFParams.version).to.equal(0xFF);
+        expect(
+            charlieSubkeyKDFParams.replacementFingerprint
         ).to.deep.equal(bobSubkey.keyPacket.getFingerprintBytes());
     });
 

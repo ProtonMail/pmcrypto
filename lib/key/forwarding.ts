@@ -124,7 +124,7 @@ export async function generateForwardingMaterial(
 
         // Add KDF params for forwarding
         // @ts-ignore missing publicParams definition
-        const { hash, cipher } = forwardeeSubkeyPacket.publicParams.kdfParams;
+        const { hash, cipher } = forwarderSubkeyPacket.publicParams.kdfParams;
         // @ts-ignore missing publicParams definition
         forwardeeSubkeyPacket.publicParams.kdfParams = new KDFParams({
             version: 0xFF,
