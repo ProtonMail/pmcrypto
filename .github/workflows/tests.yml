@@ -20,13 +20,13 @@ jobs:
       - run: npm run test-type-definitions
 
       - name: Install Chrome
-        run: npx playwright install-deps chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Install Firefox
-        run: npx playwright install-deps firefox
+        run: npx playwright install --with-deps firefox
 
       - name: Install Webkit
-        run: npx playwright install-deps webkit
+        run: npx playwright install --with-deps webkit
 
       - name: Run tests
         run: npm test
