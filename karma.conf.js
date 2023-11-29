@@ -35,6 +35,9 @@ module.exports = function(config) {
         },
 
         webpack: {
+            optimization: {
+                nodeEnv: 'production', // silence OpenPGP.js debug errors, triggered by some tests
+            },
             resolve: {
                 fallback: {
                     stream: false,

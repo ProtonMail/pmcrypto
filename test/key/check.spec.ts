@@ -1,7 +1,5 @@
 import { expect } from 'chai';
-import { checkKeyStrength } from '../../lib';
-import { keyCheck } from '../../lib/key/check';
-import { readKey, enums } from '../../lib/openpgp';
+import { checkKeyStrength, checkKeyCompatibility, readKey } from '../../lib';
 
 export const ecc25519Key = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -80,26 +78,47 @@ describe('key checks', () => {
         ).to.not.throw;
     });
 
-    // Test issue https://github.com/ProtonMail/pmcrypto/issues/92
-    it('keyCheck - it can check userId against a given email', () => {
-        const info = {
-            version: 4,
-            userIDs: ['jb'],
-            algorithmName: 'ecdsa',
-            encrypt: {},
-            revocationSignatures: [],
-            sign: {},
-            user: {
-                hash: [enums.hash.sha256],
-                symmetric: [enums.symmetric.aes256],
-                userId: 'Jacky Black <jackyblack@foo.com>'
-            }
-        };
+    it('compatibility - it rejects a v4 key using the new EdDSA format', async () => {
+        const key = await readKey({ armoredKey: `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
-        expect(keyCheck(info, 'jackyblack@foo.com')).to.deep.equal(info);
-
+xiYEZIbSkxsHknQrXGfb+kM2iOsOvin8yE05ff5hF8KE6k+saspAZc0VdXNl
+ciA8dXNlckB0ZXN0LnRlc3Q+wocEExsIAD0FAmSG0pMJkEHsytogdrSJFiEE
+amc2vcEGXMMaYxmDQezK2iB2tIkCGwMCHgECGQECCwcCFQgCFgADJwcCAABT
+nme46ymbAs0X7tX3xWu+9O+LLdM0aAUyV6FwUNWcy47IfmTunwdqHZ2CbUGL
+Lb+OR/9yci1aIHDJxXmJh3kj9wDOJgRkhtKTGX6Xe04jkL+7ikivpOB0/ZSq
++fnZr2+76Mf/InbOrpxJwnQEGBsIACoFAmSG0pMJkEHsytogdrSJFiEEamc2
+vcEGXMMaYxmDQezK2iB2tIkCGwwAAMJizYj3AFqQi70eHGzhHcmr0XwnsAfL
+Gw0vQaiZn6HGITQw5nBGvXQPF9VpFpsXV9x/08dIdfZLAQVdQowgeBsxCw==
+=JIkN
+-----END PGP PUBLIC KEY BLOCK-----` });
         expect(
-            () => keyCheck(info, 'jack.black@foo.com')
-        ).to.throw(/UserID does not contain correct email address/);
+            () => checkKeyCompatibility(key)
+        ).to.throw(/key algorithm is currently not supported/);
+    });
+
+    it('compatibility - it rejects a v6 key', async () => {
+        // currently reading the key fails, but once OpenPGP.js v6 is integrated, we'll test `checkKeyCompatibility`
+        await expect(readKey({ armoredKey: `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+xioGY4d/4xsAAAAg+U2nu0jWCmHlZ3BqZYfQMxmZu52JGggkLq2EVD34laPCsQYf
+GwoAAABCBYJjh3/jAwsJBwUVCg4IDAIWAAKbAwIeCSIhBssYbE8GCaaX5NUt+mxy
+KwwfHifBilZwj2Ul7Ce62azJBScJAgcCAAAAAK0oIBA+LX0ifsDm185Ecds2v8lw
+gyU2kCcUmKfvBXbAf6rhRYWzuQOwEn7E/aLwIwRaLsdry0+VcallHhSu4RN6HWaE
+QsiPlR4zxP/TP7mhfVEe7XWPxtnMUMtf15OyA51YBM4qBmOHf+MZAAAAIIaTJINn
++eUBXbki+PSAld2nhJh/LVmFsS+60WyvXkQ1wpsGGBsKAAAALAWCY4d/4wKbDCIh
+BssYbE8GCaaX5NUt+mxyKwwfHifBilZwj2Ul7Ce62azJAAAAAAQBIKbpGG2dWTX8
+j+VjFM21J0hqWlEg+bdiojWnKfA5AQpWUWtnNwDEM0g12vYxoWM8Y81W+bHBw805
+I8kWVkXU6vFOi+HWvv/ira7ofJu16NnoUkhclkUrk0mXubZvyl4GBg==
+-----END PGP PUBLIC KEY BLOCK-----` })).to.be.rejectedWith(/No key packet found/);
+        // expect(
+        //     () => checkKeyCompatibility(key)
+        // ).to.throw(/v6 keys are currently not supported/);
+    });
+
+    it('compatibility - it does not reject a v4 key using the eddsa legacy format', async () => {
+        const key = await readKey({ armoredKey: ecc25519Key });
+        expect(
+            () => checkKeyCompatibility(key)
+        ).to.not.throw;
     });
 });

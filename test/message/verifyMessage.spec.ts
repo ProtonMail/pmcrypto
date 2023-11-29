@@ -1,6 +1,5 @@
 import { expect } from 'chai';
-import { readKey } from '../../lib/openpgp';
-import { verifyMessage, generateKey, verifyCleartextMessage, readSignature, readCleartextMessage } from '../../lib';
+import { readKey, verifyMessage, generateKey, verifyCleartextMessage, readSignature, readCleartextMessage } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
 const detachedSignatureFromTwoKeys = `-----BEGIN PGP SIGNATURE-----
