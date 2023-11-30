@@ -1,27 +1,7 @@
-import BigIntegerInterface from '@openpgp/noble-hashes/esm/biginteger/interface';
-import NativeBigInteger from '@openpgp/noble-hashes/esm/biginteger/native.interface';
 import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, SecretKeyPacket, MaybeArray, Subkey, config as defaultConfig, SubkeyOptions, enums } from '../openpgp';
+import { getBigInteger } from '../bigInteger';
 import { generateKey, reformatKey } from './utils';
 import { serverTime } from '../serverTime';
-
-let initializedBigInteger = false;
-const getBigInteger = async () => {
-    // openpgpjs v5 internally includes a BigInteger implementation, but it is not exported.
-    // noble-hashes's BigInteger export automatically imports BN.js (as BigInt fallback),
-    // instead we only import it if needed to minimise the bundle size.
-    if (initializedBigInteger) return BigIntegerInterface;
-
-    const detectBigInt = () => typeof BigInt !== 'undefined';
-    if (detectBigInt()) {
-        BigIntegerInterface.setImplementation(NativeBigInteger);
-    } else {
-        const { default: FallbackBigInteger } = await import('@openpgp/noble-hashes/esm/biginteger/bn.interface');
-        BigIntegerInterface.setImplementation(FallbackBigInteger);
-    }
-
-    initializedBigInteger = true;
-    return BigIntegerInterface;
-};
 
 export async function computeProxyParameter(
     forwarderSecret: Uint8Array,
@@ -29,16 +9,16 @@ export async function computeProxyParameter(
 ): Promise<Uint8Array> {
     const BigInteger = await getBigInteger();
 
-    const dB = BigInteger.new(forwarderSecret);
-    const dC = BigInteger.new(forwardeeSecret);
-    const n = BigInteger.new('0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed'); // 2^252 + 0x14def9dea2f79cd65812631a5cf5d3ed
+    const dB = new BigInteger(forwarderSecret);
+    const dC = new BigInteger(forwardeeSecret);
+    const n = new BigInteger('0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed'); // 2^252 + 0x14def9dea2f79cd65812631a5cf5d3ed
     const proxyParameter = dC.modInv(n).mul(dB).mod(n).toUint8Array('le', forwardeeSecret.length);
 
     return proxyParameter;
 }
 
 async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey, date: Date) {
-    const curveName = 'curve25519';
+    const curveName = 'curve25519Legacy';
     const forwarderEncryptionKeys = await forwarderKey.getDecryptionKeys(
         undefined,
         date,
@@ -105,7 +85,7 @@ export async function generateForwardingMaterial(
         throw new Error('Forwarder key must be decrypted');
     }
 
-    const curveName = 'curve25519';
+    const curveName = 'curve25519Legacy';
     const forwarderEncryptionKeys = await getEncryptionKeysForForwarding(forwarderKey, date);
     const { privateKey: forwardeeKeyToSetup } = await generateKey({ // TODO handle v6 keys
         type: 'ecc',

@@ -188,7 +188,7 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
 
     it('decryption with forwarding - v4 key', async () => {
         const { privateKey: bobKey } = await generateKey({
-            userIDs: [{ name: 'Bob', email: 'info@bob.com' }], curve: 'curve25519', format: 'object'
+            userIDs: [{ name: 'Bob', email: 'info@bob.com' }], curve: 'curve25519Legacy', format: 'object'
         });
         const plaintext = 'Hello Bob, hello world';
 
@@ -234,7 +234,7 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
 
     it('decryption with forwarding - v4 key with multiple subkeys', async () => {
         const { privateKey: bobKey } = await generateKey({
-            curve: 'curve25519',
+            curve: 'curve25519Legacy',
             userIDs: [{ name: 'Bob', email: 'info@bob.com' }],
             subkeys: [{}, { sign: true }, {}], // ensure that signing subkey creates no issues
             format: 'object'
