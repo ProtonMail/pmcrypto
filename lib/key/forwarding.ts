@@ -1,7 +1,6 @@
+import type { BigInteger as BigIntegerInterface } from '@openpgp/noble-hashes/biginteger';
 import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, SecretKeyPacket, MaybeArray, Subkey, config as defaultConfig, SubkeyOptions, enums } from '../openpgp';
 import { generateKey, reformatKey } from './utils';
-
-import type { BigInteger as BigIntegerInterface } from '@openpgp/noble-hashes/biginteger';
 
 let MaybeUninitializedBigInteger: typeof BigIntegerInterface;
 const getBigInteger = async () => {
@@ -10,7 +9,7 @@ const getBigInteger = async () => {
     // so we do the same here.
     if (MaybeUninitializedBigInteger) return MaybeUninitializedBigInteger;
 
-    MaybeUninitializedBigInteger = await import('@openpgp/noble-hashes/biginteger').then(mod => mod.default);
+    MaybeUninitializedBigInteger = await import('@openpgp/noble-hashes/biginteger').then((mod) => mod.default);
     return MaybeUninitializedBigInteger;
 };
 
