@@ -20,8 +20,6 @@ export const setConfig = () => {
     config.rejectPublicKeyAlgorithms = new Set();
     config.rejectCurves = new Set();
     config.minRSABits = 1023;
-
-    config.checkEdDSAFaultySignatures = false; // let each web-client enable the check
 };
 
 export * from 'openpgp/lightweight';
