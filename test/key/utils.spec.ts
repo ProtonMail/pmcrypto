@@ -50,7 +50,7 @@ T/efFOC6BDkAAHcjAPwIPNHnR9bKmkVop6cE05dCIpZ/W8zXDGnjKYrrC4Hb
 
     it('sha256 fingerprints - v6 key', async () => {
         const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v6Keys: true }, format: 'object' });
-        
+
         const fingerprints = publicKey.getKeys().map((key) => key.getFingerprint());
         const sha256Fingerprints = await getSHA256Fingerprints(publicKey);
         expect(sha256Fingerprints.length).to.equal(fingerprints.length);
