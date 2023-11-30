@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "target": "es2021",
-        "moduleResolution": "node",
+        "moduleResolution": "Bundler",
         "module": "esnext",
         "strict": true,
         "sourceMap": true,

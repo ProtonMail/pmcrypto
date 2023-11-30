@@ -18,8 +18,7 @@ import {
     readMessage, readSignature, readCleartextMessage,
     readKey, readKeys, readPrivateKey, readPrivateKeys,
     PartialConfig,
-    enums,
-    EllipticCurveName
+    AlgorithmInfo
 } from 'openpgp/lightweight';
 
 import { VERIFICATION_STATUS, SIGNATURE_TYPES } from './constants';
@@ -48,7 +47,8 @@ export {
     decryptKey, encryptKey,
     readMessage, readSignature, readCleartextMessage,
     readKey, readKeys, readPrivateKey, readPrivateKeys,
-    PrivateKey, PublicKey, Key, SessionKey
+    PrivateKey, PublicKey, Key, SessionKey,
+    AlgorithmInfo
 };
 
 export { generateForwardingMaterial, doesKeySupportForwarding, isForwardingKey } from './key/forwarding';
@@ -176,13 +176,6 @@ export {
     armorBytes,
     stripArmor
 } from './message/utils';
-
-export type PublicKeyNames = enums.publicKeyNames | 'ed25519' | 'x25519'; // TODO drop once types are updated in OpenPGP.js v6
-export interface AlgorithmInfo {
-    algorithm: PublicKeyNames;
-    bits?: number; // if algorithm == 'rsaEncryptSign' | 'rsaEncrypt' | 'rsaSign'
-    curve?: EllipticCurveName; // if algorithm == 'ecdh' | 'eddsa' | 'ecdsa'
-}
 
 export { SHA256, SHA512, unsafeMD5, unsafeSHA1 } from './crypto/hash';
 export { argon2, Argon2Options } from './crypto/argon2';
