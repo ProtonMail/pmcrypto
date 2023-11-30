@@ -1,29 +1,17 @@
 import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, SecretKeyPacket, MaybeArray, Subkey, config as defaultConfig, SubkeyOptions, enums } from '../openpgp';
 import { generateKey, reformatKey } from './utils';
 
-// TODO (investigate): top-level import of BigIntegerInterface causes issues in Jest tests in web-clients;
-// the dynamic import of BigIntegerInterface is a temporary fix until the problem is understood/resolved.
-let BigIntegerInterface: any;
+import type { BigInteger as BigIntegerInterface } from '@openpgp/noble-hashes/biginteger';
+
+let MaybeUninitializedBigInteger: typeof BigIntegerInterface;
 const getBigInteger = async () => {
-    // Temporary function to be dropped once openpgpjs v6 (which will bundle noble-hashes) is integrated.
-    // openpgpjs v5 internally includes a BigInteger implementation, but it is not exported.
-    // noble-hashes's BigInteger export automatically imports BN.js (as BigInt fallback),
-    // instead we only import it if needed to minimise the bundle size.
-    if (BigIntegerInterface) return BigIntegerInterface;
+    // noble-hashes's BigInteger export automatically imports BN.js (as BigInt fallback).
+    // Because of its large size, and the fact that it's not always needed, openpgpjs v6 only imports noble-hashes dynamically,
+    // so we do the same here.
+    if (MaybeUninitializedBigInteger) return MaybeUninitializedBigInteger;
 
-    BigIntegerInterface = await import('@openpgp/noble-hashes/esm/biginteger/interface').then((mod) => mod.default);
-
-    const detectBigInt = () => typeof BigInt !== 'undefined';
-    if (detectBigInt()) {
-        // NativeBigInteger is small, so it could also be imported always
-        const { default: NativeBigInteger } = await import('@openpgp/noble-hashes/esm/biginteger/native.interface');
-        BigIntegerInterface.setImplementation(NativeBigInteger);
-    } else {
-        const { default: FallbackBigInteger } = await import('@openpgp/noble-hashes/esm/biginteger/bn.interface');
-        BigIntegerInterface.setImplementation(FallbackBigInteger);
-    }
-
-    return BigIntegerInterface;
+    MaybeUninitializedBigInteger = await import('@openpgp/noble-hashes/biginteger').then(mod => mod.default);
+    return MaybeUninitializedBigInteger;
 };
 
 export async function computeProxyParameter(
@@ -41,7 +29,7 @@ export async function computeProxyParameter(
 }
 
 async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey) {
-    const curveName = 'curve25519';
+    const curveName = 'curve25519Legacy';
     const forwarderEncryptionKeys = await forwarderKey.getDecryptionKeys(
         undefined,
         undefined,
@@ -107,7 +95,7 @@ export async function generateForwardingMaterial(
         throw new Error('Forwarder key must be decrypted');
     }
 
-    const curveName = 'curve25519';
+    const curveName = 'curve25519Legacy';
     const forwarderEncryptionKeys = await getEncryptionKeysForForwarding(forwarderKey);
     const { privateKey: forwardeeKeyToSetup } = await generateKey({ // TODO handle v6 keys
         type: 'ecc',
