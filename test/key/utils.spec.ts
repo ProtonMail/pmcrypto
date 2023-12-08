@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { revokeKey, sign, createMessage } from '../../lib/openpgp';
+import { revokeKey, sign, createMessage, enums } from '../../lib/openpgp';
 import {
     isExpiredKey,
     isRevokedKey,
@@ -41,6 +41,17 @@ describe('key utils', () => {
         });
         const now = new Date();
         expect(Math.abs(+privateKey.getCreationTime() - +now) < 24 * 3600).to.be.true;
+    });
+
+    it('generateKey - it includes the BE-expected algorithm preferences', async () => {
+        const { privateKey } = await generateKey({
+            userIDs: [{ name: 'name', email: 'email@test.com' }],
+            format: 'object'
+        });
+        const { selfCertification } = await privateKey.getPrimaryUser();
+        expect(selfCertification.preferredSymmetricAlgorithms).to.include(enums.symmetric.aes256);
+        expect(selfCertification.preferredHashAlgorithms).to.include(enums.hash.sha256);
+        expect(selfCertification.preferredCompressionAlgorithms).to.include(enums.compression.zlib);
     });
 
     it('reformatKey - it reformats a key using the key creation time', async () => {
