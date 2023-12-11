@@ -76,6 +76,9 @@ T/efFOC6BDkAAHcjAPwIPNHnR9bKmkVop6cE05dCIpZ/W8zXDGnjKYrrC4Hb
         expect(selfCertification.preferredSymmetricAlgorithms).to.include(enums.symmetric.aes256);
         expect(selfCertification.preferredHashAlgorithms).to.include(enums.hash.sha256);
         expect(selfCertification.preferredCompressionAlgorithms).to.include(enums.compression.zlib);
+        // v6 canary: temporarily guard against sha3 being in the preferences, as it's not supported by OpenPGP.js v5
+        expect(selfCertification.preferredHashAlgorithms).to.not.include(12); // sha3_256
+        expect(selfCertification.preferredHashAlgorithms).to.not.include(14); // sha3_512
     });
 
     it('reformatKey - it reformats a key using the key creation time', async () => {
