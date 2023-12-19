@@ -1,28 +1,24 @@
+import BigIntegerInterface from '@openpgp/noble-hashes/esm/biginteger/interface';
+import NativeBigInteger from '@openpgp/noble-hashes/esm/biginteger/native.interface';
 import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, SecretKeyPacket, MaybeArray, Subkey, config as defaultConfig, SubkeyOptions, enums } from '../openpgp';
 import { generateKey, reformatKey } from './utils';
 
-// TODO (investigate): top-level import of BigIntegerInterface causes issues in Jest tests in web-clients;
-// the dynamic import of BigIntegerInterface is a temporary fix until the problem is understood/resolved.
-let BigIntegerInterface: any;
+let initializedBigInteger = false;
 const getBigInteger = async () => {
-    // Temporary function to be dropped once openpgpjs v6 (which will bundle noble-hashes) is integrated.
     // openpgpjs v5 internally includes a BigInteger implementation, but it is not exported.
     // noble-hashes's BigInteger export automatically imports BN.js (as BigInt fallback),
     // instead we only import it if needed to minimise the bundle size.
-    if (BigIntegerInterface) return BigIntegerInterface;
-
-    BigIntegerInterface = await import('@openpgp/noble-hashes/esm/biginteger/interface').then((mod) => mod.default);
+    if (initializedBigInteger) return BigIntegerInterface;
 
     const detectBigInt = () => typeof BigInt !== 'undefined';
     if (detectBigInt()) {
-        // NativeBigInteger is small, so it could also be imported always
-        const { default: NativeBigInteger } = await import('@openpgp/noble-hashes/esm/biginteger/native.interface');
         BigIntegerInterface.setImplementation(NativeBigInteger);
     } else {
         const { default: FallbackBigInteger } = await import('@openpgp/noble-hashes/esm/biginteger/bn.interface');
         BigIntegerInterface.setImplementation(FallbackBigInteger);
     }
 
+    initializedBigInteger = true;
     return BigIntegerInterface;
 };
 
