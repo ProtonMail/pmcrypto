@@ -214,6 +214,7 @@ export interface AlgorithmInfo {
 }
 
 export { SHA256, SHA512, unsafeMD5, unsafeSHA1 } from './crypto/hash';
+export { argon2, Argon2Options } from './crypto/argon2';
 
 export { verifyMessage, verifyCleartextMessage } from './message/verify';
 export type { VerifyCleartextOptionsPmcrypto, VerifyMessageResult, VerifyOptionsPmcrypto } from './message/verify';
