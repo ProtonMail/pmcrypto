@@ -97,6 +97,11 @@ const { data: decryptedData, verified } = await decryptMessage({
 **For streamed inputs:**
 to encrypt (and/or sign), pass the stream to `textData` or `binaryData` based on the streamed data type. Similarly, to decrypt and verify, the input options are the same as the non-streaming case. However, if `armoredMessage` (or `binaryMessage`) is a stream, the decryption result needs to be handled differently:
 ```js
+// explicitly loading stream polyfills for legacy browsers is required since v7.2.2
+if (!globalThis.TransformStream) {
+  await import('web-streams-polyfill/es6');
+}
+
 const { data: dataStream, verified: verifiedPromise } = await decryptMessage({
   message: await readMessage({ armoredMessage: streamedArmoredMessage }),
   ... // other options
