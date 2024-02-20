@@ -14,7 +14,8 @@
     "globals": {
         "window": "readonly",
         "btoa": "readonly",
-        "atob": "readonly"
+        "atob": "readonly",
+        "globalThis": "readonly"
     },
     "env": {
         "es6": true,
