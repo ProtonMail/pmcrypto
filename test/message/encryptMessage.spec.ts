@@ -16,11 +16,10 @@ const generateStreamOfData = (): { stream: WebStream<string>, data: string } => 
 
 describe('message encryption and decryption', () => {
     const { minRSABits } = globalConfig;
-
     before('downgrade openpgp config and load stream polyfills', async () => {
         globalConfig.minRSABits = 512;
 
-        // load stream ponyfills if needed
+        // load stream polyfills if needed
         if (!globalThis.TransformStream) {
             await import('web-streams-polyfill/es6');
         }
