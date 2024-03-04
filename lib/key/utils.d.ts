@@ -2,7 +2,6 @@ import {
     generateKey,
     reformatKey,
     generateSessionKey as openpgp_generateSessionKey,
-    MaybeArray,
     PrivateKey,
     PublicKey,
     Key,
@@ -13,6 +12,7 @@ import {
     Signature,
     Message
 } from '../openpgp';
+import { MaybeArray } from '../utils';
 
 export { generateKey, reformatKey, GenerateKeyOptions };
 
