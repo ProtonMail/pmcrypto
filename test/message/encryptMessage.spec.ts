@@ -1,7 +1,5 @@
 import { expect } from 'chai';
-// @ts-ignore missing web-stream-tools types
 import { readToEnd, toStream, WebStream } from '@openpgp/web-stream-tools';
-
 import { config as globalConfig, CompressedDataPacket, enums, SymEncryptedSessionKeyPacket, PartialConfig } from '../../lib/openpgp';
 
 import { decryptKey, readPrivateKey, verifyMessage, encryptMessage, decryptMessage, generateSessionKey, readSignature, readMessage, encryptSessionKey, decryptSessionKey } from '../../lib';
@@ -314,7 +312,7 @@ describe('message encryption and decryption', () => {
         const encryptedArmoredMessage = await readToEnd(encrypted);
 
         const { data: decrypted, verified } = await decryptMessage({
-            message: await readMessage({ armoredMessage: toStream(encryptedArmoredMessage) }),
+            message: await readMessage({ armoredMessage: toStream(encryptedArmoredMessage) as WebStream<string> }),
             encryptedSignature: await readMessage({ armoredMessage: encryptedSignature }),
             sessionKeys: sessionKey,
             verificationKeys: [decryptedPrivateKey.toPublic()],

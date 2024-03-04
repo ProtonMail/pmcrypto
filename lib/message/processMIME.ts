@@ -5,8 +5,8 @@ import { verifyMessage } from './verify';
 import { VERIFICATION_STATUS, MAX_ENC_HEADER_LENGTH } from '../constants';
 import { serverTime } from '../serverTime';
 import { parseMail, generateFileName } from './parseMail';
-import { readSignature, PublicKey, MaybeArray, Signature as OpenPGPSignature } from '../openpgp';
-import { arrayToHexString, utf8ArrayToString } from '../utils';
+import { readSignature, PublicKey, Signature as OpenPGPSignature } from '../openpgp';
+import { arrayToHexString, utf8ArrayToString, MaybeArray } from '../utils';
 
 import type { Attachment } from './parseMail';
 

@@ -1,7 +1,8 @@
-import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, SecretKeyPacket, MaybeArray, Subkey, config as defaultConfig, SubkeyOptions, enums } from '../openpgp';
+import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, SecretKeyPacket, Subkey, config as defaultConfig, SubkeyOptions, enums } from '../openpgp';
 import { getBigInteger } from '../bigInteger';
 import { generateKey, reformatKey } from './utils';
 import { serverTime } from '../serverTime';
+import { MaybeArray } from '../utils';
 
 export async function computeProxyParameter(
     forwarderSecret: Uint8Array,
