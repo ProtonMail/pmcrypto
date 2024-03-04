@@ -77,13 +77,13 @@ export type DecryptSessionKeyOptionsPmcrypto = Parameters<typeof openpgp_decrypt
 // This differs from `openpgp.decryptSessionKeys` in the return type
 export function decryptSessionKey(options: DecryptSessionKeyOptionsPmcrypto): Promise<SessionKey | undefined>;
 
-export interface DecryptOptionsPmcrypto<T extends MaybeStream<Data>> extends DecryptOptions {
+export interface DecryptOptionsPmcrypto<T extends MaybeWebStream<Data>> extends DecryptOptions {
     message: Message<T>;
-    encryptedSignature?: Message<MaybeStream<Data>>;
+    encryptedSignature?: Message<MaybeWebStream<Data>>;
     context?: ContextVerificationOptions
 }
 
-export interface DecryptResultPmcrypto<DataType extends openpgp_DecryptMessageResult['data'] = MaybeStream<Data>> {
+export interface DecryptResultPmcrypto<DataType extends openpgp_DecryptMessageResult['data'] = MaybeWebStream<Data>> {
     data: DataType;
     signatures: DataType extends WebStream<Data> ? Promise<OpenPGPSignature[]> : OpenPGPSignature[];
     filename: string;
@@ -91,7 +91,7 @@ export interface DecryptResultPmcrypto<DataType extends openpgp_DecryptMessageRe
     verificationErrors?: DataType extends WebStream<Data> ? Promise<Error[]> : Error[];
 }
 
-export function decryptMessage<DataType extends MaybeStream<Data>, FormatType extends DecryptOptions['format'] = 'utf8'>(
+export function decryptMessage<DataType extends MaybeWebStream<Data>, FormatType extends DecryptOptions['format'] = 'utf8'>(
     options: DecryptOptionsPmcrypto<DataType> & { format?: FormatType }
 ): Promise<
     FormatType extends 'utf8' ?
@@ -124,14 +124,14 @@ export function decryptMIMEMessage(options: DecryptMimeOptions): Promise<{
     signatures: OpenPGPSignature[];
 }>;
 
-export type MaybeStream<T extends Uint8Array | string> = T | WebStream<T>;
 export type Data = string | Uint8Array;
+export type MaybeWebStream<T extends Data> = T | WebStream<T>;
 export { WebStream };
 
-export interface EncryptOptionsPmcrypto<T extends MaybeStream<Data>> extends Omit<EncryptOptions, 'message' | 'signatureNotations'> {
-    textData?: T extends MaybeStream<string> ? T : never;
-    binaryData?: T extends MaybeStream<Uint8Array> ? T : never;
-    stripTrailingSpaces?: T extends MaybeStream<string> ? boolean : never;
+export interface EncryptOptionsPmcrypto<T extends MaybeWebStream<Data>> extends Omit<EncryptOptions, 'message' | 'signatureNotations'> {
+    textData?: T extends MaybeWebStream<string> ? T : never;
+    binaryData?: T extends MaybeWebStream<Uint8Array> ? T : never;
+    stripTrailingSpaces?: T extends MaybeWebStream<string> ? boolean : never;
     detached?: boolean;
     context?: ContextSigningOptions;
 }
@@ -148,7 +148,7 @@ export interface EncryptResult<
 }
 
 export function encryptMessage<
-    DataType extends MaybeStream<Data>,
+    DataType extends MaybeWebStream<Data>,
     FormatType extends EncryptOptions['format'] = 'armored', // extends 'string' also works, but it gives unclear error if passed unexpected 'format' values
     DetachedType extends boolean = false
 >(
@@ -178,15 +178,15 @@ export function encryptMessage<
     never
 >;
 
-export interface SignOptionsPmcrypto<T extends MaybeStream<Data>> extends Omit<SignOptions, 'message' | 'signatureNotations'> {
-    textData?: T extends MaybeStream<string> ? T : never;
-    binaryData?: T extends MaybeStream<Uint8Array> ? T : never;
-    stripTrailingSpaces?: T extends MaybeStream<string> ? boolean : never;
+export interface SignOptionsPmcrypto<T extends MaybeWebStream<Data>> extends Omit<SignOptions, 'message' | 'signatureNotations'> {
+    textData?: T extends MaybeWebStream<string> ? T : never;
+    binaryData?: T extends MaybeWebStream<Uint8Array> ? T : never;
+    stripTrailingSpaces?: T extends MaybeWebStream<string> ? boolean : never;
     context?: ContextSigningOptions;
 }
 
 export function signMessage<
-    DataType extends MaybeStream<Data>,
+    DataType extends MaybeWebStream<Data>,
     FormatType extends SignOptions['format'] = 'armored',
     DetachedType extends boolean = false
 >(
