@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { verifyMessage, signMessage, generateKey, readSignature, readMessage, decryptMessage, encryptMessage, readKey, ContextError } from '../../lib';
+import { verifyMessage, signMessage, generateKey, readSignature, readMessage, decryptMessage, encryptMessage, readKey, ContextError, serverTime } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
 // verification without passing context should fail
@@ -233,7 +233,7 @@ describe('context', () => {
     });
 
     it('does not verify a message without context based on cutoff date (`expectFrom`)', async () => {
-        const now = new Date();
+        const now = serverTime();
         const nextHour = new Date(+now + (3600 * 1000));
         const { privateKey, publicKey } = await generateKey({
             userIDs: [{ name: 'name', email: 'email@test.com' }],

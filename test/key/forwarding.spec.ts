@@ -3,7 +3,7 @@ import { ec as EllipticCurve } from 'elliptic';
 import BN from 'bn.js';
 
 import { decryptKey, enums, KeyID, PacketList } from '../../lib/openpgp';
-import { generateKey, generateForwardingMaterial, doesKeySupportForwarding, encryptMessage, decryptMessage, readMessage, readKey, readPrivateKey } from '../../lib';
+import { generateKey, generateForwardingMaterial, doesKeySupportForwarding, encryptMessage, decryptMessage, readMessage, readKey, readPrivateKey, serverTime } from '../../lib';
 import { computeProxyParameter, isForwardingKey } from '../../lib/key/forwarding';
 import { hexStringToArray, concatArrays, arrayToHexString } from '../../lib/utils';
 
@@ -98,7 +98,7 @@ yGZuVVMAK/ypFfebDf4D/rlEw3cysv213m8aoK8nAUO8xQX3XQq3Sg+EGm0BNV8E
         const charlieKey = await readKey({ armoredKey: forwardeeKey.armor() }); // ensure key is correctly serialized and parsed
 
         // Check subkey differences
-        const bobSubkey = await bobKey.getEncryptionKey();
+        const bobSubkey = await bobKey.getEncryptionKey(undefined, serverTime());
         const charlieSubkey = charlieKey.subkeys[0];
 
         expect(charlieSubkey.bindingSignatures[0].keyFlags![0]).to.equal(enums.keyFlags.forwardedCommunication);

@@ -2,6 +2,7 @@ import BigIntegerInterface from '@openpgp/noble-hashes/esm/biginteger/interface'
 import NativeBigInteger from '@openpgp/noble-hashes/esm/biginteger/native.interface';
 import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, SecretKeyPacket, MaybeArray, Subkey, config as defaultConfig, SubkeyOptions, enums } from '../openpgp';
 import { generateKey, reformatKey } from './utils';
+import { serverTime } from '../serverTime';
 
 let initializedBigInteger = false;
 const getBigInteger = async () => {
@@ -36,11 +37,11 @@ export async function computeProxyParameter(
     return proxyParameter;
 }
 
-async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey) {
+async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey, date: Date) {
     const curveName = 'curve25519';
     const forwarderEncryptionKeys = await forwarderKey.getDecryptionKeys(
         undefined,
-        undefined,
+        date,
         undefined,
         { ...defaultConfig, allowInsecureDecryptionWithSigningKeys: false }
     ) as any as (PrivateKey | Subkey)[]; // TODO wrong TS defintion for `getDecryptionKeys`
@@ -62,13 +63,13 @@ async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey) {
 /**
  * Whether the given key can be used as input to `generateForwardingMaterial` to setup forwarding.
  */
-export async function doesKeySupportForwarding(forwarderKey: PrivateKey): Promise<boolean> {
+export async function doesKeySupportForwarding(forwarderKey: PrivateKey, date: Date = serverTime()): Promise<boolean> {
     if (!forwarderKey.isDecrypted()) {
         return false;
     }
 
     try {
-        const keys = await getEncryptionKeysForForwarding(forwarderKey);
+        const keys = await getEncryptionKeysForForwarding(forwarderKey, date);
         return keys.length > 0;
     } catch {
         return false;
@@ -79,8 +80,8 @@ export async function doesKeySupportForwarding(forwarderKey: PrivateKey): Promis
  * Whether all the encryption-capable (sub)keys are setup as forwarding keys.
  * This function also supports encrypted private keys.
  */
-export const isForwardingKey = (keyToCheck: PrivateKey) => (
-    getEncryptionKeysForForwarding(keyToCheck)
+export const isForwardingKey = (keyToCheck: PrivateKey, date: Date = serverTime()) => (
+    getEncryptionKeysForForwarding(keyToCheck, date)
         // @ts-ignore missing `bindingSignatures` definition
         .then((keys) => keys.every((key) => key.bindingSignatures[0].keyFlags & enums.keyFlags.forwardedCommunication))
         .catch(() => false)
@@ -97,19 +98,21 @@ export const isForwardingKey = (keyToCheck: PrivateKey) => (
  */
 export async function generateForwardingMaterial(
     forwarderKey: PrivateKey,
-    userIDsForForwardeeKey: MaybeArray<UserID>
+    userIDsForForwardeeKey: MaybeArray<UserID>,
+    date: Date = serverTime()
 ) {
     if (!forwarderKey.isDecrypted()) {
         throw new Error('Forwarder key must be decrypted');
     }
 
     const curveName = 'curve25519';
-    const forwarderEncryptionKeys = await getEncryptionKeysForForwarding(forwarderKey);
+    const forwarderEncryptionKeys = await getEncryptionKeysForForwarding(forwarderKey, date);
     const { privateKey: forwardeeKeyToSetup } = await generateKey({ // TODO handle v6 keys
         type: 'ecc',
         userIDs: userIDsForForwardeeKey,
         subkeys: new Array<SubkeyOptions>(forwarderEncryptionKeys.length).fill({ curve: curveName, forwarding: true }),
-        format: 'object'
+        format: 'object',
+        date
     });
 
     // Setup forwardee encryption subkeys and generated corresponding proxy params
