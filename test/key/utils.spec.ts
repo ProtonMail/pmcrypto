@@ -10,7 +10,8 @@ import {
     getMatchingKey,
     generateSessionKeyForAlgorithm,
     generateSessionKey,
-    getSHA256Fingerprints
+    getSHA256Fingerprints,
+    serverTime
 } from '../../lib';
 
 describe('key utils', () => {
@@ -39,7 +40,7 @@ describe('key utils', () => {
             userIDs: [{ name: 'name', email: 'email@test.com' }],
             format: 'object'
         });
-        const now = new Date();
+        const now = serverTime();
         expect(Math.abs(+privateKey.getCreationTime() - +now) < 24 * 3600).to.be.true;
     });
 
@@ -48,7 +49,7 @@ describe('key utils', () => {
             userIDs: [{ name: 'name', email: 'email@test.com' }],
             format: 'object'
         });
-        const { selfCertification } = await privateKey.getPrimaryUser();
+        const { selfCertification } = await privateKey.getPrimaryUser(serverTime());
         expect(selfCertification.preferredSymmetricAlgorithms).to.include(enums.symmetric.aes256);
         expect(selfCertification.preferredHashAlgorithms).to.include(enums.hash.sha256);
         expect(selfCertification.preferredCompressionAlgorithms).to.include(enums.compression.zlib);
@@ -70,7 +71,7 @@ describe('key utils', () => {
     });
 
     it('isExpiredKey - it can correctly detect an expired key', async () => {
-        const now = new Date();
+        const now = serverTime();
         // key expires in one second
         const { privateKey: expiringKey } = await generateKey({
             userIDs: [{ name: 'name', email: 'email@test.com' }],
@@ -93,7 +94,7 @@ describe('key utils', () => {
 
     it('isRevokedKey - it can correctly detect a revoked key', async () => {
         const past = new Date(0);
-        const now = new Date();
+        const now = serverTime();
 
         const { privateKey: key, revocationCertificate } = await generateKey({
             userIDs: [{ name: 'name', email: 'email@test.com' }],
