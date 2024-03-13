@@ -10,7 +10,11 @@
         "sourceType": "module",
         "project": "tsconfig.eslint.json"
     },
-
+    "settings": {
+        "import/resolver": {
+          "typescript": { "alwaysTryTypes": true }
+        }
+    },
     "globals": {
         "window": "readonly",
         "btoa": "readonly",

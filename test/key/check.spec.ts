@@ -97,8 +97,7 @@ Gw0vQaiZn6HGITQw5nBGvXQPF9VpFpsXV9x/08dIdfZLAQVdQowgeBsxCw==
     });
 
     it('compatibility - it rejects a v6 key', async () => {
-        // currently reading the key fails, but once OpenPGP.js v6 is integrated, we'll test `checkKeyCompatibility`
-        await expect(readKey({ armoredKey: `-----BEGIN PGP PUBLIC KEY BLOCK-----
+        const key = await readKey({ armoredKey: `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 xioGY4d/4xsAAAAg+U2nu0jWCmHlZ3BqZYfQMxmZu52JGggkLq2EVD34laPCsQYf
 GwoAAABCBYJjh3/jAwsJBwUVCg4IDAIWAAKbAwIeCSIhBssYbE8GCaaX5NUt+mxy
@@ -109,10 +108,10 @@ QsiPlR4zxP/TP7mhfVEe7XWPxtnMUMtf15OyA51YBM4qBmOHf+MZAAAAIIaTJINn
 BssYbE8GCaaX5NUt+mxyKwwfHifBilZwj2Ul7Ce62azJAAAAAAQBIKbpGG2dWTX8
 j+VjFM21J0hqWlEg+bdiojWnKfA5AQpWUWtnNwDEM0g12vYxoWM8Y81W+bHBw805
 I8kWVkXU6vFOi+HWvv/ira7ofJu16NnoUkhclkUrk0mXubZvyl4GBg==
------END PGP PUBLIC KEY BLOCK-----` })).to.be.rejectedWith(/No key packet found/);
-        // expect(
-        //     () => checkKeyCompatibility(key)
-        // ).to.throw(/v6 keys are currently not supported/);
+-----END PGP PUBLIC KEY BLOCK-----` });
+        expect(
+            () => checkKeyCompatibility(key)
+        ).to.throw(/Version 6 keys are currently not supported/);
     });
 
     it('compatibility - it does not reject a v4 key using the eddsa legacy format', async () => {

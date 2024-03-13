@@ -1,5 +1,7 @@
 // Most of these util functions are copied as-is from https://github.com/openpgpjs/openpgpjs/blob/v5.0.0/src/util.js
-import type { MaybeStream, WebStream } from './pmcrypto';
+import type { MaybeWebStream, WebStream } from './pmcrypto';
+
+export type MaybeArray<T> = T | Array<T>;
 
 const ifDefined = <T, R>(cb: (input: T) => R) => <U extends T | undefined>(input: U) => {
     return (input !== undefined ? cb(input as T) : undefined) as U extends T ? R : undefined;
@@ -111,7 +113,7 @@ export const arrayToHexString = (bytes: Uint8Array) => {
  */
 export function stringToUtf8Array(str: string): Uint8Array;
 export function stringToUtf8Array(str: WebStream<string>): WebStream<Uint8Array>;
-export function stringToUtf8Array(str: MaybeStream<string>): MaybeStream<Uint8Array> {
+export function stringToUtf8Array(str: MaybeWebStream<string>): MaybeWebStream<Uint8Array> {
     const encoder = new TextEncoder();
 
     if (isString(str)) return encoder.encode(str);
@@ -141,7 +143,7 @@ export function stringToUtf8Array(str: MaybeStream<string>): MaybeStream<Uint8Ar
  */
 export function utf8ArrayToString(utf8: Uint8Array): string;
 export function utf8ArrayToString(utf8: WebStream<Uint8Array>): WebStream<string>;
-export function utf8ArrayToString(utf8: MaybeStream<Uint8Array>): MaybeStream<string> {
+export function utf8ArrayToString(utf8: MaybeWebStream<Uint8Array>): MaybeWebStream<string> {
     const decoder = new TextDecoder();
 
     if (utf8 instanceof Uint8Array) return decoder.decode(utf8);
