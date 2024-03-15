@@ -53,16 +53,6 @@ export {
 
 export { generateForwardingMaterial, doesKeySupportForwarding, isForwardingKey } from './key/forwarding';
 
-export interface DecryptLegacyOptions extends Omit<DecryptOptions, 'message'> {
-    armoredMessage: string; // no streaming support for legacy messages
-    messageDate: Date;
-}
-
-export interface DecryptMimeOptions extends DecryptLegacyOptions {
-    headerFilename?: string;
-    sender?: string;
-}
-
 export interface EncryptSessionKeyOptionsPmcrypto extends EncryptSessionKeyOptions {}
 export function encryptSessionKey<FormatType extends EncryptSessionKeyOptionsPmcrypto['format'] = 'armored'>(
     options: EncryptSessionKeyOptionsPmcrypto & { format?: FormatType }
@@ -104,25 +94,6 @@ export function decryptMessage<DataType extends MaybeStream<Data>, FormatType ex
             DecryptResultPmcrypto<Uint8Array> :
     never
 >;
-
-export function decryptMessageLegacy<F extends DecryptLegacyOptions['format'] = 'utf8'>(
-    options: DecryptLegacyOptions & { format?: F }
-): Promise<
-    // output type cannot be statically determined:
-    // string for legacy messages, but either string or Uint8Array output for non-legacy ones (depending on options.format)
-    F extends 'utf8' ? DecryptResultPmcrypto<string> :
-    F extends 'binary' ? DecryptResultPmcrypto<Uint8Array | string> :
-    never
->;
-
-export function decryptMIMEMessage(options: DecryptMimeOptions): Promise<{
-    getBody: () => Promise<{ body: string; mimetype: string } | undefined>;
-    getAttachments: () => Promise<any>;
-    getEncryptedSubject: () => Promise<string>;
-    verify: () => Promise<number>;
-    errors: () => Promise<Error[] | undefined>;
-    signatures: OpenPGPSignature[];
-}>;
 
 export type MaybeStream<T extends Uint8Array | string> = T | WebStream<T>;
 export type Data = string | Uint8Array;

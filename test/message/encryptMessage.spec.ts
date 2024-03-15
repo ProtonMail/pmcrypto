@@ -6,7 +6,7 @@ import { config as globalConfig, CompressedDataPacket, enums, SymEncryptedSessio
 
 import { decryptKey, readPrivateKey, verifyMessage, encryptMessage, decryptMessage, generateSessionKey, readSignature, readMessage, encryptSessionKey, decryptSessionKey } from '../../lib';
 import { hexStringToArray, arrayToBinaryString, stringToUtf8Array } from '../../lib/utils';
-import { testPrivateKeyLegacy } from './decryptMessageLegacy.data';
+import { testPrivateKeyLegacy } from './encryptMessage.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
 const generateStreamOfData = (): { stream: WebStream<string>, data: string } => ({
