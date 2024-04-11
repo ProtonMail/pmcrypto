@@ -24,7 +24,7 @@ const TimeoutHandler = {
     ),
     setupReloadingTimeout: (memoryExponent: number) => {
         const shouldReloadAfterTimeout = memoryExponent > ARGON2_PARAMS.MINIMUM.memoryExponent &&
-            memoryExponent < Argon2S2K.ARGON2_WASM_MEMORY_THRESHOLD_RELOAD;
+            memoryExponent <= Argon2S2K.ARGON2_WASM_MEMORY_THRESHOLD_RELOAD;
         // @ts-ignore NodeJS.Timeout typedef interfering
         TimeoutHandler.id = shouldReloadAfterTimeout ?
             setTimeout(
