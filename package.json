@@ -1,6 +1,6 @@
 {
     "name": "@protontech/pmcrypto",
-    "version": "7.19.0",
+    "version": "8.0.0-canary.2",
     "description": "",
     "main": "./lib/index.ts",
     "sideEffects": false,
