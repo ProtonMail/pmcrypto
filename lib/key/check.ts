@@ -69,7 +69,8 @@ export function checkKeyCompatibility(publicKey: PublicKey) {
         enums.curve.p521,
         enums.curve.brainpoolP256r1,
         enums.curve.brainpoolP384r1,
-        enums.curve.brainpoolP512r1
+        enums.curve.brainpoolP512r1,
+        enums.curve.secp256k1
     ]);
 
     if (publicKey.keyPacket.version > 5) {
@@ -82,7 +83,7 @@ export function checkKeyCompatibility(publicKey: PublicKey) {
         const keyAlgo = enums.write(enums.publicKey, keyInfo.algorithm);
 
         if (!supportedPublicKeyAlgorithms.has(keyAlgo)) {
-            throw new Error('The key algorithm is currently not supported.');
+            throw new Error(`The key algorithm ${keyInfo.algorithm} is currently not supported.`);
         }
 
         if (keyInfo.curve && !supportedCurves.has(keyInfo.curve)) {

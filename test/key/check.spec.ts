@@ -93,7 +93,7 @@ Gw0vQaiZn6HGITQw5nBGvXQPF9VpFpsXV9x/08dIdfZLAQVdQowgeBsxCw==
 -----END PGP PUBLIC KEY BLOCK-----` });
         expect(
             () => checkKeyCompatibility(key)
-        ).to.throw(/key algorithm is currently not supported/);
+        ).to.throw(/key algorithm ed25519 is currently not supported/);
     });
 
     it('compatibility - it rejects a v6 key', async () => {
