@@ -1,18 +1,17 @@
 import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, SecretKeyPacket, MaybeArray, Subkey, config as defaultConfig, SubkeyOptions, enums } from '../openpgp';
-import { getBigInteger } from '../bigInteger';
 import { generateKey, reformatKey } from './utils';
 import { serverTime } from '../serverTime';
+import { bigIntToUint8Array, mod, modInv, uint8ArrayToBigInt } from '../bigInteger';
 
 export async function computeProxyParameter(
     forwarderSecret: Uint8Array,
     forwardeeSecret: Uint8Array
 ): Promise<Uint8Array> {
-    const BigInteger = await getBigInteger();
 
-    const dB = new BigInteger(forwarderSecret);
-    const dC = new BigInteger(forwardeeSecret);
-    const n = new BigInteger('0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed'); // 2^252 + 0x14def9dea2f79cd65812631a5cf5d3ed
-    const proxyParameter = dC.modInv(n).mul(dB).mod(n).toUint8Array('le', forwardeeSecret.length);
+    const dB = uint8ArrayToBigInt(forwarderSecret);
+    const dC = uint8ArrayToBigInt(forwardeeSecret);
+    const n = BigInt('0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed'); // 2^252 + 0x14def9dea2f79cd65812631a5cf5d3ed
+    const proxyParameter = bigIntToUint8Array(mod(modInv(dC, n) * dB, n), 'le', forwardeeSecret.length);
 
     return proxyParameter;
 }

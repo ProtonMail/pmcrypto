@@ -29,7 +29,7 @@ export async function unsafeSHA1(data: MaybeStream<Uint8Array>) {
         return new Uint8Array(digest);
     }
 
-    const { sha1 } = await import('@openpgp/noble-hashes/sha1');
+    const { sha1 } = await import('@noble/hashes/sha1');
     const hashInstance = sha1.create();
     const inputReader = data.getReader(); // AsyncInterator is still not widely supported
     // eslint-disable-next-line no-constant-condition
