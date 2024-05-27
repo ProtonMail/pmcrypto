@@ -15,7 +15,12 @@ export const MAX_ENC_HEADER_LENGTH = 1024;
  * Offset needed for key generation to ensure key (incl. certification signatures) validity
  * across different servers, which might have slightly mismatching server time
  */
-export const DEFAULT_OFFSET = -60000;
+export const DEFAULT_KEY_GENERATION_OFFSET = -60000;
+/**
+ * Offset needed for message verification to ensure validity across different servers,
+ * which might have slightly mismatching server time
+ */
+export const DEFAULT_SIGNATURE_VERIFICATION_OFFSET = 60000;
 
 export const ARGON2_PARAMS = { // from https://www.rfc-editor.org/rfc/rfc9106.html#name-parameter-choice
     RECOMMENDED: { passes: 1, parallelism: 4, memoryExponent: 19, tagLength: 32 },
