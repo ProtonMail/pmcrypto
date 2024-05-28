@@ -349,4 +349,34 @@ describe('message encryption and decryption', () => {
         expect(await readToEnd(decrypted).then(arrayToBinaryString)).to.equal(inputData);
         expect(await verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
+
+    it('it can decrypt and verify a message ten seconds in the future', async () => {
+        const privateKey = await readPrivateKey({ armoredKey: testPrivateKeyLegacy });
+        const decryptedPrivateKey = await decryptKey({ privateKey, passphrase: '123' });
+        const data = 'Hello world!';
+
+        const now = new Date();
+        const tenSecondsInTheFuture = new Date(+now + 1000);
+        const sessionKey = {
+            data: hexStringToArray('c5629d840fd64ef55aea474f87dcdeef76bbc798a340ef67045315eb7924a36f'),
+            algorithm: enums.read(enums.symmetric, enums.symmetric.aes256)
+        };
+
+        const { message: encrypted } = await encryptMessage({
+            textData: data,
+            encryptionKeys: [decryptedPrivateKey.toPublic()],
+            signingKeys: [decryptedPrivateKey],
+            sessionKey,
+            date: tenSecondsInTheFuture,
+            format: 'object'
+        });
+        const { data: decrypted, verified } = await decryptMessage({
+            message: encrypted,
+            sessionKeys: sessionKey,
+            verificationKeys: [decryptedPrivateKey.toPublic()]
+        });
+
+        expect(decrypted).to.equal(data);
+        expect(await verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+    });
 });
