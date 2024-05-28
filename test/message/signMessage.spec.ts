@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { readToEnd, WebStream } from '@openpgp/web-stream-tools';
+import { readToEnd } from '@openpgp/web-stream-tools';
 import { verifyMessage, signMessage, generateKey, readSignature } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 import { stringToUtf8Array } from '../../lib/utils';
@@ -103,7 +103,7 @@ describe('message signing', () => {
     });
 
     it('signMessage/verifyMessage - it verifies a streamed message it has signed', async () => {
-        const inputStream: WebStream<string> = new ReadableStream<string>({
+        const inputStream = new ReadableStream<string>({
             pull: (controller) => { for (let i = 0; i < 10000; i++) { controller.enqueue('string'); } controller.close(); }
         });
         const inputData = 'string'.repeat(10000);

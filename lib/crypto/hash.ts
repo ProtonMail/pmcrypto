@@ -1,4 +1,4 @@
-import type { MaybeStream } from '../pmcrypto';
+import type { MaybeWebStream } from '../pmcrypto';
 import md5 from './_md5';
 
 export const SHA256 = async (data: Uint8Array) => {
@@ -23,21 +23,21 @@ export const unsafeMD5 = (data: Uint8Array) => md5(data);
  * DO NOT USE in contexts where collision resistance is important
  * @see openpgp.crypto.hash.sha1
  */
-export async function unsafeSHA1(data: MaybeStream<Uint8Array>) {
+export async function unsafeSHA1(data: MaybeWebStream<Uint8Array>) {
     if (data instanceof Uint8Array) {
         const digest = await crypto.subtle.digest('SHA-1', data);
         return new Uint8Array(digest);
     }
 
-    const { Sha1: StreamableSHA1 } = await import('@openpgp/asmcrypto.js/dist_es8/hash/sha1/sha1');
-    const hashInstance = new StreamableSHA1();
+    const { sha1 } = await import('@noble/hashes/sha1');
+    const hashInstance = sha1.create();
     const inputReader = data.getReader(); // AsyncInterator is still not widely supported
     // eslint-disable-next-line no-constant-condition
     while (true) {
         const { done, value } = await inputReader.read();
         if (done) {
-            return hashInstance.finish().result || new Uint8Array();
+            return hashInstance.digest();
         }
-        hashInstance.process(value);
+        hashInstance.update(value);
     }
 }
