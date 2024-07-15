@@ -73,7 +73,7 @@ export function checkKeyCompatibility(publicKey: PublicKey) {
         enums.curve.secp256k1
     ]);
 
-    if (publicKey.keyPacket.version > 5) {
+    if (publicKey.keyPacket.version > 4) {
         throw new Error(`Version ${publicKey.keyPacket.version} keys are currently not supported.`);
     }
 
