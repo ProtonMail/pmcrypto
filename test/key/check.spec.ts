@@ -96,6 +96,33 @@ Gw0vQaiZn6HGITQw5nBGvXQPF9VpFpsXV9x/08dIdfZLAQVdQowgeBsxCw==
         ).to.throw(/key algorithm ed25519 is currently not supported/);
     });
 
+    it('compatibility - it rejects a v5 key', async () => {
+        const key = await readKey({
+            armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xYwFZC7tvxYAAAAtCSsGAQQB2kcPAQEHQP/d1oBAqCKZYxb6k8foyX2Aa/VK
+dHFymZPGvHRk1ncs/R0JAQMIrDnS3Bany9EAF6dwQSfPSdObc4ROYIMAnwAA
+ADKV1OhGzwANnapimvODI6fK5F7/V0GxETY9WmnipnBzr4Fe9GZw4QD4Q4hd
+IJMawjUBrs0MdjVAYWVhZC50ZXN0wpIFEBYKAEQFgmQu7b8ECwkHCAMVCAoE
+FgACAQIZAQKbAwIeByKhBQ/Y89PNwfdXUdI/td5Q9rNrYP9mb7Dg6k/3nxTg
+ugQ5AyIBAgAAf0kBAJv0OQvd4u8R0f3HAsmQeqMnwNA4or75BOn/ieApNZUt
+AP9kQVmYEk4+MV57Us15l2kQEslLDr3qiH5+VCICdEprB8eRBWQu7b8SAAAA
+MgorBgEEAZdVAQUBAQdA4IgEkfze3eNKRz6DgzGSJxw/CV/5Rp5u4Imn47h7
+pyADAQgH/R0JAQMIwayD3R4E0ugAyszSmOIpaLJ40YGBp5uU7wAAADKmSv4W
+tio7GfZCVl8eJ7xX3J1b0iMvEm876tUeHANQlYYCWz+2ahmPVe79zzZA9OhN
+FcJ6BRgWCAAsBYJkLu2/ApsMIqEFD9jz083B91dR0j+13lD2s2tg/2ZvsODq
+T/efFOC6BDkAAHcjAPwIPNHnR9bKmkVop6cE05dCIpZ/W8zXDGnjKYrrC4Hb
+4gEAmISD1GRkNOmCV8aHwN5svO6HuwXR4cR3o3l7HlYeag8=
+=wpkQ
+-----END PGP PRIVATE KEY BLOCK-----`,
+            // @ts-expect-error missing `config.enableParsingV5Entities` declaration
+            config: { enableParsingV5Entities: true }
+        });
+        expect(
+            () => checkKeyCompatibility(key)
+        ).to.throw(/Version 5 keys are currently not supported/);
+    });
+
     it('compatibility - it rejects a v6 key', async () => {
         const key = await readKey({ armoredKey: `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
