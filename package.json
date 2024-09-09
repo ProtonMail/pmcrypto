@@ -33,7 +33,7 @@
         "@openpgp/asmcrypto.js": "^3.1.0",
         "@openpgp/web-stream-tools": "~0.1.1",
         "jsmimeparser": "npm:@protontech/jsmimeparser@^3.0.1",
-        "openpgp": "npm:@protontech/openpgp@~6.0.0-beta.2"
+        "openpgp": "npm:@protontech/openpgp@~6.0.0-beta.3.patch.0"
     },
     "devDependencies": {
         "@types/bn.js": "^5.1.5",

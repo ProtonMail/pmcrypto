@@ -229,7 +229,7 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
             decryptionKeys: charlieKey,
             config: { allowForwardedMessages: true }
         });
-        expect(decryptionTrialPromise).to.be.rejectedWith(/Session key decryption failed/);
+        expect(decryptionTrialPromise).to.be.rejectedWith(/Error decrypting message/);
     });
 
     it('decryption with forwarding - v4 key with multiple subkeys', async () => {

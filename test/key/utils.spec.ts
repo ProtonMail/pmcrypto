@@ -41,7 +41,6 @@ T/efFOC6BDkAAHcjAPwIPNHnR9bKmkVop6cE05dCIpZ/W8zXDGnjKYrrC4Hb
 4gEAmISD1GRkNOmCV8aHwN5svO6HuwXR4cR3o3l7HlYeag8=
 =wpkQ
 -----END PGP PRIVATE KEY BLOCK-----`,
-            // @ts-expect-error missing `config.enableParsingV5Entities` declaration
             config: { enableParsingV5Entities: true }
         });
         const fingerprints = publicKey.getKeys().map((key) => key.getFingerprint());

@@ -1,4 +1,4 @@
-import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, SecretKeyPacket, MaybeArray, Subkey, config as defaultConfig, SubkeyOptions, enums } from '../openpgp';
+import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, SecretKeyPacket, MaybeArray, SubkeyOptions, enums, Subkey } from '../openpgp';
 import { generateKey, reformatKey } from './utils';
 import { serverTime } from '../serverTime';
 import { bigIntToUint8Array, mod, modInv, uint8ArrayToBigInt } from '../bigInteger';
@@ -18,20 +18,17 @@ export async function computeProxyParameter(
 
 async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey, date: Date) {
     const curveName = 'curve25519Legacy';
-    const forwarderEncryptionKeys = await forwarderKey.getDecryptionKeys(
-        undefined,
-        date,
-        undefined,
-        { ...defaultConfig, allowInsecureDecryptionWithSigningKeys: false }
-    ) as any as (PrivateKey | Subkey)[]; // TODO wrong TS defintion for `getDecryptionKeys`
+    const forwarderEncryptionKeys = (await Promise.all(forwarderKey.getKeyIDs().map(
+        (maybeEncryptionKeyID) => forwarderKey.getEncryptionKey(maybeEncryptionKeyID, date).catch(() => null)
+    ))).filter(((maybeKey): maybeKey is (PrivateKey | Subkey) => !!maybeKey));
 
-    if (forwarderEncryptionKeys.some((forwarderSubkey) => (
-        !forwarderSubkey ||
-        !(forwarderSubkey.keyPacket instanceof SecretKeyPacket) || // SecretSubkeyPacket is a subclass
-        forwarderSubkey.keyPacket.isDummy() ||
-        forwarderSubkey.keyPacket.version !== 4 || // TODO add support for v6
-        forwarderSubkey.getAlgorithmInfo().algorithm !== 'ecdh' ||
-        forwarderSubkey.getAlgorithmInfo().curve !== curveName
+    if (forwarderEncryptionKeys.some((maybeForwarderSubkey) => (
+        maybeForwarderSubkey === null ||
+        !(maybeForwarderSubkey.keyPacket instanceof SecretKeyPacket) || // SecretSubkeyPacket is a subclass
+        maybeForwarderSubkey.keyPacket.isDummy() ||
+        maybeForwarderSubkey.keyPacket.version !== 4 || // TODO add support for v6
+        maybeForwarderSubkey.getAlgorithmInfo().algorithm !== 'ecdh' ||
+        maybeForwarderSubkey.getAlgorithmInfo().curve !== curveName
     ))) {
         throw new Error('One or more encryption key packets are unsuitable for forwarding');
     }
