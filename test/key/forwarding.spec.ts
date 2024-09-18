@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { ec as EllipticCurve } from 'elliptic';
 import BN from 'bn.js';
 
-import { decryptKey, enums, KeyID, PacketList } from '../../lib/openpgp';
+import { decryptKey, enums, type KeyID, type PacketList } from '../../lib/openpgp';
 import { generateKey, generateForwardingMaterial, doesKeySupportForwarding, encryptMessage, decryptMessage, readMessage, readKey, readPrivateKey, serverTime } from '../../lib';
 import { computeProxyParameter, isForwardingKey } from '../../lib/key/forwarding';
 import { hexStringToArray, concatArrays, arrayToHexString } from '../../lib/utils';

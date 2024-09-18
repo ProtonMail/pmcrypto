@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { readToEnd, toStream, WebStream } from '@openpgp/web-stream-tools';
-import { config as globalConfig, CompressedDataPacket, enums, SymEncryptedSessionKeyPacket, PartialConfig, SymEncryptedIntegrityProtectedDataPacket } from '../../lib/openpgp';
+import { readToEnd, toStream, type WebStream } from '@openpgp/web-stream-tools';
+import { config as globalConfig, type CompressedDataPacket, enums, SymEncryptedSessionKeyPacket, type PartialConfig, SymEncryptedIntegrityProtectedDataPacket } from '../../lib/openpgp';
 
 import { decryptKey, readPrivateKey, verifyMessage, encryptMessage, decryptMessage, generateSessionKey, readSignature, readMessage, encryptSessionKey, decryptSessionKey } from '../../lib';
 import { hexStringToArray, arrayToBinaryString, stringToUtf8Array } from '../../lib/utils';

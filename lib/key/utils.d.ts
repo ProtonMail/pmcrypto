@@ -1,20 +1,20 @@
 import {
     generateKey,
     reformatKey,
-    generateSessionKey as openpgp_generateSessionKey,
-    PrivateKey,
-    PublicKey,
-    Key,
-    SessionKey,
-    KeyOptions as GenerateKeyOptions,
-    UserID,
-    PartialConfig,
-    Signature,
-    Message
+    type generateSessionKey as openpgp_generateSessionKey,
+    type PrivateKey,
+    type PublicKey,
+    type Key,
+    type SessionKey,
+    type KeyOptions as GenerateKeyOptions,
+    type UserID,
+    type PartialConfig,
+    type Signature,
+    type Message
 } from '../openpgp';
-import { MaybeArray } from '../utils';
+import type { MaybeArray } from '../utils';
 
-export { generateKey, reformatKey, GenerateKeyOptions };
+export { generateKey, reformatKey, type GenerateKeyOptions };
 
 export interface ReformatKeyOptions {
     privateKey: PrivateKey;

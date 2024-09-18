@@ -1,4 +1,4 @@
-import { AlgorithmInfo, PublicKey, enums } from '../openpgp';
+import { type AlgorithmInfo, type PublicKey, enums } from '../openpgp';
 
 /**
  * Checks whether the primary key and the subkeys meet our recommended security requirements.

@@ -1,4 +1,4 @@
-import { KDFParams, PrivateKey, UserID, SecretSubkeyPacket, SecretKeyPacket, MaybeArray, SubkeyOptions, enums, Subkey } from '../openpgp';
+import { type PrivateKey, type UserID, type SecretSubkeyPacket, type MaybeArray, type SubkeyOptions, type Subkey, KDFParams, SecretKeyPacket, enums } from '../openpgp';
 import { generateKey, reformatKey } from './utils';
 import { serverTime } from '../serverTime';
 import { bigIntToUint8Array, mod, modInv, uint8ArrayToBigInt } from '../bigInteger';

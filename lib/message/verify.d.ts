@@ -6,8 +6,8 @@ import type {
     CleartextMessage,
     Signature as OpenPGPSignature
 } from '../openpgp';
-import { VERIFICATION_STATUS } from '../constants';
-import { ContextVerificationOptions } from './context';
+import type { VERIFICATION_STATUS } from '../constants';
+import type { ContextVerificationOptions } from './context';
 
 // Streaming not supported when verifying detached signatures
 export interface VerifyOptionsPmcrypto<T extends Data> extends Omit<VerifyOptions, 'message'> {
