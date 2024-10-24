@@ -10,7 +10,11 @@
         "sourceType": "module",
         "project": "tsconfig.eslint.json"
     },
-
+    "settings": {
+        "import/resolver": {
+          "typescript": { "alwaysTryTypes": true }
+        }
+    },
     "globals": {
         "window": "readonly",
         "btoa": "readonly",
@@ -82,12 +86,13 @@
         "@typescript-eslint/naming-convention": ["error", {
             "selector": "typeLike",
             "format": ["PascalCase", "UPPER_CASE"]
-          }],
+        }],
         "@typescript-eslint/ban-ts-comment": "off",
-        "@typescript-eslint/no-unused-vars": ["error"],
+        "@typescript-eslint/consistent-type-imports": "error",
+        "@typescript-eslint/consistent-type-exports": "error",
+        "@typescript-eslint/no-unused-vars": "error",
         "@typescript-eslint/no-empty-function": "off",
         "@typescript-eslint/indent": ["error", 4],
         "@typescript-eslint/comma-dangle": "off"
-
     }
 }

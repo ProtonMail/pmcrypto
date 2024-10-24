@@ -4,8 +4,8 @@ import {
     enums,
     unarmor,
     readMessage,
-    BasePacket as OpenPGPPacket,
-    AnyPacket
+    type BasePacket as OpenPGPPacket,
+    type AnyPacket
 } from '../openpgp';
 import type { OpenPGPMessage } from '../pmcrypto';
 

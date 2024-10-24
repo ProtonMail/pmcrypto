@@ -6,8 +6,8 @@ import type {
     CleartextMessage,
     Signature as OpenPGPSignature
 } from '../openpgp';
-import { VERIFICATION_STATUS } from '../constants';
-import { ContextVerificationOptions } from './context';
+import type { VERIFICATION_STATUS } from '../constants';
+import type { ContextVerificationOptions } from './context';
 
 // Streaming not supported when verifying detached signatures
 export interface VerifyOptionsPmcrypto<T extends Data> extends Omit<VerifyOptions, 'message'> {
@@ -33,6 +33,10 @@ export function verifyMessage<DataType extends Data, FormatType extends VerifyOp
         VerifyMessageResult<Uint8Array> :
     never
 >;
+export function handleVerificationResult<DataType extends Data>(
+    verificationResult: openpgp_VerifyMessageResult<DataType>,
+    context: ContextVerificationOptions
+): Promise<VerifyMessageResult<DataType>>;
 
 export interface VerifyCleartextOptionsPmcrypto extends Omit<VerifyOptions, 'message' | 'signature' | 'format'> {
     cleartextMessage: CleartextMessage

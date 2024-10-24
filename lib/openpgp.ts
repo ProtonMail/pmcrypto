@@ -21,7 +21,9 @@ export const setConfig = () => {
     config.rejectCurves = new Set();
     config.minRSABits = 1023;
 
-    config.checkEdDSAFaultySignatures = false; // let each web-client enable the check
+    // we want to avoid generating SEIPDv2 messages until support is rolled out to other platforms,
+    // in case e.g. some users have already imported v4 keys with SEIPDv2 feature flags.
+    config.ignoreSEIPDv2FeatureFlag = true;
 };
 
 export * from 'openpgp/lightweight';

@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { ec as EllipticCurve } from 'elliptic';
 import BN from 'bn.js';
 
-import { decryptKey, enums, KeyID, PacketList } from '../../lib/openpgp';
+import { decryptKey, enums, type KeyID, type PacketList } from '../../lib/openpgp';
 import { generateKey, generateForwardingMaterial, doesKeySupportForwarding, encryptMessage, decryptMessage, readMessage, readKey, readPrivateKey, serverTime } from '../../lib';
 import { computeProxyParameter, isForwardingKey } from '../../lib/key/forwarding';
 import { hexStringToArray, concatArrays, arrayToHexString } from '../../lib/utils';
@@ -188,7 +188,7 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
 
     it('decryption with forwarding - v4 key', async () => {
         const { privateKey: bobKey } = await generateKey({
-            userIDs: [{ name: 'Bob', email: 'info@bob.com' }], curve: 'curve25519', format: 'object'
+            userIDs: [{ name: 'Bob', email: 'info@bob.com' }], curve: 'curve25519Legacy', format: 'object'
         });
         const plaintext = 'Hello Bob, hello world';
 
@@ -229,12 +229,12 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
             decryptionKeys: charlieKey,
             config: { allowForwardedMessages: true }
         });
-        expect(decryptionTrialPromise).to.be.rejectedWith(/Session key decryption failed/);
+        expect(decryptionTrialPromise).to.be.rejectedWith(/Error decrypting message/);
     });
 
     it('decryption with forwarding - v4 key with multiple subkeys', async () => {
         const { privateKey: bobKey } = await generateKey({
-            curve: 'curve25519',
+            curve: 'curve25519Legacy',
             userIDs: [{ name: 'Bob', email: 'info@bob.com' }],
             subkeys: [{}, { sign: true }, {}], // ensure that signing subkey creates no issues
             format: 'object'

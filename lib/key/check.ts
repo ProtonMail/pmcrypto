@@ -1,4 +1,4 @@
-import { AlgorithmInfo, PublicKey, enums } from '../openpgp';
+import { type AlgorithmInfo, type PublicKey, enums } from '../openpgp';
 
 /**
  * Checks whether the primary key and the subkeys meet our recommended security requirements.
@@ -73,7 +73,7 @@ export function checkKeyCompatibility(publicKey: PublicKey) {
         enums.curve.secp256k1
     ]);
 
-    if (publicKey.keyPacket.version > 5) {
+    if (publicKey.keyPacket.version > 4) {
         throw new Error(`Version ${publicKey.keyPacket.version} keys are currently not supported.`);
     }
 

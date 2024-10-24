@@ -1,4 +1,4 @@
-import { Argon2S2K, Config, config as defaultConfig } from '../openpgp';
+import { Argon2S2K, type Config, config as defaultConfig } from '../openpgp';
 import { ARGON2_PARAMS } from '../constants';
 
 type Argon2Params = Config['s2kArgon2Params'] & {
