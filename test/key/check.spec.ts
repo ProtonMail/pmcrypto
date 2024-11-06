@@ -122,7 +122,7 @@ T/efFOC6BDkAAHcjAPwIPNHnR9bKmkVop6cE05dCIpZ/W8zXDGnjKYrrC4Hb
         ).to.throw(/Version 5 keys are currently not supported/);
     });
 
-    it('compatibility - it rejects a v6 key', async () => {
+    it('compatibility - it rejects a v6 key unless explicitly allowed', async () => {
         const key = await readKey({ armoredKey: `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 xioGY4d/4xsAAAAg+U2nu0jWCmHlZ3BqZYfQMxmZu52JGggkLq2EVD34laPCsQYf
@@ -138,6 +138,9 @@ I8kWVkXU6vFOi+HWvv/ira7ofJu16NnoUkhclkUrk0mXubZvyl4GBg==
         expect(
             () => checkKeyCompatibility(key)
         ).to.throw(/Version 6 keys are currently not supported/);
+        expect(
+            () => checkKeyCompatibility(key, true)
+        ).to.not.throw;
     });
 
     it('compatibility - it does not reject a v4 key using the eddsa legacy format', async () => {
