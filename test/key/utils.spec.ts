@@ -71,18 +71,34 @@ T/efFOC6BDkAAHcjAPwIPNHnR9bKmkVop6cE05dCIpZ/W8zXDGnjKYrrC4Hb
         expect(Math.abs(+privateKey.getCreationTime() - +now) < 24 * 3600).to.be.true;
     });
 
-    it('generateKey - it includes the BE-expected algorithm preferences', async () => {
+    it('generateKey - v4 key - it includes the BE-expected algorithm preferences', async () => {
         const { privateKey } = await generateKey({
             userIDs: [{ name: 'name', email: 'email@test.com' }],
-            format: 'object'
+            format: 'object',
+            config: { v6Keys: false }
         });
         const { selfCertification } = await privateKey.getPrimaryUser(serverTime());
         expect(selfCertification.preferredSymmetricAlgorithms).to.include(enums.symmetric.aes256);
         expect(selfCertification.preferredHashAlgorithms).to.include(enums.hash.sha256);
         expect(selfCertification.preferredCompressionAlgorithms).to.include(enums.compression.zlib);
-        // v6 canary: temporarily guard against sha3 being in the preferences, as it's not supported by OpenPGP.js v5
-        expect(selfCertification.preferredHashAlgorithms).to.not.include(12); // sha3_256
-        expect(selfCertification.preferredHashAlgorithms).to.not.include(14); // sha3_512
+        // for v4 keys, we guard against sha3 being in the preferences, as it's not supported by all Proton clients
+        expect(selfCertification.preferredHashAlgorithms).to.not.include(enums.hash.sha3_256);
+        expect(selfCertification.preferredHashAlgorithms).to.not.include(enums.hash.sha3_512);
+    });
+
+    it('generateKey - v6 key - it includes the BE-expected algorithm preferences', async () => {
+        const { privateKey } = await generateKey({
+            userIDs: [{ name: 'name', email: 'email@test.com' }],
+            format: 'object',
+            config: { v6Keys: true }
+        });
+        // @ts-ignore missing `directSignatures` type definition
+        const [directSignature] = await privateKey.directSignatures;
+        expect(directSignature.preferredSymmetricAlgorithms).to.include(enums.symmetric.aes256);
+        expect(directSignature.preferredHashAlgorithms).to.include(enums.hash.sha256);
+        expect(directSignature.preferredCompressionAlgorithms).to.include(enums.compression.zlib);
+        expect(directSignature.preferredHashAlgorithms).to.include(enums.hash.sha3_256);
+        expect(directSignature.preferredHashAlgorithms).to.include(enums.hash.sha3_512);
     });
 
     it('reformatKey - it reformats a key using the key creation time', async () => {
