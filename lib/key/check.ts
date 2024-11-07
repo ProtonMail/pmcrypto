@@ -1,4 +1,4 @@
-import { AlgorithmInfo, PublicKey, enums } from '../openpgp';
+import { type AlgorithmInfo, type PublicKey, enums } from '../openpgp';
 
 /**
  * Checks whether the primary key and the subkeys meet our recommended security requirements.
@@ -47,9 +47,24 @@ export function checkKeyStrength(publicKey: PublicKey) {
 }
 
 /**
- * Checks whether the key is compatible with all Proton clients.
+ * Checks whether the key is compatible with other Proton clients, also based on v6 key support.
  */
-export function checkKeyCompatibility(publicKey: PublicKey) {
+export function checkKeyCompatibility(publicKey: PublicKey, v6KeysAllowed = false) {
+    const keyVersion = publicKey.keyPacket.version;
+    const keyVersionIsSupported = keyVersion === 4 || (v6KeysAllowed && keyVersion === 6);
+    if (!keyVersionIsSupported) {
+        throw new Error(`Version ${publicKey.keyPacket.version} keys are currently not supported.`);
+    }
+
+    // These algo are restricted to v6 keys, since they have been added in the same RFC (RFC 9580),
+    // and they are thus not implemented by clients without v6 support.
+    const v6OnlyPublicKeyAlgorithms = [
+        enums.publicKey.ed25519,
+        enums.publicKey.ed448,
+        enums.publicKey.x25519,
+        enums.publicKey.x448
+    ];
+
     const supportedPublicKeyAlgorithms = new Set([
         enums.publicKey.dsa,
         enums.publicKey.elgamal,
@@ -58,24 +73,21 @@ export function checkKeyCompatibility(publicKey: PublicKey) {
         enums.publicKey.rsaEncrypt,
         enums.publicKey.ecdh,
         enums.publicKey.ecdsa,
-        enums.publicKey.eddsaLegacy
+        enums.publicKey.eddsaLegacy,
+        ...(keyVersion === 6 ? v6OnlyPublicKeyAlgorithms : [])
     ]);
 
     const supportedCurves: Set<AlgorithmInfo['curve']> = new Set([
         enums.curve.ed25519Legacy,
         enums.curve.curve25519Legacy,
-        enums.curve.p256,
-        enums.curve.p384,
-        enums.curve.p521,
+        enums.curve.nistP256,
+        enums.curve.nistP384,
+        enums.curve.nistP521,
         enums.curve.brainpoolP256r1,
         enums.curve.brainpoolP384r1,
         enums.curve.brainpoolP512r1,
         enums.curve.secp256k1
     ]);
-
-    if (publicKey.keyPacket.version > 5) {
-        throw new Error(`Version ${publicKey.keyPacket.version} keys are currently not supported.`);
-    }
 
     publicKey.getKeys().forEach(({ keyPacket }) => {
         const keyInfo = keyPacket.getAlgorithmInfo();

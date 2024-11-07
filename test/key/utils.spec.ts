@@ -16,17 +16,43 @@ import {
 
 describe('key utils', () => {
     it('sha256 fingerprints - v4 key', async () => {
-        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: false }, format: 'object' });
+        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v6Keys: false }, format: 'object' });
+        const fingerprints = publicKey.getKeys().map((key) => key.getFingerprint());
+        const sha256Fingerprints = await getSHA256Fingerprints(publicKey);
+        expect(sha256Fingerprints.length).to.equal(fingerprints.length);
+    });
+
+    it('sha256 fingerprints - v5 key (legacy, non-standard)', async () => {
+        const publicKey = await readKey({
+            armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xYwFZC7tvxYAAAAtCSsGAQQB2kcPAQEHQP/d1oBAqCKZYxb6k8foyX2Aa/VK
+dHFymZPGvHRk1ncs/R0JAQMIrDnS3Bany9EAF6dwQSfPSdObc4ROYIMAnwAA
+ADKV1OhGzwANnapimvODI6fK5F7/V0GxETY9WmnipnBzr4Fe9GZw4QD4Q4hd
+IJMawjUBrs0MdjVAYWVhZC50ZXN0wpIFEBYKAEQFgmQu7b8ECwkHCAMVCAoE
+FgACAQIZAQKbAwIeByKhBQ/Y89PNwfdXUdI/td5Q9rNrYP9mb7Dg6k/3nxTg
+ugQ5AyIBAgAAf0kBAJv0OQvd4u8R0f3HAsmQeqMnwNA4or75BOn/ieApNZUt
+AP9kQVmYEk4+MV57Us15l2kQEslLDr3qiH5+VCICdEprB8eRBWQu7b8SAAAA
+MgorBgEEAZdVAQUBAQdA4IgEkfze3eNKRz6DgzGSJxw/CV/5Rp5u4Imn47h7
+pyADAQgH/R0JAQMIwayD3R4E0ugAyszSmOIpaLJ40YGBp5uU7wAAADKmSv4W
+tio7GfZCVl8eJ7xX3J1b0iMvEm876tUeHANQlYYCWz+2ahmPVe79zzZA9OhN
+FcJ6BRgWCAAsBYJkLu2/ApsMIqEFD9jz083B91dR0j+13lD2s2tg/2ZvsODq
+T/efFOC6BDkAAHcjAPwIPNHnR9bKmkVop6cE05dCIpZ/W8zXDGnjKYrrC4Hb
+4gEAmISD1GRkNOmCV8aHwN5svO6HuwXR4cR3o3l7HlYeag8=
+=wpkQ
+-----END PGP PRIVATE KEY BLOCK-----`
+        });
         const fingerprints = publicKey.getKeys().map((key) => key.getFingerprint());
         const sha256Fingerprints = await getSHA256Fingerprints(publicKey);
         expect(sha256Fingerprints.length).to.equal(fingerprints.length);
         sha256Fingerprints.forEach((sha256Fingerprint, i) => {
-            expect(sha256Fingerprint).to.not.equal(fingerprints[i]);
+            expect(sha256Fingerprint).to.equal(fingerprints[i]);
         });
     });
 
-    it('sha256 fingerprints - v5 key', async () => {
-        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v5Keys: true }, format: 'object' });
+    it('sha256 fingerprints - v6 key', async () => {
+        const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v6Keys: true }, format: 'object' });
+
         const fingerprints = publicKey.getKeys().map((key) => key.getFingerprint());
         const sha256Fingerprints = await getSHA256Fingerprints(publicKey);
         expect(sha256Fingerprints.length).to.equal(fingerprints.length);
@@ -44,15 +70,34 @@ describe('key utils', () => {
         expect(Math.abs(+privateKey.getCreationTime() - +now) < 24 * 3600).to.be.true;
     });
 
-    it('generateKey - it includes the BE-expected algorithm preferences', async () => {
+    it('generateKey - v4 key - it includes the BE-expected algorithm preferences', async () => {
         const { privateKey } = await generateKey({
             userIDs: [{ name: 'name', email: 'email@test.com' }],
-            format: 'object'
+            format: 'object',
+            config: { v6Keys: false }
         });
         const { selfCertification } = await privateKey.getPrimaryUser(serverTime());
         expect(selfCertification.preferredSymmetricAlgorithms).to.include(enums.symmetric.aes256);
         expect(selfCertification.preferredHashAlgorithms).to.include(enums.hash.sha256);
         expect(selfCertification.preferredCompressionAlgorithms).to.include(enums.compression.zlib);
+        // for v4 keys, we guard against sha3 being in the preferences, as it's not supported by all Proton clients
+        expect(selfCertification.preferredHashAlgorithms).to.not.include(enums.hash.sha3_256);
+        expect(selfCertification.preferredHashAlgorithms).to.not.include(enums.hash.sha3_512);
+    });
+
+    it('generateKey - v6 key - it includes the BE-expected algorithm preferences', async () => {
+        const { privateKey } = await generateKey({
+            userIDs: [{ name: 'name', email: 'email@test.com' }],
+            format: 'object',
+            config: { v6Keys: true }
+        });
+        // @ts-ignore missing `directSignatures` type definition
+        const [directSignature] = await privateKey.directSignatures;
+        expect(directSignature.preferredSymmetricAlgorithms).to.include(enums.symmetric.aes256);
+        expect(directSignature.preferredHashAlgorithms).to.include(enums.hash.sha256);
+        expect(directSignature.preferredCompressionAlgorithms).to.include(enums.compression.zlib);
+        expect(directSignature.preferredHashAlgorithms).to.include(enums.hash.sha3_256);
+        expect(directSignature.preferredHashAlgorithms).to.include(enums.hash.sha3_512);
     });
 
     it('reformatKey - it reformats a key using the key creation time', async () => {

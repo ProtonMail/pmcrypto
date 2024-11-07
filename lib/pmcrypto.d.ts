@@ -1,25 +1,24 @@
 /* eslint-disable @typescript-eslint/indent */
 import {
-    DecryptOptions,
-    DecryptMessageResult as openpgp_DecryptMessageResult,
-    Message,
+    type DecryptOptions,
+    type DecryptMessageResult as openpgp_DecryptMessageResult,
+    type Message,
     Key,
-    Signature,
-    SignOptions,
-    EncryptOptions,
+    type Signature,
+    type SignOptions,
+    type EncryptOptions,
     PublicKey,
     PrivateKey,
-    SessionKey,
-    EncryptSessionKeyOptions,
-    decryptSessionKeys as openpgp_decryptSessionKeys,
+    type SessionKey,
+    type EncryptSessionKeyOptions,
+    type decryptSessionKeys as openpgp_decryptSessionKeys,
     decryptKey,
     encryptKey,
-    WebStream,
+    type WebStream,
     readMessage, readSignature, readCleartextMessage,
     readKey, readKeys, readPrivateKey, readPrivateKeys,
-    PartialConfig,
-    enums,
-    EllipticCurveName
+    type PartialConfig,
+    type AlgorithmInfo
 } from 'openpgp/lightweight';
 
 import { VERIFICATION_STATUS, SIGNATURE_TYPES } from './constants';
@@ -27,7 +26,7 @@ import type { ContextSigningOptions, ContextVerificationOptions } from './messag
 
 export function init(): void;
 
-export { VERIFICATION_STATUS, SIGNATURE_TYPES, PartialConfig };
+export { VERIFICATION_STATUS, SIGNATURE_TYPES, type PartialConfig };
 export { ContextError } from './message/context';
 
 export type OpenPGPKey = Key;
@@ -48,7 +47,8 @@ export {
     decryptKey, encryptKey,
     readMessage, readSignature, readCleartextMessage,
     readKey, readKeys, readPrivateKey, readPrivateKeys,
-    PrivateKey, PublicKey, Key, SessionKey
+    PrivateKey, PublicKey, Key, type SessionKey,
+    type AlgorithmInfo
 };
 
 export { generateForwardingMaterial, doesKeySupportForwarding, isForwardingKey } from './key/forwarding';
@@ -67,13 +67,13 @@ export type DecryptSessionKeyOptionsPmcrypto = Parameters<typeof openpgp_decrypt
 // This differs from `openpgp.decryptSessionKeys` in the return type
 export function decryptSessionKey(options: DecryptSessionKeyOptionsPmcrypto): Promise<SessionKey | undefined>;
 
-export interface DecryptOptionsPmcrypto<T extends MaybeStream<Data>> extends DecryptOptions {
+export interface DecryptOptionsPmcrypto<T extends MaybeWebStream<Data>> extends DecryptOptions {
     message: Message<T>;
-    encryptedSignature?: Message<MaybeStream<Data>>;
+    encryptedSignature?: Message<MaybeWebStream<Data>>;
     context?: ContextVerificationOptions
 }
 
-export interface DecryptResultPmcrypto<DataType extends openpgp_DecryptMessageResult['data'] = MaybeStream<Data>> {
+export interface DecryptResultPmcrypto<DataType extends openpgp_DecryptMessageResult['data'] = MaybeWebStream<Data>> {
     data: DataType;
     signatures: DataType extends WebStream<Data> ? Promise<OpenPGPSignature[]> : OpenPGPSignature[];
     filename: string;
@@ -81,7 +81,7 @@ export interface DecryptResultPmcrypto<DataType extends openpgp_DecryptMessageRe
     verificationErrors?: DataType extends WebStream<Data> ? Promise<Error[]> : Error[];
 }
 
-export function decryptMessage<DataType extends MaybeStream<Data>, FormatType extends DecryptOptions['format'] = 'utf8'>(
+export function decryptMessage<DataType extends MaybeWebStream<Data>, FormatType extends DecryptOptions['format'] = 'utf8'>(
     options: DecryptOptionsPmcrypto<DataType> & { format?: FormatType }
 ): Promise<
     FormatType extends 'utf8' ?
@@ -95,14 +95,14 @@ export function decryptMessage<DataType extends MaybeStream<Data>, FormatType ex
     never
 >;
 
-export type MaybeStream<T extends Uint8Array | string> = T | WebStream<T>;
 export type Data = string | Uint8Array;
-export { WebStream };
+export type MaybeWebStream<T extends Data> = T | WebStream<T>;
+export type { WebStream };
 
-export interface EncryptOptionsPmcrypto<T extends MaybeStream<Data>> extends Omit<EncryptOptions, 'message' | 'signatureNotations'> {
-    textData?: T extends MaybeStream<string> ? T : never;
-    binaryData?: T extends MaybeStream<Uint8Array> ? T : never;
-    stripTrailingSpaces?: T extends MaybeStream<string> ? boolean : never;
+export interface EncryptOptionsPmcrypto<T extends MaybeWebStream<Data>> extends Omit<EncryptOptions, 'message' | 'signatureNotations'> {
+    textData?: T extends MaybeWebStream<string> ? T : never;
+    binaryData?: T extends MaybeWebStream<Uint8Array> ? T : never;
+    stripTrailingSpaces?: T extends MaybeWebStream<string> ? boolean : never;
     detached?: boolean;
     context?: ContextSigningOptions;
 }
@@ -119,7 +119,7 @@ export interface EncryptResult<
 }
 
 export function encryptMessage<
-    DataType extends MaybeStream<Data>,
+    DataType extends MaybeWebStream<Data>,
     FormatType extends EncryptOptions['format'] = 'armored', // extends 'string' also works, but it gives unclear error if passed unexpected 'format' values
     DetachedType extends boolean = false
 >(
@@ -149,15 +149,15 @@ export function encryptMessage<
     never
 >;
 
-export interface SignOptionsPmcrypto<T extends MaybeStream<Data>> extends Omit<SignOptions, 'message' | 'signatureNotations'> {
-    textData?: T extends MaybeStream<string> ? T : never;
-    binaryData?: T extends MaybeStream<Uint8Array> ? T : never;
-    stripTrailingSpaces?: T extends MaybeStream<string> ? boolean : never;
+export interface SignOptionsPmcrypto<T extends MaybeWebStream<Data>> extends Omit<SignOptions, 'message' | 'signatureNotations'> {
+    textData?: T extends MaybeWebStream<string> ? T : never;
+    binaryData?: T extends MaybeWebStream<Uint8Array> ? T : never;
+    stripTrailingSpaces?: T extends MaybeWebStream<string> ? boolean : never;
     context?: ContextSigningOptions;
 }
 
 export function signMessage<
-    DataType extends MaybeStream<Data>,
+    DataType extends MaybeWebStream<Data>,
     FormatType extends SignOptions['format'] = 'armored',
     DetachedType extends boolean = false
 >(
@@ -177,21 +177,14 @@ export {
     stripArmor
 } from './message/utils';
 
-export type PublicKeyNames = enums.publicKeyNames | 'ed25519' | 'x25519'; // TODO drop once types are updated in OpenPGP.js v6
-export interface AlgorithmInfo {
-    algorithm: PublicKeyNames;
-    bits?: number; // if algorithm == 'rsaEncryptSign' | 'rsaEncrypt' | 'rsaSign'
-    curve?: EllipticCurveName; // if algorithm == 'ecdh' | 'eddsa' | 'ecdsa'
-}
-
 export { SHA256, SHA512, unsafeMD5, unsafeSHA1 } from './crypto/hash';
-export { argon2, Argon2Options } from './crypto/argon2';
+export { argon2, type Argon2Options } from './crypto/argon2';
 
 export { verifyMessage, verifyCleartextMessage } from './message/verify';
 export type { VerifyCleartextOptionsPmcrypto, VerifyMessageResult, VerifyOptionsPmcrypto } from './message/verify';
 export type { ContextSigningOptions, ContextVerificationOptions };
 
-export { MIMEAttachment, ProcessMIMEOptions, default as processMIME, ProcessMIMEResult } from './message/processMIME';
+export { type MIMEAttachment, type ProcessMIMEOptions, default as processMIME, type ProcessMIMEResult } from './message/processMIME';
 
 export { serverTime, updateServerTime } from './serverTime';
 export { checkKeyStrength, checkKeyCompatibility } from './key/check';

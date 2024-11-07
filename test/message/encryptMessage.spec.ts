@@ -1,12 +1,10 @@
 import { expect } from 'chai';
-// @ts-ignore missing web-stream-tools types
-import { readToEnd, toStream, WebStream } from '@openpgp/web-stream-tools';
-
-import { config as globalConfig, CompressedDataPacket, enums, SymEncryptedSessionKeyPacket, PartialConfig } from '../../lib/openpgp';
+import { readToEnd, toStream, type WebStream } from '@openpgp/web-stream-tools';
+import { config as globalConfig, type CompressedDataPacket, enums, SymEncryptedSessionKeyPacket, type PartialConfig, SymEncryptedIntegrityProtectedDataPacket } from '../../lib/openpgp';
 
 import { decryptKey, readPrivateKey, verifyMessage, encryptMessage, decryptMessage, generateSessionKey, readSignature, readMessage, encryptSessionKey, decryptSessionKey } from '../../lib';
 import { hexStringToArray, arrayToBinaryString, stringToUtf8Array } from '../../lib/utils';
-import { testPrivateKeyLegacy } from './encryptMessage.data';
+import { testPrivateKeyLegacy, v4PrivateKeySEIPDv2 } from './encryptMessage.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
 const generateStreamOfData = (): { stream: WebStream<string>, data: string } => ({
@@ -61,6 +59,21 @@ describe('message encryption and decryption', () => {
         });
         expect(decrypted).to.deep.equal(stringToUtf8Array('Hello world!'));
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+    });
+
+    it('it does not encrypt with SEIPDv2 by default', async () => {
+        const privateKey = await readPrivateKey({ armoredKey: v4PrivateKeySEIPDv2 });
+
+        const { message: encryptedWithSEIPDv1 } = await encryptMessage({
+            binaryData: stringToUtf8Array('Hello world!'),
+            encryptionKeys: privateKey.toPublic(),
+            format: 'object'
+        });
+        expect(encryptedWithSEIPDv1.packets).to.have.length(2);
+        const seipdV1 = encryptedWithSEIPDv1.packets[1] as SymEncryptedIntegrityProtectedDataPacket;
+        expect(seipdV1).to.be.instanceOf(SymEncryptedIntegrityProtectedDataPacket);
+        // @ts-ignore missing `version` field declaration
+        expect(seipdV1.version).to.equal(1);
     });
 
     it('can encrypt with argon2 s2k', async () => {
@@ -314,7 +327,7 @@ describe('message encryption and decryption', () => {
         const encryptedArmoredMessage = await readToEnd(encrypted);
 
         const { data: decrypted, verified } = await decryptMessage({
-            message: await readMessage({ armoredMessage: toStream(encryptedArmoredMessage) }),
+            message: await readMessage({ armoredMessage: toStream(encryptedArmoredMessage) as WebStream<string> }),
             encryptedSignature: await readMessage({ armoredMessage: encryptedSignature }),
             sessionKeys: sessionKey,
             verificationKeys: [decryptedPrivateKey.toPublic()],
