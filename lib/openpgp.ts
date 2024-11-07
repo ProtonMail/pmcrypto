@@ -24,6 +24,11 @@ export const setConfig = () => {
     // we want to avoid generating SEIPDv2 messages until support is rolled out to other platforms,
     // in case e.g. some users have already imported v4 keys with SEIPDv2 feature flags.
     config.ignoreSEIPDv2FeatureFlag = true;
+
+    // We still allow parsing of v5 keys and signatures so that we can log usage of the former through
+    // `checkKeyCompatibility` errors: v5 entities were allowed in pmcrypto v7, so they might have been
+    // uploaded as e.g. contact keys.
+    config.enableParsingV5Entities = true;
 };
 
 export * from 'openpgp/lightweight';

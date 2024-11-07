@@ -40,8 +40,7 @@ FcJ6BRgWCAAsBYJkLu2/ApsMIqEFD9jz083B91dR0j+13lD2s2tg/2ZvsODq
 T/efFOC6BDkAAHcjAPwIPNHnR9bKmkVop6cE05dCIpZ/W8zXDGnjKYrrC4Hb
 4gEAmISD1GRkNOmCV8aHwN5svO6HuwXR4cR3o3l7HlYeag8=
 =wpkQ
------END PGP PRIVATE KEY BLOCK-----`,
-            config: { enableParsingV5Entities: true }
+-----END PGP PRIVATE KEY BLOCK-----`
         });
         const fingerprints = publicKey.getKeys().map((key) => key.getFingerprint());
         const sha256Fingerprints = await getSHA256Fingerprints(publicKey);
