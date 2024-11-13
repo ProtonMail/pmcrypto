@@ -14,9 +14,9 @@ export function checkKeyStrength(publicKey: PublicKey) {
     const allowedCurves: Set<AlgorithmInfo['curve']> = new Set([
         enums.curve.ed25519Legacy,
         enums.curve.curve25519Legacy,
-        enums.curve.p256,
-        enums.curve.p384,
-        enums.curve.p521
+        enums.curve.nistP256,
+        enums.curve.nistP384,
+        enums.curve.nistP521
     ]);
     const allowedPublicKeyAlgorithms = new Set([
         enums.publicKey.rsaEncryptSign,
@@ -24,7 +24,14 @@ export function checkKeyStrength(publicKey: PublicKey) {
         enums.publicKey.rsaEncrypt,
         enums.publicKey.ecdh,
         enums.publicKey.ecdsa,
-        enums.publicKey.eddsaLegacy
+        enums.publicKey.eddsaLegacy,
+        // the following algos are currently only supported for v6 keys, but discriminating
+        // based on the key version is not important here, as we assume `checkKeyCompatibility`
+        // is used for that.
+        enums.publicKey.ed25519,
+        enums.publicKey.x25519,
+        enums.publicKey.ed448,
+        enums.publicKey.x448
     ]);
 
     publicKey.getKeys().forEach(({ keyPacket }) => {

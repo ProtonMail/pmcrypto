@@ -111,7 +111,6 @@ T/efFOC6BDkAAHcjAPwIPNHnR9bKmkVop6cE05dCIpZ/W8zXDGnjKYrrC4Hb
         const { privateKey: reformattedKey } = await reformatKey({ privateKey, passphrase: '123', userIDs: [{ name: 'reformatted', email: 'reformatteed@test.com' }], format: 'object' });
         const primaryUser = await reformattedKey.getPrimaryUser();
         expect(primaryUser.user.userID?.userID).to.equal('reformatted <reformatteed@test.com>');
-        // @ts-ignore missing `created` field declaration in signature packet
         expect((await reformattedKey.getPrimaryUser()).selfCertification.created).to.deep.equal(date);
     });
 

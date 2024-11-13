@@ -1,7 +1,20 @@
 import { expect } from 'chai';
 import { checkKeyStrength, checkKeyCompatibility, readKey } from '../../lib';
 
-export const ecc25519Key = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+export const curve25519KeyV6 = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+xioGY4d/4xsAAAAg+U2nu0jWCmHlZ3BqZYfQMxmZu52JGggkLq2EVD34laPCsQYf
+GwoAAABCBYJjh3/jAwsJBwUVCg4IDAIWAAKbAwIeCSIhBssYbE8GCaaX5NUt+mxy
+KwwfHifBilZwj2Ul7Ce62azJBScJAgcCAAAAAK0oIBA+LX0ifsDm185Ecds2v8lw
+gyU2kCcUmKfvBXbAf6rhRYWzuQOwEn7E/aLwIwRaLsdry0+VcallHhSu4RN6HWaE
+QsiPlR4zxP/TP7mhfVEe7XWPxtnMUMtf15OyA51YBM4qBmOHf+MZAAAAIIaTJINn
++eUBXbki+PSAld2nhJh/LVmFsS+60WyvXkQ1wpsGGBsKAAAALAWCY4d/4wKbDCIh
+BssYbE8GCaaX5NUt+mxyKwwfHifBilZwj2Ul7Ce62azJAAAAAAQBIKbpGG2dWTX8
+j+VjFM21J0hqWlEg+bdiojWnKfA5AQpWUWtnNwDEM0g12vYxoWM8Y81W+bHBw805
+I8kWVkXU6vFOi+HWvv/ira7ofJu16NnoUkhclkUrk0mXubZvyl4GBg==
+-----END PGP PUBLIC KEY BLOCK-----`;
+
+export const curve25519LegacyKeyV4 = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 xjMEYRaiLRYJKwYBBAHaRw8BAQdAMrsrfniSJuxOLn+Q3VKP0WWqgizG4VOF
 6t0HZYx8mSnNEHRlc3QgPHRlc3RAYS5pdD7CjAQQFgoAHQUCYRaiLQQLCQcI
@@ -15,7 +28,7 @@ po3C/804tJkeKgEA0ruKx9rcMTi4LxfYgijjPrI+GgrfegfREt/YN2KQ75gA
 =8+ep
 -----END PGP PUBLIC KEY BLOCK-----`;
 
-export const eddsaElGamalSubkey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+export const eddsaLegacyElGamalSubkeyV4 = `-----BEGIN PGP PRIVATE KEY BLOCK-----
 
 xVgEYRU8lhYJKwYBBAHaRw8BAQdAixQ3oWfWg0zF8Dr8iCSKI7d87uR0D8KT
 jaXmeP/BFLMAAQC6l0agypEfDhEsPXnooVeQ9RdbuQJt79G0X0fEMJUaHA6L
@@ -41,7 +54,7 @@ LAhjJS/ggyNCU/A+d6Eu9gacwFDD3j0IQLNe012Z2wU=
 =qRad
 -----END PGP PRIVATE KEY BLOCK-----`;
 
-export const rsa512BitsKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+export const rsa512BitsKeyV4 = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 xk0EYRam4gECALVRNFX0hcAEE2+FfdzawLPZJwyk2Lt4Rw/iWk+lBmbWuifM
 b7vbYKV2gGBnyEIoo1P6eN6aN7sRFtYYL0uVWB0AEQEAAc0QdGVzdCA8dGVz
@@ -57,28 +70,33 @@ m53MXUW1fnpBPuv9RWJDN+tLhm5FPJktpuElr6hcBg==
 -----END PGP PUBLIC KEY BLOCK-----`;
 
 describe('key checks', () => {
-    it('it warns on insecure primary key (RSA 512 bits)', async () => {
-        const key = await readKey({ armoredKey: rsa512BitsKey });
+    it('checkKeyStrength - it warns on insecure primary key (RSA 512 bits)', async () => {
+        const key = await readKey({ armoredKey: rsa512BitsKeyV4 });
         expect(
             () => checkKeyStrength(key)
         ).to.throw(/Keys shorter than 2047 bits are considered unsafe/);
     });
 
-    it('it warns on insecure subkey (ElGamal)', async () => {
-        const key = await readKey({ armoredKey: eddsaElGamalSubkey });
+    it('checkKeyStrength - it warns on insecure subkey (ElGamal)', async () => {
+        const key = await readKey({ armoredKey: eddsaLegacyElGamalSubkeyV4 });
         expect(
             () => checkKeyStrength(key)
         ).to.throw(/elgamal keys are considered unsafe/);
     });
 
-    it('it does not warn on secure key (x25519)', async () => {
-        const key = await readKey({ armoredKey: ecc25519Key });
+    it('checkKeyStrength - it does not warn on secure key (curve25519Legacy)', async () => {
+        const v4Key = await readKey({ armoredKey: curve25519LegacyKeyV4 });
         expect(
-            () => checkKeyStrength(key)
-        ).to.not.throw;
+            () => checkKeyStrength(v4Key)
+        ).to.not.throw();
+
+        const v6Key = await readKey({ armoredKey: curve25519KeyV6 });
+        expect(
+            () => checkKeyStrength(v6Key)
+        ).to.not.throw();
     });
 
-    it('compatibility - it rejects a v4 key using the new EdDSA format', async () => {
+    it('checkKeyCompatibility - it rejects a v4 key using the new EdDSA format', async () => {
         const key = await readKey({ armoredKey: `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 xiYEZIbSkxsHknQrXGfb+kM2iOsOvin8yE05ff5hF8KE6k+saspAZc0VdXNl
@@ -96,7 +114,7 @@ Gw0vQaiZn6HGITQw5nBGvXQPF9VpFpsXV9x/08dIdfZLAQVdQowgeBsxCw==
         ).to.throw(/key algorithm ed25519 is currently not supported/);
     });
 
-    it('compatibility - it rejects a v5 key', async () => {
+    it('checkKeyCompatibility - it rejects a v5 key', async () => {
         const key = await readKey({
             armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
 
@@ -114,39 +132,27 @@ FcJ6BRgWCAAsBYJkLu2/ApsMIqEFD9jz083B91dR0j+13lD2s2tg/2ZvsODq
 T/efFOC6BDkAAHcjAPwIPNHnR9bKmkVop6cE05dCIpZ/W8zXDGnjKYrrC4Hb
 4gEAmISD1GRkNOmCV8aHwN5svO6HuwXR4cR3o3l7HlYeag8=
 =wpkQ
------END PGP PRIVATE KEY BLOCK-----`,
-            config: { enableParsingV5Entities: true }
+-----END PGP PRIVATE KEY BLOCK-----`
         });
         expect(
             () => checkKeyCompatibility(key)
         ).to.throw(/Version 5 keys are currently not supported/);
     });
 
-    it('compatibility - it rejects a v6 key unless explicitly allowed', async () => {
-        const key = await readKey({ armoredKey: `-----BEGIN PGP PUBLIC KEY BLOCK-----
-
-xioGY4d/4xsAAAAg+U2nu0jWCmHlZ3BqZYfQMxmZu52JGggkLq2EVD34laPCsQYf
-GwoAAABCBYJjh3/jAwsJBwUVCg4IDAIWAAKbAwIeCSIhBssYbE8GCaaX5NUt+mxy
-KwwfHifBilZwj2Ul7Ce62azJBScJAgcCAAAAAK0oIBA+LX0ifsDm185Ecds2v8lw
-gyU2kCcUmKfvBXbAf6rhRYWzuQOwEn7E/aLwIwRaLsdry0+VcallHhSu4RN6HWaE
-QsiPlR4zxP/TP7mhfVEe7XWPxtnMUMtf15OyA51YBM4qBmOHf+MZAAAAIIaTJINn
-+eUBXbki+PSAld2nhJh/LVmFsS+60WyvXkQ1wpsGGBsKAAAALAWCY4d/4wKbDCIh
-BssYbE8GCaaX5NUt+mxyKwwfHifBilZwj2Ul7Ce62azJAAAAAAQBIKbpGG2dWTX8
-j+VjFM21J0hqWlEg+bdiojWnKfA5AQpWUWtnNwDEM0g12vYxoWM8Y81W+bHBw805
-I8kWVkXU6vFOi+HWvv/ira7ofJu16NnoUkhclkUrk0mXubZvyl4GBg==
------END PGP PUBLIC KEY BLOCK-----` });
+    it('checkKeyCompatibility - it rejects a v6 key unless explicitly allowed', async () => {
+        const key = await readKey({ armoredKey: curve25519KeyV6 });
         expect(
             () => checkKeyCompatibility(key)
         ).to.throw(/Version 6 keys are currently not supported/);
         expect(
             () => checkKeyCompatibility(key, true)
-        ).to.not.throw;
+        ).to.not.throw();
     });
 
-    it('compatibility - it does not reject a v4 key using the eddsa legacy format', async () => {
-        const key = await readKey({ armoredKey: ecc25519Key });
+    it('checkKeyCompatibility - it does not reject a v4 key using the eddsa legacy format', async () => {
+        const key = await readKey({ armoredKey: curve25519LegacyKeyV4 });
         expect(
             () => checkKeyCompatibility(key)
-        ).to.not.throw;
+        ).to.not.throw();
     });
 });
