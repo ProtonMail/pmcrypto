@@ -31,7 +31,11 @@ export function checkKeyStrength(publicKey: PublicKey) {
         enums.publicKey.ed25519,
         enums.publicKey.x25519,
         enums.publicKey.ed448,
-        enums.publicKey.x448
+        enums.publicKey.x448,
+        // @ts-expect-error missing enum definition
+        enums.publicKey.pqc_mlkem_x25519,
+        // @ts-expect-error missing enum definition
+        enums.publicKey.pqc_mldsa_ed25519
     ]);
 
     publicKey.getKeys().forEach(({ keyPacket }) => {
@@ -69,7 +73,11 @@ export function checkKeyCompatibility(publicKey: PublicKey, v6KeysAllowed = fals
         enums.publicKey.ed25519,
         enums.publicKey.ed448,
         enums.publicKey.x25519,
-        enums.publicKey.x448
+        enums.publicKey.x448,
+        // @ts-expect-error missing enum definition
+        enums.publicKey.pqc_mlkem_x25519,
+        // @ts-expect-error missing enum definition
+        enums.publicKey.pqc_mldsa_ed25519
     ];
 
     const supportedPublicKeyAlgorithms = new Set([
