@@ -34,6 +34,15 @@ describe('context', () => {
             context: { value: 'unexpected-context', required: true }
         });
 
+        // verificationWrongContext with `expectSigned`
+        await expect(verifyMessage({
+            textData,
+            signature: await readSignature({ armoredSignature }),
+            verificationKeys: [publicKey],
+            context: { value: 'unexpected-context', required: true },
+            expectSigned: true
+        })).to.be.rejectedWith(ContextError);
+
         const verificationMissingContext = await verifyMessage({
             textData,
             signature: await readSignature({ armoredSignature }),

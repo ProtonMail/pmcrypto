@@ -35,7 +35,8 @@ export function verifyMessage<DataType extends Data, FormatType extends VerifyOp
 >;
 export function handleVerificationResult<DataType extends Data>(
     verificationResult: openpgp_VerifyMessageResult<DataType>,
-    context: ContextVerificationOptions
+    context?: ContextVerificationOptions,
+    expectSigned?: boolean
 ): Promise<VerifyMessageResult<DataType>>;
 
 export interface VerifyCleartextOptionsPmcrypto extends Omit<VerifyOptions, 'message' | 'signature' | 'format'> {
