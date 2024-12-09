@@ -89,10 +89,10 @@ export const getConfigForContextVerification = (config: PartialConfig) => ({
  * Context verification error.
  * Thrown if e.g. context information is not present in the signature, or it does not match the expected context.
  */
-export class ContextError extends Error {
+export class SignatureContextError extends Error {
     constructor(message: string) {
         super(message);
 
-        this.name = 'ContextError';
+        this.name = 'SignatureContextError';
     }
 }

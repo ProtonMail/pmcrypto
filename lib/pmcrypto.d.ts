@@ -27,7 +27,7 @@ import type { ContextSigningOptions, ContextVerificationOptions } from './messag
 export function init(): void;
 
 export { VERIFICATION_STATUS, SIGNATURE_TYPES, type PartialConfig };
-export { ContextError } from './message/context';
+export { SignatureContextError } from './message/context';
 
 export type OpenPGPKey = Key;
 export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing streaming support
@@ -70,7 +70,7 @@ export function decryptSessionKey(options: DecryptSessionKeyOptionsPmcrypto): Pr
 export interface DecryptOptionsPmcrypto<T extends MaybeWebStream<Data>> extends DecryptOptions {
     message: Message<T>;
     encryptedSignature?: Message<MaybeWebStream<Data>>;
-    context?: ContextVerificationOptions
+    signatureContext?: ContextVerificationOptions
 }
 
 export interface DecryptResultPmcrypto<DataType extends openpgp_DecryptMessageResult['data'] = MaybeWebStream<Data>> {
@@ -104,7 +104,7 @@ export interface EncryptOptionsPmcrypto<T extends MaybeWebStream<Data>> extends 
     binaryData?: T extends MaybeWebStream<Uint8Array> ? T : never;
     stripTrailingSpaces?: T extends MaybeWebStream<string> ? boolean : never;
     detached?: boolean;
-    context?: ContextSigningOptions;
+    signatureContext?: ContextSigningOptions;
 }
 
 // No reuse from OpenPGP's equivalent
@@ -153,7 +153,7 @@ export interface SignOptionsPmcrypto<T extends MaybeWebStream<Data>> extends Omi
     textData?: T extends MaybeWebStream<string> ? T : never;
     binaryData?: T extends MaybeWebStream<Uint8Array> ? T : never;
     stripTrailingSpaces?: T extends MaybeWebStream<string> ? boolean : never;
-    context?: ContextSigningOptions;
+    signatureContext?: ContextSigningOptions;
 }
 
 export function signMessage<
