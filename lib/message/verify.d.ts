@@ -14,7 +14,7 @@ export interface VerifyOptionsPmcrypto<T extends Data> extends Omit<VerifyOption
     textData?: T extends string ? T : never;
     binaryData?: T extends Uint8Array ? T : never;
     stripTrailingSpaces?: T extends string ? boolean : never;
-    context?: ContextVerificationOptions;
+    signatureContext?: ContextVerificationOptions;
 }
 
 export interface VerifyMessageResult<DataType extends openpgp_VerifyMessageResult['data'] = Data> {
@@ -35,7 +35,7 @@ export function verifyMessage<DataType extends Data, FormatType extends VerifyOp
 >;
 export function handleVerificationResult<DataType extends Data>(
     verificationResult: openpgp_VerifyMessageResult<DataType>,
-    context?: ContextVerificationOptions,
+    signatureContext?: ContextVerificationOptions,
     expectSigned?: boolean
 ): Promise<VerifyMessageResult<DataType>>;
 
