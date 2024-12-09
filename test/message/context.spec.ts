@@ -206,6 +206,29 @@ describe('context', () => {
         expect(decryptionMissingContext.verificationErrors![0]).to.match(/Unknown critical notation: context@proton/);
     });
 
+    it.only('encryptMessage/decryptMessage - it throws if context is provided without signingKeys or verificationKeys', async () => {
+        // missing signing keys
+        await expect(encryptMessage({
+            textData: 'message with context',
+            sessionKey: { algorithm: 'aes128', data: new Uint8Array(16) }, // unused
+            context: { value: 'test-context', critical: true }
+        })).to.be.rejectedWith(/Unexpected `context` input without any `signingKeys` provided/);
+
+        // missing verification keys
+        await expect(decryptMessage({
+            message: await readMessage({ armoredMessage: `-----BEGIN PGP MESSAGE-----
+
+wV4D+XE4B6yFCrUSAQdAur2W1bvOByAj6fDqTNLLCED/QO9StAS5MKr0ud6l
+0hswcvpQaq/Bup46mgO2n2f1hgv9wwlKq7hYYyHJWJ631Ai4yifFZy+rnAv/
+kGXdMLE/1EcBCQEMWzWe+L8qO3Vq0Yr7aLeW93PCFLxl+J9wQMIqnl4EiOYh
+sJFJxllC0j4wHCOS9uiSYsZ/pWCqxX/3sFh4VBFOpr0HAA==
+=S5ns
+-----END PGP MESSAGE-----` }),
+            sessionKeys: { algorithm: 'aes128', data: new Uint8Array(16) }, // unused
+            context: { value: 'test-context', required: true }
+        })).to.be.rejectedWith(/Unexpected `context` input without any `verificationKeys` provided/);
+    });
+
     it('does not verify a message without context', async () => {
         const { privateKey, publicKey } = await generateKey({
             userIDs: [{ name: 'name', email: 'email@test.com' }],
