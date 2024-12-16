@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { verifyMessage, signMessage, generateKey, readSignature, readMessage, decryptMessage, encryptMessage, readKey, ContextError, serverTime } from '../../lib';
+import { verifyMessage, signMessage, generateKey, readSignature, readMessage, decryptMessage, encryptMessage, readKey, SignatureContextError, serverTime } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
 // verification without passing context should fail
@@ -16,7 +16,7 @@ describe('context', () => {
         const armoredSignature = await signMessage({
             textData,
             signingKeys: [privateKey],
-            context: { value: 'test-context', critical: true },
+            signatureContext: { value: 'test-context', critical: true },
             detached: true
         });
 
@@ -24,14 +24,14 @@ describe('context', () => {
             textData,
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey],
-            context: { value: 'test-context', required: true }
+            signatureContext: { value: 'test-context', required: true }
         });
 
         const verificationWrongContext = await verifyMessage({
             textData,
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey],
-            context: { value: 'unexpected-context', required: true }
+            signatureContext: { value: 'unexpected-context', required: true }
         });
 
         // verificationWrongContext with `expectSigned`
@@ -39,9 +39,9 @@ describe('context', () => {
             textData,
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey],
-            context: { value: 'unexpected-context', required: true },
+            signatureContext: { value: 'unexpected-context', required: true },
             expectSigned: true
-        })).to.be.rejectedWith(ContextError);
+        })).to.be.rejectedWith(SignatureContextError);
 
         const verificationMissingContext = await verifyMessage({
             textData,
@@ -55,7 +55,7 @@ describe('context', () => {
         // check errors
         expect(verificationValidContext.errors).to.be.undefined;
         expect(verificationWrongContext.errors).to.have.length(1);
-        expect(verificationWrongContext.errors![0]).to.be.instanceOf(ContextError);
+        expect(verificationWrongContext.errors![0]).to.be.instanceOf(SignatureContextError);
         expect(verificationMissingContext.errors).to.have.length(1);
         expect(verificationMissingContext.errors![0]).to.match(/Unknown critical notation: context@proton/);
     });
@@ -70,7 +70,7 @@ describe('context', () => {
         const armoredSignature = await signMessage({
             textData,
             signingKeys: [privateKey],
-            context: { value: 'test-context', critical: false },
+            signatureContext: { value: 'test-context', critical: false },
             detached: true
         });
 
@@ -78,21 +78,21 @@ describe('context', () => {
             textData,
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey],
-            context: { value: 'test-context', required: true }
+            signatureContext: { value: 'test-context', required: true }
         });
 
         const verificationWrongContext = await verifyMessage({
             textData,
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey],
-            context: { value: 'unexpected-context', required: true }
+            signatureContext: { value: 'unexpected-context', required: true }
         });
 
         const verificationWrongContextNotRequired = await verifyMessage({
             textData,
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey],
-            context: { value: 'unexpected-context', required: false } // should still fail to verify
+            signatureContext: { value: 'unexpected-context', required: false } // should still fail to verify
         });
 
         const verificationMissingContext = await verifyMessage({
@@ -108,9 +108,9 @@ describe('context', () => {
         // check errors
         expect(verificationValidContext.errors).to.be.undefined;
         expect(verificationWrongContext.errors).to.have.length(1);
-        expect(verificationWrongContext.errors![0]).to.be.instanceOf(ContextError);
+        expect(verificationWrongContext.errors![0]).to.be.instanceOf(SignatureContextError);
         expect(verificationWrongContextNotRequired.errors).to.have.length(1);
-        expect(verificationWrongContextNotRequired.errors![0]).to.be.instanceOf(ContextError);
+        expect(verificationWrongContextNotRequired.errors![0]).to.be.instanceOf(SignatureContextError);
         expect(verificationMissingContext.errors).to.be.undefined;
     });
 
@@ -124,21 +124,21 @@ describe('context', () => {
             textData: 'message with context',
             encryptionKeys: publicKey,
             signingKeys: privateKey,
-            context: { value: 'test-context', critical: true }
+            signatureContext: { value: 'test-context', critical: true }
         });
 
         const decryptionValidContext = await decryptMessage({
             message: await readMessage({ armoredMessage }),
             decryptionKeys: privateKey,
             verificationKeys: publicKey,
-            context: { value: 'test-context', required: true }
+            signatureContext: { value: 'test-context', required: true }
         });
 
         const decryptionWrongContext = await decryptMessage({
             message: await readMessage({ armoredMessage }),
             decryptionKeys: privateKey,
             verificationKeys: publicKey,
-            context: { value: 'unexpected-context', required: true }
+            signatureContext: { value: 'unexpected-context', required: true }
         });
 
         const decryptionMissingContext = await await decryptMessage({
@@ -153,7 +153,7 @@ describe('context', () => {
         // check errors
         expect(decryptionValidContext.verificationErrors).to.be.undefined;
         expect(decryptionWrongContext.verificationErrors).to.have.length(1);
-        expect(decryptionWrongContext.verificationErrors![0]).to.be.instanceOf(ContextError);
+        expect(decryptionWrongContext.verificationErrors![0]).to.be.instanceOf(SignatureContextError);
         expect(decryptionMissingContext.verificationErrors).to.have.length(1);
         expect(decryptionMissingContext.verificationErrors![0]).to.match(/Unknown critical notation: context@proton/);
     });
@@ -168,7 +168,7 @@ describe('context', () => {
             textData: 'message with context',
             encryptionKeys: publicKey,
             signingKeys: privateKey,
-            context: { value: 'test-context', critical: true },
+            signatureContext: { value: 'test-context', critical: true },
             detached: true
         });
 
@@ -177,7 +177,7 @@ describe('context', () => {
             encryptedSignature: await readMessage({ armoredMessage: encryptedSignature }),
             decryptionKeys: privateKey,
             verificationKeys: publicKey,
-            context: { value: 'test-context', required: true }
+            signatureContext: { value: 'test-context', required: true }
         });
 
         const decryptionWrongContext = await decryptMessage({
@@ -185,7 +185,7 @@ describe('context', () => {
             encryptedSignature: await readMessage({ armoredMessage: encryptedSignature }),
             decryptionKeys: privateKey,
             verificationKeys: publicKey,
-            context: { value: 'unexpected-context', required: true }
+            signatureContext: { value: 'unexpected-context', required: true }
         });
 
         const decryptionMissingContext = await await decryptMessage({
@@ -201,9 +201,32 @@ describe('context', () => {
         // check errors
         expect(decryptionValidContext.verificationErrors).to.be.undefined;
         expect(decryptionWrongContext.verificationErrors).to.have.length(1);
-        expect(decryptionWrongContext.verificationErrors![0]).to.be.instanceOf(ContextError);
+        expect(decryptionWrongContext.verificationErrors![0]).to.be.instanceOf(SignatureContextError);
         expect(decryptionMissingContext.verificationErrors).to.have.length(1);
         expect(decryptionMissingContext.verificationErrors![0]).to.match(/Unknown critical notation: context@proton/);
+    });
+
+    it('encryptMessage/decryptMessage - it throws if `signatureContext` is provided without `signingKeys` or `verificationKeys`', async () => {
+        // missing signing keys
+        await expect(encryptMessage({
+            textData: 'message with context',
+            sessionKey: { algorithm: 'aes128', data: new Uint8Array(16) }, // unused
+            signatureContext: { value: 'test-context', critical: true }
+        })).to.be.rejectedWith(/Unexpected `signatureContext` input without any `signingKeys` provided/);
+
+        // missing verification keys
+        await expect(decryptMessage({
+            message: await readMessage({ armoredMessage: `-----BEGIN PGP MESSAGE-----
+
+wV4D+XE4B6yFCrUSAQdAur2W1bvOByAj6fDqTNLLCED/QO9StAS5MKr0ud6l
+0hswcvpQaq/Bup46mgO2n2f1hgv9wwlKq7hYYyHJWJ631Ai4yifFZy+rnAv/
+kGXdMLE/1EcBCQEMWzWe+L8qO3Vq0Yr7aLeW93PCFLxl+J9wQMIqnl4EiOYh
+sJFJxllC0j4wHCOS9uiSYsZ/pWCqxX/3sFh4VBFOpr0HAA==
+=S5ns
+-----END PGP MESSAGE-----` }),
+            sessionKeys: { algorithm: 'aes128', data: new Uint8Array(16) }, // unused
+            signatureContext: { value: 'test-context', required: true }
+        })).to.be.rejectedWith(/Unexpected `signatureContext` input without any `verificationKeys` provided/);
     });
 
     it('does not verify a message without context', async () => {
@@ -223,14 +246,14 @@ describe('context', () => {
             textData,
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey],
-            context: { value: 'test-context', required: true }
+            signatureContext: { value: 'test-context', required: true }
         });
 
         const verificationNoExpectedContext = await verifyMessage({
             textData,
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey],
-            context: { value: 'test-context', required: false }
+            signatureContext: { value: 'test-context', required: false }
         });
 
         expect(verificationExpectedContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
@@ -238,7 +261,7 @@ describe('context', () => {
 
         expect(verificationNoExpectedContext.errors).to.be.undefined;
         expect(verificationExpectedContext.errors).to.have.length(1);
-        expect(verificationExpectedContext.errors![0]).to.be.instanceOf(ContextError);
+        expect(verificationExpectedContext.errors![0]).to.be.instanceOf(SignatureContextError);
     });
 
     it('does not verify a message without context based on cutoff date (`expectFrom`)', async () => {
@@ -262,14 +285,14 @@ describe('context', () => {
             textData,
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey],
-            context: { value: 'test-context', requiredAfter: now }
+            signatureContext: { value: 'test-context', requiredAfter: now }
         });
 
         const verificationNoExpectedContext = await verifyMessage({
             textData,
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey],
-            context: { value: 'test-context', requiredAfter: nextHour }
+            signatureContext: { value: 'test-context', requiredAfter: nextHour }
         });
 
         expect(verificationExpectedContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
@@ -277,7 +300,7 @@ describe('context', () => {
 
         expect(verificationNoExpectedContext.errors).to.be.undefined;
         expect(verificationExpectedContext.errors).to.have.length(1);
-        expect(verificationExpectedContext.errors![0]).to.be.instanceOf(ContextError);
+        expect(verificationExpectedContext.errors![0]).to.be.instanceOf(SignatureContextError);
     });
 
     it('does not verify signature with unsigned notation data', async () => {
@@ -310,7 +333,7 @@ sj39B18qvvnS11F+AAB7igEAqwmlDXMzeNNLc3skdyQWZoP0fPyI/ol7pMa+
             textData,
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey],
-            context: { value: 'test-context-unsigned', required: true }
+            signatureContext: { value: 'test-context-unsigned', required: true }
         });
 
         // no context expected, so unsigned notation data should be simply ignored
