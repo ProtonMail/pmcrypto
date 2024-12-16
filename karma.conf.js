@@ -70,7 +70,13 @@ module.exports = function(config) {
         // enable / disable watching file and executing tests whenever any file changes
         autoWatch: false,
 
-        browsers: ['ChromeHeadless', 'FirefoxHeadless', 'WebkitHeadless'],
+        customLaunchers: {
+            ChromeHeadlessCI: {
+                base: 'ChromeHeadless',
+                flags: ['--no-sandbox']
+            }
+        },
+        browsers: ['ChromeHeadlessCI', 'FirefoxHeadless', 'WebkitHeadless'],
 
         // Continuous Integration mode
         // if true, Karma captures browsers, runs the tests and exits
