@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import { createSandbox as createSinonSandbox } from 'sinon';
 import { revokeKey, sign, createMessage, enums } from '../../lib/openpgp';
 import {
     isExpiredKey,
@@ -54,11 +55,19 @@ T/efFOC6BDkAAHcjAPwIPNHnR9bKmkVop6cE05dCIpZ/W8zXDGnjKYrrC4Hb
         const { publicKey } = await generateKey({ userIDs: [{}], passphrase: 'test', config: { v6Keys: true }, format: 'object' });
 
         const fingerprints = publicKey.getKeys().map((key) => key.getFingerprint());
-        const sha256Fingerprints = await getSHA256Fingerprints(publicKey);
-        expect(sha256Fingerprints.length).to.equal(fingerprints.length);
-        sha256Fingerprints.forEach((sha256Fingerprint, i) => {
-            expect(sha256Fingerprint).to.equal(fingerprints[i]);
-        });
+        const sinonSandbox = createSinonSandbox();
+        try {
+            const webcryptoHashSpy = sinonSandbox.spy(crypto.subtle, 'digest');
+            const sha256Fingerprints = await getSHA256Fingerprints(publicKey);
+            // ensure no hashing is done for v6 keys; the fingerprints stored in the key are expected to be returned.
+            expect(webcryptoHashSpy.called).to.be.false;
+            expect(sha256Fingerprints.length).to.equal(fingerprints.length);
+            sha256Fingerprints.forEach((sha256Fingerprint, i) => {
+                expect(sha256Fingerprint).to.equal(fingerprints[i]);
+            });
+        } finally {
+            sinonSandbox.restore();
+        }
     });
 
     it('generateKey - it has valid default creation time', async () => {

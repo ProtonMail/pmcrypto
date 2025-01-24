@@ -33,8 +33,6 @@ export interface GenerateSessionKeyOptionsPmcrypto extends Omit<GenerateSessionK
 }
 export function generateSessionKey(options: GenerateSessionKeyOptionsPmcrypto): Promise<SessionKey>;
 
-export function getFingerprint(key: Key): string;
-
 export function isExpiredKey(key: Key, date?: Date): Promise<boolean>;
 export function isRevokedKey(key: Key, date?: Date): Promise<boolean>;
 
