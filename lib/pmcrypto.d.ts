@@ -37,7 +37,7 @@ export {
     generateKey, reformatKey,
     generateSessionKey, generateSessionKeyForAlgorithm,
     isExpiredKey, isRevokedKey, canKeyEncrypt,
-    getFingerprint, getSHA256Fingerprints,
+    getSHA256Fingerprints,
     getMatchingKey
 } from './key/utils';
 
