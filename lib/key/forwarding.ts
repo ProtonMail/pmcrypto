@@ -70,13 +70,17 @@ export const isForwardingKey = async (keyToCheck: PrivateKey, date: Date = serve
         })
         .catch(() => []); // throws if no valid decryption keys are found
 
-    const hasForwardingKeyFlag = (maybeForwardingSubkey: Subkey) => {
-        const flags = maybeForwardingSubkey.bindingSignatures[0].keyFlags?.[0];
-        if (!flags) {
-            return false;
-        }
-        return (flags & enums.keyFlags.forwardedCommunication) !== 0;
-    };
+    const hasForwardingKeyFlag = (maybeForwardingSubkey: Subkey) => (
+        maybeForwardingSubkey.bindingSignatures.length > 0 &&
+            maybeForwardingSubkey.bindingSignatures.every(({ keyFlags }) => {
+                const flags = keyFlags?.[0];
+                if (!flags) {
+                    return false;
+                }
+                return (flags & enums.keyFlags.forwardedCommunication) !== 0;
+            })
+    );
+
     const allValidKeys = allDecryptionKeys.every(
         (key) => doesKeyPacketSupportForwarding(key) && hasForwardingKeyFlag(key as Subkey)
     );
