@@ -1,4 +1,4 @@
-import { type PrivateKey, type UserID, type SecretSubkeyPacket, type MaybeArray, type SubkeyOptions, type Subkey, KDFParams, SecretKeyPacket, enums } from '../openpgp';
+import { type PrivateKey, type UserID, type MaybeArray, type SubkeyOptions, type Subkey, KDFParams, enums, SecretSubkeyPacket, type Key, config as defaultConfig } from '../openpgp';
 import { generateKey, reformatKey } from './utils';
 import { serverTime } from '../serverTime';
 import { bigIntToUint8Array, mod, modInv, uint8ArrayToBigInt } from '../bigInteger';
@@ -16,20 +16,22 @@ export async function computeProxyParameter(
     return proxyParameter;
 }
 
-async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey, date: Date) {
+const doesKeyPacketSupportForwarding = (maybeForwardeeKey: Key | Subkey) => {
     const curveName = 'curve25519Legacy';
+
+    return (maybeForwardeeKey.keyPacket instanceof SecretSubkeyPacket) && // only ECDH can forward, and they are always subkeys
+        !maybeForwardeeKey.keyPacket.isDummy() &&
+        maybeForwardeeKey.keyPacket.version === 4 && // TODO add support for v6
+        maybeForwardeeKey.getAlgorithmInfo().algorithm === 'ecdh' &&
+        maybeForwardeeKey.getAlgorithmInfo().curve === curveName;
+};
+
+async function getEncryptionKeysForForwarding(forwarderKey: PrivateKey, date: Date) {
     const forwarderEncryptionKeys = (await Promise.all(forwarderKey.getKeyIDs().map(
         (maybeEncryptionKeyID) => forwarderKey.getEncryptionKey(maybeEncryptionKeyID, date).catch(() => null)
     ))).filter(((maybeKey): maybeKey is (PrivateKey | Subkey) => !!maybeKey));
 
-    if (forwarderEncryptionKeys.some((maybeForwarderSubkey) => (
-        maybeForwarderSubkey === null ||
-        !(maybeForwarderSubkey.keyPacket instanceof SecretKeyPacket) || // SecretSubkeyPacket is a subclass
-        maybeForwarderSubkey.keyPacket.isDummy() ||
-        maybeForwarderSubkey.keyPacket.version !== 4 || // TODO add support for v6
-        maybeForwarderSubkey.getAlgorithmInfo().algorithm !== 'ecdh' ||
-        maybeForwarderSubkey.getAlgorithmInfo().curve !== curveName
-    ))) {
+    if (!forwarderEncryptionKeys.every(doesKeyPacketSupportForwarding)) {
         throw new Error('One or more encryption key packets are unsuitable for forwarding');
     }
 
@@ -53,15 +55,37 @@ export async function doesKeySupportForwarding(forwarderKey: PrivateKey, date: D
 }
 
 /**
- * Whether all the encryption-capable (sub)keys are setup as forwarding keys.
+ * Whether all the decryption-capable (sub)keys are setup as forwardee keys.
  * This function also supports encrypted private keys.
  */
-export const isForwardingKey = (keyToCheck: PrivateKey, date: Date = serverTime()) => (
-    getEncryptionKeysForForwarding(keyToCheck, date)
-        // @ts-ignore missing `bindingSignatures` definition
-        .then((keys) => keys.every((key) => key.bindingSignatures[0].keyFlags & enums.keyFlags.forwardedCommunication))
-        .catch(() => false)
-);
+export const isForwardingKey = async (keyToCheck: PrivateKey, date: Date = serverTime()) => {
+    // NB: we need this function to be strict since it's used by the client to determine whether a key
+    // should be included in the SKL (forwarding keys are not included).
+    // For this reason, we need to e.g. check binding signatures.
+
+    const allDecryptionKeys = await keyToCheck
+        .getDecryptionKeys(undefined, date, undefined, {
+            ...defaultConfig,
+            allowForwardedMessages: true
+        })
+        .catch(() => []); // throws if no valid decryption keys are found
+
+    const hasForwardingKeyFlag = (maybeForwardingSubkey: Subkey) => (
+        maybeForwardingSubkey.bindingSignatures.length > 0 &&
+            maybeForwardingSubkey.bindingSignatures.every(({ keyFlags }) => {
+                const flags = keyFlags?.[0];
+                if (!flags) {
+                    return false;
+                }
+                return (flags & enums.keyFlags.forwardedCommunication) !== 0;
+            })
+    );
+
+    const allValidKeys = allDecryptionKeys.every(
+        (key) => doesKeyPacketSupportForwarding(key) && hasForwardingKeyFlag(key as Subkey)
+    );
+    return allDecryptionKeys.length > 0 && allValidKeys;
+};
 
 /**
  * Generate a forwarding key for the final recipient ('forwardee'), as well as the corresponding proxy parameter,

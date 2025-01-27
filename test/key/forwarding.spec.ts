@@ -370,6 +370,20 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
     });
 
     it('isForwardingKey', async () => {
+        const signOnlyKey = await readPrivateKey({
+            armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEZ4evPxYJKwYBBAHaRw8BAQdAz/OfKP1cqnXkjwiYbhvkPzPV4SBpc+IK
+zc9j/limEXIAAQD7k7p8GpP5W9iMDFfNQZ/q8xFIiAQcbPXG/bcPVgYRvRAs
+zQg8YUBhLml0PsLAEQQTFgoAgwWCZ4evPwMLCQcJkIHN0wt4lUcZRRQAAAAA
+ABwAIHNhbHRAbm90YXRpb25zLm9wZW5wZ3Bqcy5vcmd4nycM2KL0cTS8Ttv0
+mQFbx8Q+4bovdfed2qSvArkmPgMVCggEFgACAQIZAQKbAwIeARYhBNF4Mj8k
+jFoxVyK1FYHN0wt4lUcZAACbsQEA+O5gxkeu+KDS1fdyNhPasqhPMbj5nEyl
+fbFd4a5yy3kBAMSHD8k0/DSw7NPfO5XzHJ5hP0nhLjSFHOc8YjITQGcM
+=0mtr
+-----END PGP PRIVATE KEY BLOCK-----`
+        });
+
         const charlieKeyEncrypted = await readPrivateKey({ armoredKey: `-----BEGIN PGP PRIVATE KEY BLOCK-----
 
 xYYEZAdtGBYJKwYBBAHaRw8BAQdAcNgHyRGEaqGmzEqEwCobfUkyrJnY8faB
@@ -406,6 +420,7 @@ siLL+xMJ+Hy4AhsMAAAKagEA4Knj6S6nG24nuXfqkkytPlFTHwzurjv3+qqXwWL6
 =un5O
 -----END PGP PRIVATE KEY BLOCK-----` });
 
+        await expect(isForwardingKey(signOnlyKey)).to.eventually.be.false;
         await expect(isForwardingKey(charlieKeyEncrypted)).to.eventually.be.true;
         await expect(isForwardingKey(charlieKey)).to.eventually.be.true;
         await expect(isForwardingKey(bobKey)).to.eventually.be.false;
