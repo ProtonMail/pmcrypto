@@ -54,12 +54,10 @@ export const hexStringToArray = (hex: string) => {
  * @returns Hexadecimal representation of the array
  */
 export const arrayToHexString = (bytes: Uint8Array) => {
-    const res = [];
-    for (let c = 0; c < bytes.length; c++) {
-        const hex = bytes[c].toString(16);
-        res.push(hex.length < 2 ? '0' + hex : hex);
-    }
-    return res.join('');
+    const hexAlphabet = '0123456789abcdef';
+    let s = '';
+    bytes.forEach((v) => { s += hexAlphabet[v >> 4] + hexAlphabet[v & 15]; });
+    return s;
 };
 
 /**
