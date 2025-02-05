@@ -1,7 +1,6 @@
 import { expect } from 'chai';
-// @ts-ignore missing isStream definitions
 import { isStream, readToEnd } from '@openpgp/web-stream-tools';
-import { concatArrays, decodeBase64, encodeBase64, hexStringToArray, stringToUtf8Array, utf8ArrayToString } from '../lib/utils';
+import { concatArrays, hexStringToArray, stringToUtf8Array, utf8ArrayToString } from '../lib/utils';
 import type { Data } from '../lib';
 
 const streamFromChunks = <T extends Data>(chunks: T[]) => {
@@ -71,13 +70,5 @@ describe('utils', () => {
         const encoded = stringToUtf8Array(textStream);
         expect(isStream(encoded)).to.not.be.false;
         expect(await readToEnd(encoded)).to.deep.equal(hexStringToArray('68656c6c6f20776f726c64'));
-    });
-
-    it('encodeBase64 - it can correctly encode base 64', async () => {
-        expect(encodeBase64('foo')).to.equal('Zm9v');
-    });
-
-    it('decodeBase64 - it can correctly decode base 64', async () => {
-        expect(decodeBase64('Zm9v')).to.equal('foo');
     });
 });

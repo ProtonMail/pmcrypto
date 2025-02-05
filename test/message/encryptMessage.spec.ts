@@ -3,7 +3,7 @@ import { readToEnd, toStream, type WebStream } from '@openpgp/web-stream-tools';
 import { config as globalConfig, type CompressedDataPacket, enums, SymEncryptedSessionKeyPacket, type PartialConfig, SymEncryptedIntegrityProtectedDataPacket } from '../../lib/openpgp';
 
 import { decryptKey, readPrivateKey, verifyMessage, encryptMessage, decryptMessage, generateSessionKey, readSignature, readMessage, encryptSessionKey, decryptSessionKey } from '../../lib';
-import { hexStringToArray, arrayToBinaryString, stringToUtf8Array } from '../../lib/utils';
+import { hexStringToArray, stringToUtf8Array, utf8ArrayToString } from '../../lib/utils';
 import { testPrivateKeyLegacy, v4PrivateKeySEIPDv2 } from './encryptMessage.data';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
@@ -275,7 +275,7 @@ describe('message encryption and decryption', () => {
             verificationKeys: [decryptedPrivateKey.toPublic()],
             format: 'binary'
         });
-        expect(arrayToBinaryString(await readToEnd(decrypted))).to.equal(inputData);
+        expect(utf8ArrayToString(await readToEnd(decrypted))).to.equal(inputData);
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
@@ -303,7 +303,7 @@ describe('message encryption and decryption', () => {
             verificationKeys: [decryptedPrivateKey.toPublic()],
             format: 'binary'
         });
-        expect(arrayToBinaryString(await readToEnd(decrypted))).to.equal(inputData);
+        expect(utf8ArrayToString(await readToEnd(decrypted))).to.equal(inputData);
         expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
@@ -333,7 +333,7 @@ describe('message encryption and decryption', () => {
             verificationKeys: [decryptedPrivateKey.toPublic()],
             format: 'binary'
         });
-        expect(arrayToBinaryString(await readToEnd(decrypted))).to.equal(inputData);
+        expect(utf8ArrayToString(await readToEnd(decrypted))).to.equal(inputData);
         expect(await verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
@@ -359,7 +359,7 @@ describe('message encryption and decryption', () => {
             verificationKeys: [decryptedPrivateKey.toPublic()],
             format: 'binary'
         });
-        expect(await readToEnd(decrypted).then(arrayToBinaryString)).to.equal(inputData);
+        expect(utf8ArrayToString(await readToEnd(decrypted))).to.equal(inputData);
         expect(await verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
