@@ -1,5 +1,4 @@
 import type { MaybeWebStream } from '../pmcrypto';
-import md5 from './_md5';
 
 export const SHA256 = async (data: Uint8Array) => {
     const digest = await crypto.subtle.digest('SHA-256', data);
@@ -14,9 +13,8 @@ export const SHA512 = async (data: Uint8Array) => {
 /**
  * MD5 is an unsafe hash function. It should normally not be used.
  * It's exposed because it's required for old auth versions.
- * @see openpgp.crypto.hash.md5
  */
-export const unsafeMD5 = (data: Uint8Array) => md5(data);
+export const unsafeMD5 = async (data: Uint8Array) => import('./_md5').then(({ md5 }) => md5(data));
 
 /**
  * SHA1 is an unsafe hash function. It should not be used for cryptographic purposes.
