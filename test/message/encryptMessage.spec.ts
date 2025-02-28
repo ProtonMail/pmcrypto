@@ -34,13 +34,13 @@ describe('message encryption and decryption', () => {
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey]
         });
-        const { data: decrypted, verified } = await decryptMessage({
+        const { data: decrypted, verificationStatus } = await decryptMessage({
             message: await readMessage({ armoredMessage: encrypted }),
             verificationKeys: [decryptedPrivateKey.toPublic()],
             decryptionKeys: [decryptedPrivateKey]
         });
         expect(decrypted).to.equal('Hello world!');
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('it can encrypt and decrypt a binary message', async () => {
@@ -51,14 +51,14 @@ describe('message encryption and decryption', () => {
             encryptionKeys: [decryptedPrivateKey.toPublic()],
             signingKeys: [decryptedPrivateKey]
         });
-        const { data: decrypted, verified } = await decryptMessage({
+        const { data: decrypted, verificationStatus } = await decryptMessage({
             message: await readMessage({ armoredMessage: encrypted }),
             verificationKeys: [decryptedPrivateKey.toPublic()],
             decryptionKeys: [decryptedPrivateKey],
             format: 'binary'
         });
         expect(decrypted).to.deep.equal(stringToUtf8Array('Hello world!'));
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('it does not encrypt with SEIPDv2 by default', async () => {
@@ -107,13 +107,13 @@ describe('message encryption and decryption', () => {
             signingKeys: [decryptedPrivateKey],
             sessionKey
         });
-        const { data: decrypted, verified } = await decryptMessage({
+        const { data: decrypted, verificationStatus } = await decryptMessage({
             message: await readMessage({ armoredMessage: encrypted }),
             verificationKeys: [decryptedPrivateKey.toPublic()],
             sessionKeys: sessionKey
         });
         expect(decrypted).to.equal('Hello world!');
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('it can encrypt a message with a session key from `generateSessionKey`', async () => {
@@ -126,12 +126,12 @@ describe('message encryption and decryption', () => {
             encryptionKeys: decryptedPrivateKey.toPublic(),
             sessionKey
         });
-        const { data: decrypted, verified } = await decryptMessage({
+        const { data: decrypted, verificationStatus } = await decryptMessage({
             message: await readMessage({ armoredMessage: encrypted }),
             decryptionKeys: decryptedPrivateKey
         });
         expect(decrypted).to.equal('Hello world!');
-        expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
     });
 
     it('it does not compress a message by default', async () => {
@@ -188,20 +188,20 @@ describe('message encryption and decryption', () => {
             signingKeys: [decryptedPrivateKey],
             detached: true
         });
-        const { data: decrypted, verified } = await decryptMessage({
+        const { data: decrypted, verificationStatus } = await decryptMessage({
             message: await readMessage({ armoredMessage: encrypted }),
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [decryptedPrivateKey.toPublic()],
             decryptionKeys: [decryptedPrivateKey]
         });
         expect(decrypted).to.equal('Hello world!');
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
-        const { verified: verifiedAgain } = await verifyMessage({
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        const { verificationStatus: verificationStatusAgain } = await verifyMessage({
             textData: 'Hello world!',
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [decryptedPrivateKey.toPublic()]
         });
-        expect(verifiedAgain).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatusAgain).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('it can encrypt and decrypt a message with an encrypted detached signature', async () => {
@@ -217,14 +217,14 @@ describe('message encryption and decryption', () => {
         const parsedEncryptedSignature = await readMessage({ armoredMessage: encryptedSignature });
         expect(parsedEncryptedSignature.getSigningKeyIDs()).to.have.length(0); // the encrypted message containing the signature should not be signed
 
-        const { data: decrypted, verified } = await decryptMessage({
+        const { data: decrypted, verificationStatus } = await decryptMessage({
             message: await readMessage({ armoredMessage: encrypted }),
             encryptedSignature: parsedEncryptedSignature,
             verificationKeys: [decryptedPrivateKey.toPublic()],
             decryptionKeys: [decryptedPrivateKey]
         });
         expect(decrypted).to.equal('Hello world!');
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('it can encrypt and decrypt a message with session key without setting returnSessionKey with a detached signature', async () => {
@@ -241,14 +241,14 @@ describe('message encryption and decryption', () => {
             detached: true,
             sessionKey
         });
-        const { data: decrypted, verified } = await decryptMessage({
+        const { data: decrypted, verificationStatus } = await decryptMessage({
             message: await readMessage({ armoredMessage: encrypted }),
             verificationKeys: [decryptedPrivateKey.toPublic()],
             encryptedSignature: await readMessage({ armoredMessage: encryptedSignature }),
             sessionKeys: sessionKey
         });
         expect(decrypted).to.equal('Hello world!');
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('it can encrypt and decrypt a streamed message with an unencrypted detached signature (format = armored)', async () => {
@@ -268,7 +268,7 @@ describe('message encryption and decryption', () => {
             format: 'armored',
             detached: true
         });
-        const { data: decrypted, verified } = await decryptMessage({
+        const { data: decrypted, verificationStatus } = await decryptMessage({
             message: await readMessage({ armoredMessage: await readToEnd(encrypted) }),
             encryptedSignature: await readMessage({ armoredMessage: encryptedSignature }),
             sessionKeys: sessionKey,
@@ -276,7 +276,7 @@ describe('message encryption and decryption', () => {
             format: 'binary'
         });
         expect(utf8ArrayToString(await readToEnd(decrypted))).to.equal(inputData);
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('it can encrypt and decrypt a streamed message with an unencrypted detached signature (format = binary)', async () => {
@@ -296,7 +296,7 @@ describe('message encryption and decryption', () => {
             format: 'binary',
             detached: true
         });
-        const { data: decrypted, verified } = await decryptMessage({
+        const { data: decrypted, verificationStatus } = await decryptMessage({
             message: await readMessage({ binaryMessage: await readToEnd(encrypted) as Uint8Array }),
             encryptedSignature: await readMessage({ binaryMessage: encryptedSignature }),
             sessionKeys: sessionKey,
@@ -304,7 +304,7 @@ describe('message encryption and decryption', () => {
             format: 'binary'
         });
         expect(utf8ArrayToString(await readToEnd(decrypted))).to.equal(inputData);
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('it can encrypt and decrypt a binary streamed message with an encrypted detached signature', async () => {
@@ -326,7 +326,7 @@ describe('message encryption and decryption', () => {
         });
         const encryptedArmoredMessage = await readToEnd(encrypted);
 
-        const { data: decrypted, verified } = await decryptMessage({
+        const { data: decrypted, verificationStatus } = await decryptMessage({
             message: await readMessage({ armoredMessage: toStream(encryptedArmoredMessage) as WebStream<string> }),
             encryptedSignature: await readMessage({ armoredMessage: encryptedSignature }),
             sessionKeys: sessionKey,
@@ -334,7 +334,7 @@ describe('message encryption and decryption', () => {
             format: 'binary'
         });
         expect(utf8ArrayToString(await readToEnd(decrypted))).to.equal(inputData);
-        expect(await verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(await verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('it can encrypt and decrypt a binary streamed message with in-message signature', async () => {
@@ -353,14 +353,14 @@ describe('message encryption and decryption', () => {
             sessionKey,
             format: 'object'
         });
-        const { data: decrypted, verified } = await decryptMessage({
+        const { data: decrypted, verificationStatus } = await decryptMessage({
             message: encrypted,
             sessionKeys: sessionKey,
             verificationKeys: [decryptedPrivateKey.toPublic()],
             format: 'binary'
         });
         expect(utf8ArrayToString(await readToEnd(decrypted))).to.equal(inputData);
-        expect(await verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('it can decrypt and verify a message ten seconds in the future', async () => {
@@ -383,13 +383,13 @@ describe('message encryption and decryption', () => {
             date: tenSecondsInTheFuture,
             format: 'object'
         });
-        const { data: decrypted, verified } = await decryptMessage({
+        const { data: decrypted, verificationStatus } = await decryptMessage({
             message: encrypted,
             sessionKeys: sessionKey,
             verificationKeys: [decryptedPrivateKey.toPublic()]
         });
 
         expect(decrypted).to.equal(data);
-        expect(await verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 });

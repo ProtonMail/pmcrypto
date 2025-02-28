@@ -23,7 +23,7 @@ describe('message signing', () => {
             verificationKeys: [publicKey]
         });
 
-        expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationResult.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('signMessage/verifyMessage - it verifies a text message it has signed (format = binary)', async () => {
@@ -45,7 +45,7 @@ describe('message signing', () => {
             verificationKeys: [publicKey]
         });
 
-        expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationResult.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('signMessage/verifyMessage - it verifies a binary message it has signed', async () => {
@@ -66,7 +66,7 @@ describe('message signing', () => {
             verificationKeys: [publicKey]
         });
 
-        expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationResult.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('signMessage/verifyMessage - it normalises a text message with trailing whitespaces', async () => {
@@ -99,7 +99,7 @@ describe('message signing', () => {
             expectSigned: true
         });
 
-        expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationResult.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 
     it('signMessage/verifyMessage - it verifies a streamed message it has signed', async () => {
@@ -130,6 +130,6 @@ describe('message signing', () => {
         });
 
         expect(verificationResult.data).to.equal(inputData);
-        expect(verificationResult.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationResult.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 });

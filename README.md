@@ -55,7 +55,7 @@ To decrypt and verify (non-streamed input):
 const senderPublicKey = await readKey(...);
 const recipientPrivateKey = await decryptKey(...);
 
-const { data: decryptedData, verified } = await decryptMessage({
+const { data: decryptedData, verificationStatus } = await decryptMessage({
   message: await readMessage({ armoredMessage }), // or `binaryMessage`
   encryptedSignature: await readMessage({ armoredMessage: armoredEncryptedSignature })
   decryptionKeys: recipientPrivateKey // and/or 'passwords'
@@ -71,14 +71,14 @@ if (!globalThis.TransformStream) {
   await import('web-streams-polyfill/es6');
 }
 
-const { data: dataStream, verified: verifiedPromise } = await decryptMessage({
+const { data: dataStream, verificationStatus: verifiedPromise } = await decryptMessage({
   message: await readMessage({ armoredMessage: streamedArmoredMessage }),
   ... // other options
 });
 
 // you need to read `dataStream` before resolving `verifiedPromise`, even if you do not need the decrypted data
 const decryptedData = await readToEnd(dataStream);
-const verificationStatus = await verified;
+const verificationStatus = await verificationStatus;
 ```
 </details>
 

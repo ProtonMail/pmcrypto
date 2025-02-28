@@ -94,11 +94,11 @@ EoSmib14fiYL0eQTz4I1XJ9OCVVZcaoFZzKnlQc=
         const key = await readKey({ armoredKey: oldReformattedKey });
 
         // since the key is valid at the current time, the message should be verifiable if the `config` allows it
-        const { verified } = await verifyMessage({
+        const { verificationStatus } = await verifyMessage({
             textData: 'plaintext',
             signature: await readSignature({ armoredSignature }),
             verificationKeys: key
         });
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 });

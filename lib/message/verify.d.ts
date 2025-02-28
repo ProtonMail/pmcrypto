@@ -8,6 +8,7 @@ import type {
 } from '../openpgp';
 import type { VERIFICATION_STATUS } from '../constants';
 import type { ContextVerificationOptions } from './context';
+import type { MaybeWebStream } from '../pmcrypto';
 
 // Streaming not supported when verifying detached signatures
 export interface VerifyOptionsPmcrypto<T extends Data> extends Omit<VerifyOptions, 'message'> {
@@ -19,7 +20,7 @@ export interface VerifyOptionsPmcrypto<T extends Data> extends Omit<VerifyOption
 
 export interface VerifyMessageResult<DataType extends openpgp_VerifyMessageResult['data'] = Data> {
     data: DataType;
-    verified: VERIFICATION_STATUS;
+    verificationStatus: VERIFICATION_STATUS;
     signatures: OpenPGPSignature[];
     signatureTimestamp: Date | null;
     errors?: Error[];
@@ -33,7 +34,7 @@ export function verifyMessage<DataType extends Data, FormatType extends VerifyOp
         VerifyMessageResult<Uint8Array> :
     never
 >;
-export function handleVerificationResult<DataType extends Data>(
+export function handleVerificationResult<DataType extends MaybeWebStream<Data>>(
     verificationResult: openpgp_VerifyMessageResult<DataType>,
     signatureContext?: ContextVerificationOptions,
     expectSigned?: boolean

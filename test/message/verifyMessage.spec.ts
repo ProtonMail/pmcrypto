@@ -45,13 +45,13 @@ describe('message verification', () => {
     it('verifyMessage - it verifies a message with multiple signatures', async () => {
         const publicKey1 = await readKey({ armoredKey: armoredPublicKey });
         const publicKey2 = await readKey({ armoredKey: armoredPublicKey2 });
-        const { data, verified, signatureTimestamp, signatures, errors } = await verifyMessage({
+        const { data, verificationStatus, signatureTimestamp, signatures, errors } = await verifyMessage({
             textData: 'hello world',
             signature: await readSignature({ armoredSignature: detachedSignatureFromTwoKeys }),
             verificationKeys: [publicKey1, publicKey2]
         });
         expect(data).to.equal('hello world');
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         expect(signatures.length).to.equal(2);
         expect(errors).to.be.undefined;
         const signaturePackets = signatures.map(({ packets: [sigPacket] }) => sigPacket);
@@ -61,13 +61,13 @@ describe('message verification', () => {
     it('verifyMessage - it verifies a message with multiple signatures and returns the timestamp of the valid signature', async () => {
         const publicKey1 = await readKey({ armoredKey: armoredPublicKey });
         const publicKey2 = await readKey({ armoredKey: armoredPublicKey2 });
-        const { data, verified, signatureTimestamp, signatures, errors } = await verifyMessage({
+        const { data, verificationStatus, signatureTimestamp, signatures, errors } = await verifyMessage({
             textData: 'hello world',
             signature: await readSignature({ armoredSignature: detachedSignatureFromTwoKeys }),
-            verificationKeys: [publicKey1] // the second public key is missing, expect only one signature to be verified
+            verificationKeys: [publicKey1] // the second public key is missing, expect only one signature to be verificationStatus
         });
         expect(data).to.equal('hello world');
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         expect(signatures.length).to.equal(2);
         expect(errors).to.be.undefined;
         const signaturePackets = signatures.map(({ packets: [sigPacket] }) => sigPacket);
@@ -86,12 +86,12 @@ describe('message verification', () => {
             userIDs: [{ name: 'test', email: 'a@b.com' }],
             format: 'object'
         });
-        const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
+        const { verificationStatus, signatureTimestamp, signatures, errors } = await verifyMessage({
             textData: 'hello world',
             signature: await readSignature({ armoredSignature: detachedSignatureFromTwoKeys }),
             verificationKeys: [wrongPublicKey]
         });
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
         expect(signatures.length).to.equal(2);
         expect(errors).to.not.be.undefined;
         expect(errors!.length).to.equal(2);
@@ -101,12 +101,12 @@ describe('message verification', () => {
 
     it('verifyMessage - it does not verify a message with corrupted signature', async () => {
         const publicKey = await readKey({ armoredKey: armoredPublicKey });
-        const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
+        const { verificationStatus, signatureTimestamp, signatures, errors } = await verifyMessage({
             textData: 'corrupted',
             signature: await readSignature({ armoredSignature: detachedSignatureFromTwoKeys }),
             verificationKeys: [publicKey]
         });
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
         expect(signatures.length).to.equal(2);
         expect(errors).to.not.be.undefined;
         expect(errors?.length).to.equal(2);
@@ -116,11 +116,11 @@ describe('message verification', () => {
 
     it('verifyMessage - it detects missing signatures', async () => {
         const publicKey = await readKey({ armoredKey: armoredPublicKey });
-        const { verified, signatureTimestamp, signatures, errors } = await verifyMessage({
+        const { verificationStatus, signatureTimestamp, signatures, errors } = await verifyMessage({
             textData: 'no signatures',
             verificationKeys: [publicKey]
         });
-        expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
         expect(signatures.length).to.equal(0);
         expect(errors).to.be.undefined;
         expect(signatureTimestamp).to.be.null;
@@ -152,11 +152,11 @@ fLz+Lk0ZkB4L3nhM/c6sQKSsI9k2Tptm1VZ5+Qo=
 
         const publicKey = await readKey({ armoredKey });
 
-        const { verified, signatureTimestamp, signatures, errors } = await verifyCleartextMessage({
+        const { verificationStatus, signatureTimestamp, signatures, errors } = await verifyCleartextMessage({
             cleartextMessage: await readCleartextMessage({ cleartextMessage }),
             verificationKeys: [publicKey]
         });
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         expect(signatures.length).to.equal(1);
         expect(errors).to.be.undefined;
         expect(signatureTimestamp).to.deep.equal(new Date('Fri, 25 Mar 2022 11:12:34 GMT'));
@@ -178,11 +178,11 @@ fLz+Lk0ZkB4L3nhM/c6sQKSsI9k2Tptm1VZ5+Qo=
 
         const publicKey = await readKey({ armoredKey: armoredPublicKey });
 
-        const { verified, signatureTimestamp, signatures, errors } = await verifyCleartextMessage({
+        const { verificationStatus, signatureTimestamp, signatures, errors } = await verifyCleartextMessage({
             cleartextMessage: await readCleartextMessage({ cleartextMessage }),
             verificationKeys: [publicKey]
         });
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
         expect(signatures.length).to.equal(1);
         expect(errors).to.have.length(1);
         expect(signatureTimestamp).to.be.null;
