@@ -1,5 +1,5 @@
-import { expect } from 'chai';
 import { isStream, readToEnd } from '@openpgp/web-stream-tools';
+import { expect } from './setupMocha';
 import { concatArrays, hexStringToArray, stringToUtf8Array, utf8ArrayToString } from '../lib/utils';
 import type { Data } from '../lib';
 

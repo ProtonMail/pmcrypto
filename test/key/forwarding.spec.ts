@@ -1,5 +1,5 @@
-import { expect } from 'chai';
 import { montgomery } from '@noble/curves/abstract/montgomery';
+import { expect } from '../setupMocha';
 import { decryptKey, enums, type KeyID, type PacketList } from '../../lib/openpgp';
 import { generateKey, generateForwardingMaterial, doesKeySupportForwarding, encryptMessage, decryptMessage, readMessage, readKey, readPrivateKey, serverTime } from '../../lib';
 import { computeProxyParameter, isForwardingKey } from '../../lib/key/forwarding';

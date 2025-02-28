@@ -1,6 +1,5 @@
-import { expect } from 'chai';
-
 import BN from 'bn.js';
+import { expect } from './setupMocha';
 import { bigIntToUint8Array, bitLength, byteLength, modExp, modInv } from '../lib/bigInteger';
 
 async function getRandomBN(min: BN, max: BN) {

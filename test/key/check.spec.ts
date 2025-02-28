@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect } from '../setupMocha';
 import { checkKeyStrength, checkKeyCompatibility, readKey } from '../../lib';
 
 // Test vector from https://www.ietf.org/archive/id/draft-ietf-openpgp-pqc-06.html#appendix-A.2.1

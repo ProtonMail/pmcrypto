@@ -130,6 +130,10 @@ const sessionKey = await decryptSessionKey({
 ## Testing
 Headless Chrome (or Chromium), Firefox and Webkit are used for the tests.
 To install any missing browsers automatically, you can run `npx playwright install --with-deps <chromium|firefox|webkit>`. Alternatively, you can install them manually as you normally would on your platform.
-If you'd like to test on a subset of browsers, use e.g. `npm test -- --browsers ChromeHeadless,FirefoxHeadless`.
 
+The available test commands are:
+
+- `npm run test`: all browsers are tested in headless mode.
+- `npm run test:ci`: same as `test`, but Webkit is skipped if not installed.
+- `npm run test:debug`: opens up a browser instance in your default browser to allow debugging the tests live
 
