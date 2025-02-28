@@ -32,7 +32,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Install Firefox
-        run: npx playwright install --with-deps firefox
+        run: npx playwright install --with-deps firefox-beta
 
       # do not install webkit on ubuntu, since the X25519 WebCrypto implementation
       # has issues, see https://github.com/openpgpjs/openpgpjs/pull/1829 .

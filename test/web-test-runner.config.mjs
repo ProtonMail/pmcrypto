@@ -61,16 +61,21 @@ export default {
             browsers: [
                 playwrightLauncher({
                     ...sharedPlaywrightCIOptions,
+                    // the Chromium project is ahead of the branded browsers, when the world is on Google Chrome N,
+                    // Playwright already supports Chromium N+1.
                     product: 'chromium'
                 }),
                 playwrightLauncher({
                     ...sharedPlaywrightCIOptions,
-                    product: 'firefox'
+                    product: 'firefox',
+                    launchOptions: { channel: 'firefox-beta' }
                 }),
                 // try setting up webkit, but ignore if not available
                 // (e.g. on ubuntu, where we don't want to test webkit as the WebCrypto X25519 implementation has issues)
                 existsSync(playwright.webkit.executablePath()) && playwrightLauncher({
                     ...sharedPlaywrightCIOptions,
+                    // Playwright's WebKit is derived from the latest WebKit main branch sources,
+                    // often before these updates are incorporated into Apple Safari and other WebKit-based browsers.
                     product: 'webkit'
                 })
             ].filter(Boolean)
