@@ -77,7 +77,7 @@ export interface DecryptResultPmcrypto<DataType extends openpgp_DecryptMessageRe
     data: DataType;
     signatures: DataType extends WebStream<Data> ? Promise<OpenPGPSignature[]> : OpenPGPSignature[];
     filename: string;
-    verified: DataType extends WebStream<Data> ? Promise<VERIFICATION_STATUS> : VERIFICATION_STATUS;
+    verificationStatus: DataType extends WebStream<Data> ? Promise<VERIFICATION_STATUS> : VERIFICATION_STATUS;
     verificationErrors?: DataType extends WebStream<Data> ? Promise<Error[]> : Error[];
 }
 

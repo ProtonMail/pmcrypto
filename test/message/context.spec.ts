@@ -49,9 +49,9 @@ describe('context', () => {
             verificationKeys: [publicKey]
         });
 
-        expect(verificationValidContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
-        expect(verificationWrongContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
-        expect(verificationMissingContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(verificationValidContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationWrongContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(verificationMissingContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
         // check errors
         expect(verificationValidContext.errors).to.be.undefined;
         expect(verificationWrongContext.errors).to.have.length(1);
@@ -101,10 +101,10 @@ describe('context', () => {
             verificationKeys: [publicKey]
         });
 
-        expect(verificationValidContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
-        expect(verificationWrongContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
-        expect(verificationWrongContextNotRequired.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
-        expect(verificationMissingContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationValidContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationWrongContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(verificationWrongContextNotRequired.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(verificationMissingContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         // check errors
         expect(verificationValidContext.errors).to.be.undefined;
         expect(verificationWrongContext.errors).to.have.length(1);
@@ -147,9 +147,9 @@ describe('context', () => {
             verificationKeys: publicKey
         });
 
-        expect(decryptionValidContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
-        expect(decryptionWrongContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
-        expect(decryptionMissingContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(decryptionValidContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(decryptionWrongContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(decryptionMissingContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
         // check errors
         expect(decryptionValidContext.verificationErrors).to.be.undefined;
         expect(decryptionWrongContext.verificationErrors).to.have.length(1);
@@ -195,9 +195,9 @@ describe('context', () => {
             verificationKeys: publicKey
         });
 
-        expect(decryptionValidContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
-        expect(decryptionWrongContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
-        expect(decryptionMissingContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(decryptionValidContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(decryptionWrongContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(decryptionMissingContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
         // check errors
         expect(decryptionValidContext.verificationErrors).to.be.undefined;
         expect(decryptionWrongContext.verificationErrors).to.have.length(1);
@@ -256,8 +256,8 @@ sJFJxllC0j4wHCOS9uiSYsZ/pWCqxX/3sFh4VBFOpr0HAA==
             signatureContext: { value: 'test-context', required: false }
         });
 
-        expect(verificationExpectedContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
-        expect(verificationNoExpectedContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationExpectedContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(verificationNoExpectedContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
 
         expect(verificationNoExpectedContext.errors).to.be.undefined;
         expect(verificationExpectedContext.errors).to.have.length(1);
@@ -295,8 +295,8 @@ sJFJxllC0j4wHCOS9uiSYsZ/pWCqxX/3sFh4VBFOpr0HAA==
             signatureContext: { value: 'test-context', requiredAfter: nextHour }
         });
 
-        expect(verificationExpectedContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
-        expect(verificationNoExpectedContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationExpectedContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(verificationNoExpectedContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
 
         expect(verificationNoExpectedContext.errors).to.be.undefined;
         expect(verificationExpectedContext.errors).to.have.length(1);
@@ -343,7 +343,7 @@ sj39B18qvvnS11F+AAB7igEAqwmlDXMzeNNLc3skdyQWZoP0fPyI/ol7pMa+
             verificationKeys: publicKey
         });
 
-        expect(verificationWithContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
-        expect(verificationWithoutContext.verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationWithContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(verificationWithoutContext.verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
     });
 });

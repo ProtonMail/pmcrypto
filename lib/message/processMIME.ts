@@ -31,23 +31,23 @@ const verifySignature = async (
     const [contentType] = headers['content-type'] || [''];
     const [baseContentType] = contentType.split(';');
     if (baseContentType.toLowerCase() !== 'multipart/signed') {
-        return { subdata: data, verified: 0, signatures: [] };
+        return { subdata: data, verificationStatus: VERIFICATION_STATUS.NOT_SIGNED, signatures: [] };
     }
     const [, rawboundary] = /boundary\s*=\s*([^;]*)\s*(;|$)/gi.exec(contentType) || [];
     if (!rawboundary) {
-        return { subdata: data, verified: 0, signatures: [] };
+        return { subdata: data, verificationStatus: VERIFICATION_STATUS.NOT_SIGNED, signatures: [] };
     }
     const boundary = rawboundary[0] === '"' ? JSON.parse(rawboundary) || rawboundary : rawboundary;
     const [mainPart] = data.split(`\n--${boundary}--\n`);
     const parts = mainPart.split(`\n--${boundary}\n`);
     if (parts.length < 3) {
-        return { subdata: data, verified: 0, signatures: [] };
+        return { subdata: data, verificationStatus: VERIFICATION_STATUS.NOT_SIGNED, signatures: [] };
     }
     const { attachments: [sigAttachment] = [] } = await parseMail(parts[2].trim());
 
     const { contentType: sigAttachmentContentType = '', content: sigAttachmentContent = new Uint8Array() } = sigAttachment || {};
     if (sigAttachmentContentType.toLowerCase() !== 'application/pgp-signature') {
-        return { subdata: data, verified: 0, signatures: [] };
+        return { subdata: data, verificationStatus: VERIFICATION_STATUS.NOT_SIGNED, signatures: [] };
     }
     const sigData = utf8ArrayToString(sigAttachmentContent);
 
@@ -57,14 +57,14 @@ const verifySignature = async (
     } catch {
         // sigData will be returned as attachment by `parse`
         console.error('Failed to read signature over MIME message');
-        return { subdata: data, verified: 0, signatures: [] };
+        return { subdata: data, verificationStatus: VERIFICATION_STATUS.NOT_SIGNED, signatures: [] };
     }
 
     const body = parts[1];
 
     const {
         data: subdata,
-        verified,
+        verificationStatus,
         signatures
     } = await verifyMessage({
         // The body is to be treated as CleartextMessage, see https://github.com/openpgpjs/openpgpjs/pull/1265#issue-830304843
@@ -74,25 +74,25 @@ const verifySignature = async (
         signature
     });
 
-    return { subdata, verified, signatures };
+    return { subdata, verificationStatus, signatures };
 };
 
 /**
  * This function parses MIME format into attachments, content, encryptedSubject. The attachment automatically
- * inherit the verified status from the message verified status, as they are included in the body. For more
+ * inherit the verification status from the message verification status, as they are included in the body. For more
  * information see: https://tools.ietf.org/html/rfc2045, https://tools.ietf.org/html/rfc2046 and
  * https://tools.ietf.org/html/rfc2387.
  * @param options
  * @param options.headerFilename - The file name a memoryhole header should have
  * @param options.sender - the address of the sender of this message
  * @param content - mail content to parse
- * @param verified
+ * @param verificationStatus
  * @param signatures
  */
 const parse = async (
     { headerFilename = 'Encrypted Headers.txt', sender = '' },
     mailContent = '',
-    verified = VERIFICATION_STATUS.NOT_SIGNED,
+    verificationStatus = VERIFICATION_STATUS.NOT_SIGNED,
     signatures: OpenPGPSignature[] = []
 ): Promise<ProcessMIMEResult> => {
     // cf. https://github.com/autocrypt/memoryhole subject can be in the MIME headers
@@ -148,7 +148,7 @@ const parse = async (
         return {
             body: html,
             attachments,
-            verified,
+            verificationStatus,
             encryptedSubject,
             mimeType: 'text/html',
             signatures
@@ -158,7 +158,7 @@ const parse = async (
         return {
             body: text,
             attachments,
-            verified,
+            verificationStatus,
             encryptedSubject,
             mimeType: 'text/plain',
             signatures
@@ -168,7 +168,7 @@ const parse = async (
         return {
             body: '',
             attachments,
-            verified,
+            verificationStatus,
             encryptedSubject,
             mimeType: undefined,
             signatures
@@ -188,7 +188,7 @@ export interface ProcessMIMEOptions {
 export interface ProcessMIMEResult {
     body: string,
     attachments: MIMEAttachment[],
-    verified: VERIFICATION_STATUS,
+    verificationStatus: VERIFICATION_STATUS,
     encryptedSubject: string,
     mimeType?: 'text/html' | 'text/plain',
     signatures: OpenPGPSignature[]
@@ -203,7 +203,7 @@ export interface ProcessMIMEResult {
  * @param options.sender - the address of the sender of this message
  */
 export default async function processMIME({ data, ...options }: ProcessMIMEOptions): Promise<ProcessMIMEResult> {
-    const { subdata, verified, signatures } = await verifySignature(options, data);
+    const { subdata, verificationStatus, signatures } = await verifySignature(options, data);
 
-    return parse(options, subdata, verified, signatures);
+    return parse(options, subdata, verificationStatus, signatures);
 }

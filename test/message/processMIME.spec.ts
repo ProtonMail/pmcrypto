@@ -42,13 +42,13 @@ Import HTML cöntäct//Subjεέςτ//
     });
 
     it('it can process multipart/signed mime messages and verify the signature', async () => {
-        const { body, verified, signatures, attachments, encryptedSubject } = await processMIME(
+        const { body, verificationStatus, signatures, attachments, encryptedSubject } = await processMIME(
             {
                 data: multipartSignedMessage,
                 verificationKeys: await readKey({ armoredKey: key })
             }
         );
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         expect(signatures.length).to.equal(1);
         expect(signatures[0]).to.be.instanceOf(Signature);
         expect(body).to.equal(multipartSignedMessageBody);
@@ -57,38 +57,38 @@ Import HTML cöntäct//Subjεέςτ//
     });
 
     it('it can process multipart/signed mime messages and verify the signature with extra parts at the end', async () => {
-        const { body, verified, signatures, attachments } = await processMIME(
+        const { body, verificationStatus, signatures, attachments } = await processMIME(
             {
                 data: extraMultipartSignedMessage,
                 verificationKeys: await readKey({ armoredKey: key })
             }
         );
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         expect(body).to.equal('hello');
         expect(signatures.length).to.equal(1);
         expect(attachments.length).to.equal(0);
     });
 
     it('it does not verify invalid messages', async () => {
-        const { verified, body, signatures } = await processMIME(
+        const { verificationStatus, body, signatures } = await processMIME(
             {
                 data: invalidMultipartSignedMessage,
                 verificationKeys: await readKey({ armoredKey: key })
             }
         );
-        expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
         expect(signatures.length).to.equal(0);
         expect(body).to.equal('message with missing signature');
     });
 
     it('it can parse messages with special characters in the boundary', async () => {
-        const { verified, body, signatures } = await processMIME(
+        const { verificationStatus, body, signatures } = await processMIME(
             {
                 data: multiPartMessageWithSpecialCharacter,
                 verificationKeys: await readKey({ armoredKey: key })
             }
         );
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
         expect(signatures.length).to.equal(1);
         expect(body).to.equal('hello');
     });
@@ -101,10 +101,10 @@ Import HTML cöntäct//Subjεέςτ//
     });
 
     it('it can parse message with empty signature', async () => {
-        const { body, signatures, verified, attachments } = await processMIME({
+        const { body, signatures, verificationStatus, attachments } = await processMIME({
             data: messageWithEmptySignature
         });
-        expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
         expect(signatures).to.have.length(0);
         expect(body).to.equal('<div>Hello</div>\n');
         expect(attachments).to.have.length(1); // signature part that failed to parse
@@ -112,11 +112,11 @@ Import HTML cöntäct//Subjεέςτ//
     });
 
     it('it can parse message with text attachment', async () => {
-        const { verified, body, signatures, attachments } = await processMIME({
+        const { verificationStatus, body, signatures, attachments } = await processMIME({
             data: multipartMessageWithAttachment,
             verificationKeys: await readKey({ armoredKey: key })
         });
-        expect(verified).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.NOT_SIGNED);
         expect(signatures.length).to.equal(0);
         expect(body).to.equal('this is the body text\n');
         expect(attachments.length).to.equal(1);
@@ -130,11 +130,11 @@ Import HTML cöntäct//Subjεέςτ//
     });
 
     it('it can parse message with encrypted subject', async () => {
-        const { verified, body, signatures, encryptedSubject } = await processMIME({
+        const { verificationStatus, body, signatures, encryptedSubject } = await processMIME({
             data: multipartMessageWithEncryptedSubject,
             verificationKeys: await readKey({ armoredKey: key })
         });
-        expect(verified).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
+        expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_INVALID);
         expect(signatures.length).to.equal(1);
         expect(encryptedSubject).to.equal('Encrypted subject');
         expect(body).to.equal('hello');
