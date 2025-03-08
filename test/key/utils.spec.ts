@@ -1,5 +1,5 @@
-import { expect } from 'chai';
 import { createSandbox as createSinonSandbox } from 'sinon';
+import { expect } from '../setupMocha';
 import { revokeKey, sign, createMessage, enums } from '../../lib/openpgp';
 import {
     isExpiredKey,

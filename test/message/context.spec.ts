@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect } from '../setupMocha';
 import { verifyMessage, signMessage, generateKey, readSignature, readMessage, decryptMessage, encryptMessage, readKey, SignatureContextError, serverTime } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 

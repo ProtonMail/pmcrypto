@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect } from '../setupMocha';
 import { argon2 } from '../../lib';
 import { ARGON2_PARAMS } from '../../lib/constants';
 import { arrayToHexString, hexStringToArray } from '../../lib/utils';

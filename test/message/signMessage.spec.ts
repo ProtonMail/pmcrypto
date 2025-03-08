@@ -1,5 +1,5 @@
-import { expect } from 'chai';
 import { readToEnd } from '@openpgp/web-stream-tools';
+import { expect } from '../setupMocha';
 import { verifyMessage, signMessage, generateKey, readSignature } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 import { stringToUtf8Array } from '../../lib/utils';

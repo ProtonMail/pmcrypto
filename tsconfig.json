@@ -8,8 +8,7 @@
         "allowJs": true,
         "noEmit": true,
         "noEmitOnError": true,
-        "allowSyntheticDefaultImports": true, // for BN.js (forwarding tests)
-        "types": ["webpack-env", "mocha"], // avoid pulling in node types
+        "types": ["mocha"], // avoid pulling in node types
         "lib": ["dom", "esnext"]
     },
     "include": [

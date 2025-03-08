@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect } from '../setupMocha';
 import { PublicKeyEncryptedSessionKeyPacket, AEADEncryptedDataPacket } from '../../lib/openpgp';
 import { stripArmor, splitMessage, armorBytes, readMessage } from '../../lib';
 import { removeTrailingSpaces } from '../../lib/message/utils';
