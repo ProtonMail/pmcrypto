@@ -73,10 +73,16 @@
             "ignoreTemplateLiterals": true,
             "ignoreRegExpLiterals": true
         }],
-        "no-restricted-imports": ["error", {
-            "name": "openpgp",
-            "message": "Please import from 'lib/openpgp' instead."
-        }],
+        "no-restricted-imports": ["error",
+            {
+                "name": "openpgp",
+                "message": "Please import from 'lib/openpgp' instead."
+            },
+            {
+                "name": "chai",
+                "message": "Please import from 'test/setupMocha' instead."
+            }
+        ],
         "no-multiple-empty-lines": ["error"],
         "no-trailing-spaces": ["error"],
         "eol-last": ["error"],

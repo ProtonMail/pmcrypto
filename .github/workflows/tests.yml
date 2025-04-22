@@ -18,6 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
+        with:
+          node-version: '>=22' # fn.globSync support needed for wtr setup
 
       - name: Install dependencies
         run: npm ci
@@ -30,10 +32,13 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Install Firefox
-        run: npx playwright install --with-deps firefox
+        run: npx playwright install --with-deps firefox-beta
 
-      - name: Install Webkit
+      # do not install webkit on ubuntu, since the X25519 WebCrypto implementation
+      # has issues, see https://github.com/openpgpjs/openpgpjs/pull/1829 .
+      - if: ${{ matrix.runner  == 'macos-latest' }}
+        name: Install Webkit
         run: npx playwright install --with-deps webkit
 
       - name: Run tests
-        run: npm test
+        run: npm run test:ci

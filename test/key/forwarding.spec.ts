@@ -1,21 +1,27 @@
-import { expect } from 'chai';
-import { ec as EllipticCurve } from 'elliptic';
-import BN from 'bn.js';
-
+import { montgomery } from '@noble/curves/abstract/montgomery';
+import { expect } from '../setupMocha';
 import { decryptKey, enums, type KeyID, type PacketList } from '../../lib/openpgp';
 import { generateKey, generateForwardingMaterial, doesKeySupportForwarding, encryptMessage, decryptMessage, readMessage, readKey, readPrivateKey, serverTime } from '../../lib';
 import { computeProxyParameter, isForwardingKey } from '../../lib/key/forwarding';
 import { hexStringToArray, concatArrays, arrayToHexString } from '../../lib/utils';
 
-// this is only intended for testing purposes, due to BN.js dependency, which is huge
+// same curve parameters as https://github.com/paulmillr/noble-curves/blob/dc3dd98c7aec4024f052eea583ea0fd7872417f8/src/ed25519.ts#L170-L195
+// with `adjustScalarBytes` ommitted
+const x25519WithoutScalarClamping = montgomery({
+    P: BigInt('57896044618658097711785492504343953926634992332820282019728792003956564819949'),
+    a: BigInt(486662),
+    montgomeryBits: 255,
+    nByteLength: 32,
+    Gu: BigInt(9),
+    adjustScalarBytes: undefined
+});
+
 async function testProxyTransform(
     armoredCiphertext: string,
     proxyParameter: Uint8Array,
     originalSubkeyID: KeyID,
     finalRecipientSubkeyID: KeyID
 ) {
-    const curve = new EllipticCurve('curve25519');
-
     const ciphertext = await readMessage({ armoredMessage: armoredCiphertext });
     for (
         // missing PublicKeyEncryptedSessionKeyPacket field declarations
@@ -23,12 +29,9 @@ async function testProxyTransform(
     ) {
         if (packet.publicKeyID.equals(originalSubkeyID)) {
             const bG = packet.encrypted.V;
-            const point = curve.curve.decodePoint(bG.subarray(1).reverse());
-            const bkG = new Uint8Array(
-                point
-                    .mul(new BN(proxyParameter, 'le'))
-                    .getX()
-                    .toArray('le', 32)
+            const bkG = x25519WithoutScalarClamping.scalarMult(
+                proxyParameter,
+                bG.subarray(1)
             );
             const encoded = concatArrays([new Uint8Array([0x40]), bkG]);
             packet.encrypted.V = encoded;

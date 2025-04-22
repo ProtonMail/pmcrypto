@@ -1,5 +1,4 @@
-import { expect } from 'chai';
-
+import { expect } from '../setupMocha';
 import { readKey, processMIME } from '../../lib';
 import { utf8ArrayToString } from '../../lib/utils';
 import { VERIFICATION_STATUS } from '../../lib/constants';

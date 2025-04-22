@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { expect } from './setupMocha';
 import { config } from '../lib/openpgp';
 import { decryptMessage, readMessage, VERIFICATION_STATUS, verifyMessage, readKey, readSignature, readPrivateKey } from '../lib';
 
