@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/indent */
 import type {
-    Data,
     VerifyOptions,
     VerifyMessageResult as openpgp_VerifyMessageResult,
     CleartextMessage,
@@ -8,7 +7,7 @@ import type {
 } from '../openpgp';
 import type { VERIFICATION_STATUS } from '../constants';
 import type { ContextVerificationOptions } from './context';
-import type { MaybeWebStream } from '../pmcrypto';
+import type { Data, MaybeWebStream } from '../pmcrypto';
 
 // Streaming not supported when verifying detached signatures
 export interface VerifyOptionsPmcrypto<T extends Data> extends Omit<VerifyOptions, 'message'> {

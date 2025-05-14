@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { config } from '../lib/openpgp';
+import { config, SymEncryptedSessionKeyPacket } from '../lib/openpgp';
 import { decryptMessage, readMessage, VERIFICATION_STATUS, verifyMessage, readKey, readSignature, readPrivateKey } from '../lib';
 
 const rsaSignOnly = `-----BEGIN PGP PRIVATE KEY BLOCK-----
@@ -100,5 +100,24 @@ EoSmib14fiYL0eQTz4I1XJ9OCVVZcaoFZzKnlQc=
             verificationKeys: key
         });
         expect(verificationStatus).to.equal(VERIFICATION_STATUS.SIGNED_AND_VALID);
+    });
+
+    it('it sets the correct configuration for `enforceGrammar`', async () => {
+        expect(config.enforceGrammar).to.be.false;
+
+        const skeskPlusLiteralData = `-----BEGIN PGP MESSAGE-----
+
+wy4ECQMIjvrInhvTxJwAbkqXp+KWFdBcjoPn03jCdyspVi9qXBDbyGaP1lrM
+habAyxd1AGKaNp1wbGFpbnRleHQgbWVzc2FnZQ==
+=XoUx
+-----END PGP MESSAGE-----
+        `;
+
+        const message = await readMessage({ armoredMessage: skeskPlusLiteralData });
+        expect(message.packets[0]).to.be.instanceOf(SymEncryptedSessionKeyPacket);
+
+        await expect(
+            readMessage({ armoredMessage: skeskPlusLiteralData, config: { enforceGrammar: true } })
+        ).to.be.rejectedWith(/Data does not respect OpenPGP grammar/);
     });
 });
