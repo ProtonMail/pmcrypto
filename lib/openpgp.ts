@@ -29,9 +29,6 @@ export const setConfig = () => {
     // `checkKeyCompatibility` errors: v5 entities were allowed in pmcrypto v7, so they might have been
     // uploaded as e.g. contact keys.
     config.enableParsingV5Entities = true;
-
-    // Opt-in setting for now to avoid disruptions if too grammar is too strict.
-    config.enforceGrammar = false;
 };
 
 export * from 'openpgp/lightweight';

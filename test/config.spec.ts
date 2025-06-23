@@ -103,7 +103,7 @@ EoSmib14fiYL0eQTz4I1XJ9OCVVZcaoFZzKnlQc=
     });
 
     it('it sets the correct configuration for `enforceGrammar`', async () => {
-        expect(config.enforceGrammar).to.be.false;
+        expect(config.enforceGrammar).to.be.true;
 
         const skeskPlusLiteralData = `-----BEGIN PGP MESSAGE-----
 
@@ -113,11 +113,11 @@ habAyxd1AGKaNp1wbGFpbnRleHQgbWVzc2FnZQ==
 -----END PGP MESSAGE-----
         `;
 
-        const message = await readMessage({ armoredMessage: skeskPlusLiteralData });
-        expect(message.packets[0]).to.be.instanceOf(SymEncryptedSessionKeyPacket);
-
         await expect(
-            readMessage({ armoredMessage: skeskPlusLiteralData, config: { enforceGrammar: true } })
+            readMessage({ armoredMessage: skeskPlusLiteralData })
         ).to.be.rejectedWith(/Data does not respect OpenPGP grammar/);
+
+        const message = await readMessage({ armoredMessage: skeskPlusLiteralData, config: { enforceGrammar: false } });
+        expect(message.packets[0]).to.be.instanceOf(SymEncryptedSessionKeyPacket);
     });
 });
