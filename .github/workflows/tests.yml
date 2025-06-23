@@ -33,6 +33,7 @@ jobs:
         run: npx playwright install --with-deps firefox
 
       - name: Install Webkit
+        if: ${{ matrix.runner == 'macos-latest' }} # do not install on ubuntu, since the X25519 WebCrypto implementation has issues
         run: npx playwright install --with-deps webkit
 
       - name: Run tests
