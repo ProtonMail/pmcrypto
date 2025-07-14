@@ -1,5 +1,4 @@
 const { firefox, chromium, webkit } = require('playwright');
-const { existsSync } = require('fs');
 
 process.env.CHROME_BIN = chromium.executablePath();
 process.env.FIREFOX_BIN = firefox.executablePath();
@@ -77,13 +76,7 @@ module.exports = function(config) {
                 flags: ['--no-sandbox']
             }
         },
-        browsers: [
-            'ChromeHeadlessCI',
-            'FirefoxHeadless',
-            // try setting up webkit, but ignore if not available
-            // (e.g. on ubuntu, where we don't want to test webkit as the WebCrypto X25519 implementation has issues)
-            existsSync(webkit.executablePath()) && 'WebkitHeadless'
-        ].filter(Boolean),
+        browsers: ['ChromeHeadlessCI', 'FirefoxHeadless', 'WebkitHeadless'],
 
         // Continuous Integration mode
         // if true, Karma captures browsers, runs the tests and exits
