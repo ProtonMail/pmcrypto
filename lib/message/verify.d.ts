@@ -12,7 +12,7 @@ import type { Data, MaybeWebStream } from '../pmcrypto';
 // Streaming not supported when verifying detached signatures
 export interface VerifyOptionsPmcrypto<T extends Data> extends Omit<VerifyOptions, 'message'> {
     textData?: T extends string ? T : never;
-    binaryData?: T extends Uint8Array ? T : never;
+    binaryData?: T extends Uint8Array<ArrayBuffer> ? T : never;
     stripTrailingSpaces?: T extends string ? boolean : never;
     signatureContext?: ContextVerificationOptions;
 }
@@ -30,7 +30,7 @@ export function verifyMessage<DataType extends Data, FormatType extends VerifyOp
     FormatType extends 'utf8' ?
         VerifyMessageResult<string> :
     FormatType extends 'binary' ?
-        VerifyMessageResult<Uint8Array> :
+        VerifyMessageResult<Uint8Array<ArrayBuffer>> :
     never
 >;
 export function handleVerificationResult<DataType extends MaybeWebStream<Data>>(

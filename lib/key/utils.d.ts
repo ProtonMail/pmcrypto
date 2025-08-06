@@ -26,7 +26,7 @@ export interface ReformatKeyOptions {
     config?: PartialConfig
 }
 
-export function generateSessionKeyForAlgorithm(algoName: 'aes128' | 'aes192' | 'aes256'): Promise<Uint8Array>;
+export function generateSessionKeyForAlgorithm(algoName: 'aes128' | 'aes192' | 'aes256'): Promise<Uint8Array<ArrayBuffer>>;
 type GenerateSessionKeyOptions = Parameters<typeof openpgp_generateSessionKey>[0];
 export interface GenerateSessionKeyOptionsPmcrypto extends Omit<GenerateSessionKeyOptions, 'encryptionKeys'> {
     recipientKeys: MaybeArray<PublicKey>
@@ -41,6 +41,6 @@ export function getSHA256Fingerprints(key: Key): Promise<string[]>;
 export function canKeyEncrypt(key: Key, date?: Date): Promise<boolean>;
 
 export function getMatchingKey(
-    signature: Signature | Message<Uint8Array | string>,
+    signature: Signature | Message<Uint8Array<ArrayBuffer> | string>,
     publicKeys: PublicKey[]
 ): Key | undefined;

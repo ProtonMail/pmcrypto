@@ -10,7 +10,7 @@ import { hexStringToArray, concatArrays, arrayToHexString } from '../../lib/util
 // this is only intended for testing purposes, due to BN.js dependency, which is huge
 async function testProxyTransform(
     armoredCiphertext: string,
-    proxyParameter: Uint8Array,
+    proxyParameter: Uint8Array<ArrayBuffer>,
     originalSubkeyID: KeyID,
     finalRecipientSubkeyID: KeyID
 ) {

@@ -18,13 +18,13 @@ describe('hash functions', () => {
     });
 
     it('sha1 basic test (streaming)', async () => {
-        const dataStreamEmpty = new ReadableStream<Uint8Array>({
+        const dataStreamEmpty = new ReadableStream<Uint8Array<ArrayBuffer>>({
             pull: (controller) => {
                 controller.enqueue(new Uint8Array());
                 controller.close();
             }
         });
-        const dataStreamTest = new ReadableStream<Uint8Array>({
+        const dataStreamTest = new ReadableStream<Uint8Array<ArrayBuffer>>({
             pull: (controller) => {
                 const data = stringToUtf8Array('abc');
                 for (let i = 0; i < data.length; i++) {

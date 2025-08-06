@@ -8,7 +8,7 @@ export type MaybeArray<T> = T | Array<T>;
  * @param arrays - Uint8Arrays to concatenate
  * @returns concatenated array
  */
-export function concatArrays(arrays: Uint8Array[]): Uint8Array {
+export function concatArrays(arrays: Uint8Array<ArrayBuffer>[]): Uint8Array<ArrayBuffer> {
     if (arrays.length === 1) return arrays[0];
 
     let totalLength = 0;
@@ -53,7 +53,7 @@ export const hexStringToArray = (hex: string) => {
  * @param bytes Array of 8-bit integers to convert
  * @returns Hexadecimal representation of the array
  */
-export const arrayToHexString = (bytes: Uint8Array) => {
+export const arrayToHexString = (bytes: Uint8Array<ArrayBuffer>) => {
     const hexAlphabet = '0123456789abcdef';
     let s = '';
     bytes.forEach((v) => { s += hexAlphabet[v >> 4] + hexAlphabet[v & 15]; });
@@ -65,14 +65,14 @@ export const arrayToHexString = (bytes: Uint8Array) => {
  * @param str - The string to convert
  * @returns A valid squence of utf8 bytes.
  */
-export function stringToUtf8Array(str: string): Uint8Array;
-export function stringToUtf8Array(str: WebStream<string>): WebStream<Uint8Array>;
-export function stringToUtf8Array(str: MaybeWebStream<string>): MaybeWebStream<Uint8Array> {
+export function stringToUtf8Array(str: string): Uint8Array<ArrayBuffer>;
+export function stringToUtf8Array(str: WebStream<string>): WebStream<Uint8Array<ArrayBuffer>>;
+export function stringToUtf8Array(str: MaybeWebStream<string>): MaybeWebStream<Uint8Array<ArrayBuffer>> {
     const encoder = new TextEncoder();
 
     if (isString(str)) return encoder.encode(str);
     const reader = str.getReader();
-    const transformedStream: WebStream<Uint8Array> = new ReadableStream<Uint8Array>({
+    const transformedStream: WebStream<Uint8Array<ArrayBuffer>> = new ReadableStream<Uint8Array<ArrayBuffer>>({
         async pull(controller) {
             const { value, done } = await reader.read();
 
@@ -95,9 +95,9 @@ export function stringToUtf8Array(str: MaybeWebStream<string>): MaybeWebStream<U
  * @param utf8 - A valid squence of utf8 bytes
  * @returns A native javascript string.
  */
-export function utf8ArrayToString(utf8: Uint8Array): string;
-export function utf8ArrayToString(utf8: WebStream<Uint8Array>): WebStream<string>;
-export function utf8ArrayToString(utf8: MaybeWebStream<Uint8Array>): MaybeWebStream<string> {
+export function utf8ArrayToString(utf8: Uint8Array<ArrayBuffer>): string;
+export function utf8ArrayToString(utf8: WebStream<Uint8Array<ArrayBuffer>>): WebStream<string>;
+export function utf8ArrayToString(utf8: MaybeWebStream<Uint8Array<ArrayBuffer>>): MaybeWebStream<string> {
     const decoder = new TextDecoder();
 
     if (utf8 instanceof Uint8Array) return decoder.decode(utf8);

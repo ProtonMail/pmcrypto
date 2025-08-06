@@ -29,7 +29,8 @@
     "plugins": [
         "@typescript-eslint",
         "import",
-        "chai-friendly"
+        "chai-friendly",
+        "@protontech/enforce-uint8array-arraybuffer"
     ],
     "rules": {
         "prefer-spread": "off",
@@ -82,6 +83,7 @@
         "eol-last": ["error"],
         "camelcase": ["error", {"allow": ["openpgp_*"]}],
         "padded-blocks": "off",
+        "@protontech/enforce-uint8array-arraybuffer/enforce-uint8array-arraybuffer": "error",
 
         "@typescript-eslint/naming-convention": ["error", {
             "selector": "typeLike",

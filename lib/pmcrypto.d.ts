@@ -30,7 +30,7 @@ export { VERIFICATION_STATUS, SIGNATURE_TYPES, type PartialConfig };
 export { SignatureContextError } from './message/context';
 
 export type OpenPGPKey = Key;
-export type OpenPGPMessage = Message<Uint8Array | string>; // TODO missing streaming support
+export type OpenPGPMessage = Message<Uint8Array<ArrayBuffer> | string>; // TODO missing streaming support
 export type OpenPGPSignature = Signature;
 
 export {
@@ -58,7 +58,7 @@ export function encryptSessionKey<FormatType extends EncryptSessionKeyOptionsPmc
     options: EncryptSessionKeyOptionsPmcrypto & { format?: FormatType }
 ): Promise<
     FormatType extends 'armored' ? string :
-    FormatType extends 'binary' ? Uint8Array :
+    FormatType extends 'binary' ? Uint8Array<ArrayBuffer> :
     FormatType extends 'object' ? OpenPGPMessage :
     never
 >;
@@ -90,18 +90,19 @@ export function decryptMessage<DataType extends MaybeWebStream<Data>, FormatType
             DecryptResultPmcrypto<string> :
     FormatType extends 'binary' ?
         DataType extends WebStream<Data> ?
-            DecryptResultPmcrypto<WebStream<Uint8Array>> :
-            DecryptResultPmcrypto<Uint8Array> :
+            DecryptResultPmcrypto<WebStream<Uint8Array<ArrayBuffer>>> :
+            DecryptResultPmcrypto<Uint8Array<ArrayBuffer>> :
     never
 >;
 
-export type Data = string | Uint8Array;
+// TS v5.9.2 discriminates between Uint8Array<ArrayBuffer> and Uint8Array<SharedArrayBuffer>
+export type Data = string | Uint8Array<ArrayBuffer>;
 export type MaybeWebStream<T extends Data> = T | WebStream<T>;
 export type { WebStream };
 
 export interface EncryptOptionsPmcrypto<T extends MaybeWebStream<Data>> extends Omit<EncryptOptions, 'message' | 'signatureNotations'> {
     textData?: T extends MaybeWebStream<string> ? T : never;
-    binaryData?: T extends MaybeWebStream<Uint8Array> ? T : never;
+    binaryData?: T extends MaybeWebStream<Uint8Array<ArrayBuffer>> ? T : never;
     stripTrailingSpaces?: T extends MaybeWebStream<string> ? boolean : never;
     detached?: boolean;
     signatureContext?: ContextSigningOptions;
@@ -137,11 +138,15 @@ export function encryptMessage<
     FormatType extends 'binary' ?
         DetachedType extends true ?
             DataType extends WebStream<Data> ?
-                EncryptResult<WebStream<Uint8Array>, WebStream<Uint8Array>, WebStream<Uint8Array>> :
-                EncryptResult<Uint8Array, Uint8Array, Uint8Array> :
+                EncryptResult<
+                    WebStream<Uint8Array<ArrayBuffer>>,
+                    WebStream<Uint8Array<ArrayBuffer>>,
+                    WebStream<Uint8Array<ArrayBuffer>>
+                > :
+                EncryptResult<Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>> :
             DataType extends WebStream<Data> ?
-                EncryptResult<WebStream<Uint8Array>> :
-                EncryptResult<Uint8Array> :
+                EncryptResult<WebStream<Uint8Array<ArrayBuffer>>> :
+                EncryptResult<Uint8Array<ArrayBuffer>> :
     FormatType extends 'object' ?
         DetachedType extends true ?
             never : // unsupported
@@ -151,7 +156,7 @@ export function encryptMessage<
 
 export interface SignOptionsPmcrypto<T extends MaybeWebStream<Data>> extends Omit<SignOptions, 'message' | 'signatureNotations'> {
     textData?: T extends MaybeWebStream<string> ? T : never;
-    binaryData?: T extends MaybeWebStream<Uint8Array> ? T : never;
+    binaryData?: T extends MaybeWebStream<Uint8Array<ArrayBuffer>> ? T : never;
     stripTrailingSpaces?: T extends MaybeWebStream<string> ? boolean : never;
     signatureContext?: ContextSigningOptions;
 }
@@ -166,7 +171,7 @@ export function signMessage<
     FormatType extends 'armored' ?
         DataType extends WebStream<Data> ? WebStream<string> : string :
     FormatType extends 'binary' ?
-        DataType extends WebStream<Data> ? WebStream<Uint8Array> : Uint8Array :
+        DataType extends WebStream<Data> ? WebStream<Uint8Array<ArrayBuffer>> : Uint8Array<ArrayBuffer> :
     FormatType extends 'object' ?
         DetachedType extends true ? OpenPGPMessage : OpenPGPSignature :
     never
