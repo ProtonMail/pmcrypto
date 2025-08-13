@@ -7,7 +7,7 @@ type Argon2Params = Config['s2kArgon2Params'] & {
 
 export interface Argon2Options {
     password: string,
-    salt: Uint8Array,
+    salt: Uint8Array<ArrayBuffer>,
     /** see https://www.rfc-editor.org/rfc/rfc9106.html#name-parameter-choice */
     params: Argon2Params
 }
@@ -40,7 +40,7 @@ export async function argon2({ password, salt, params = ARGON2_PARAMS.RECOMMENDE
 
     const s2k = new Argon2S2K({ ...defaultConfig, s2kArgon2Params: params });
     s2k.salt = salt;
-    const result = await s2k.produceKey(password, params.tagLength);
+    const result = await s2k.produceKey(password, params.tagLength) as Uint8Array<ArrayBuffer>;
 
     TimeoutHandler.setupReloadingTimeout(params.memoryExponent);
     return result;

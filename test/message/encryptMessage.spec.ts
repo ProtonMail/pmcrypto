@@ -297,7 +297,7 @@ describe('message encryption and decryption', () => {
             detached: true
         });
         const { data: decrypted, verificationStatus } = await decryptMessage({
-            message: await readMessage({ binaryMessage: await readToEnd(encrypted) as Uint8Array }),
+            message: await readMessage({ binaryMessage: await readToEnd(encrypted) }),
             encryptedSignature: await readMessage({ binaryMessage: encryptedSignature }),
             sessionKeys: sessionKey,
             verificationKeys: [decryptedPrivateKey.toPublic()],

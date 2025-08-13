@@ -80,7 +80,7 @@ export async function splitMessage(message: OpenPGPMessage) {
  * Enarmor an OpenPGP message
  * @returns armored message
  */
-export async function armorBytes(binaryMessage: Uint8Array) {
+export async function armorBytes(binaryMessage: Uint8Array<ArrayBuffer>) {
     const bodyMessage = await readMessage({ binaryMessage });
     return readToEnd(bodyMessage.armor());
 }

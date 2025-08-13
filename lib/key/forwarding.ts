@@ -5,9 +5,9 @@ import { bigIntToUint8Array, mod, modInv, uint8ArrayToBigInt } from '../bigInteg
 import type { MaybeArray } from '../utils';
 
 export async function computeProxyParameter(
-    forwarderSecret: Uint8Array,
-    forwardeeSecret: Uint8Array
-): Promise<Uint8Array> {
+    forwarderSecret: Uint8Array<ArrayBuffer>,
+    forwardeeSecret: Uint8Array<ArrayBuffer>
+): Promise<Uint8Array<ArrayBuffer>> {
 
     const dB = uint8ArrayToBigInt(forwarderSecret);
     const dC = uint8ArrayToBigInt(forwardeeSecret);
