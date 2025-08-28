@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { config, SymEncryptedSessionKeyPacket } from '../lib/openpgp';
+import { config, SymEncryptedSessionKeyPacket, GrammarError } from '../lib/openpgp';
 import { decryptMessage, readMessage, VERIFICATION_STATUS, verifyMessage, readKey, readSignature, readPrivateKey } from '../lib';
 
 const rsaSignOnly = `-----BEGIN PGP PRIVATE KEY BLOCK-----
@@ -115,7 +115,7 @@ habAyxd1AGKaNp1wbGFpbnRleHQgbWVzc2FnZQ==
 
         await expect(
             readMessage({ armoredMessage: skeskPlusLiteralData })
-        ).to.be.rejectedWith(/Data does not respect OpenPGP grammar/);
+        ).to.be.rejectedWith(GrammarError);
 
         const message = await readMessage({ armoredMessage: skeskPlusLiteralData, config: { enforceGrammar: false } });
         expect(message.packets[0]).to.be.instanceOf(SymEncryptedSessionKeyPacket);
