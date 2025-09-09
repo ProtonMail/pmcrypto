@@ -7,3 +7,28 @@ updates:
     allow:
       - dependency-name: "playwright"
     versioning-strategy: increase
+  # update other dependencies separately on a monthly basis
+  - package-ecosystem: "npm"
+    # The redundant target-branch directive is needed to set two different update schedules for npm,
+    # working around a dependabot limitation:
+    # see https://github.com/dependabot/dependabot-core/issues/1778#issuecomment-1988140219 .
+    target-branch: main
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    ignore: # targeted by other schedule above
+      - dependency-name: "playwright"
+    versioning-strategy: increase
+    cooldown: # consider updates only X days after release
+      semver-major-days: 30
+      semver-minor-days: 5
+      semver-patch-days: 3
+      include:
+        - "*"
+    groups:
+      dev-dependencies:
+        applies-to: version-updates
+        dependency-type: "development" # production deps are updated manually
+        update-types: # major updates will trigger non-grouped MRs
+          - "minor"
+          - "patch"
