@@ -7,6 +7,12 @@ updates:
     allow:
       - dependency-name: "playwright"
     versioning-strategy: increase
+    cooldown: # consider updates only X days after release
+      semver-major-days: 7
+      semver-minor-days: 1
+      semver-patch-days: 1
+      include:
+        - "*"
   # update other dependencies separately on a monthly basis
   - package-ecosystem: "npm"
     # The redundant target-branch directive is needed to set two different update schedules for npm,
