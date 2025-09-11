@@ -43,7 +43,7 @@
         "@types/mocha": "^9.1.1",
         "@types/sinon": "^17.0.4",
         "@types/webpack-env": "^1.18.8",
-        "@typescript-eslint/eslint-plugin": "^7.18.0",
+        "@typescript-eslint/eslint-plugin": "^8.39.1",
         "@typescript-eslint/parser": "^7.18.0",
         "bn.js": "^5.2.2",
         "chai": "^5.2.1",
