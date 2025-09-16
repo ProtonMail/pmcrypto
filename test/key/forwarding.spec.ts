@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { ec as EllipticCurve } from 'elliptic';
 import BN from 'bn.js';
 
-import { decryptKey, enums, type KeyID, type PacketList } from '../../lib/openpgp';
+import { decryptKey, enums, type PublicKeyEncryptedSessionKeyPacket, type KeyID, type PacketList } from '../../lib/openpgp';
 import { generateKey, generateForwardingMaterial, doesKeySupportForwarding, encryptMessage, decryptMessage, readMessage, readKey, readPrivateKey, serverTime } from '../../lib';
 import { computeProxyParameter, isForwardingKey } from '../../lib/key/forwarding';
 import { hexStringToArray, concatArrays, arrayToHexString } from '../../lib/utils';
@@ -19,9 +19,13 @@ async function testProxyTransform(
     const ciphertext = await readMessage({ armoredMessage: armoredCiphertext });
     for (
         // missing PublicKeyEncryptedSessionKeyPacket field declarations
-        const packet of ciphertext.packets.filterByTag(enums.packet.publicKeyEncryptedSessionKey) as PacketList<any>
+        const packet of ciphertext.packets.filterByTag(
+            enums.packet.publicKeyEncryptedSessionKey
+        ) as PacketList<PublicKeyEncryptedSessionKeyPacket>
     ) {
+        // @ts-expect-error missing `publicKeyID` field declaration
         if (packet.publicKeyID.equals(originalSubkeyID)) {
+            // @ts-expect-error missing `encrypted` field
             const bG = packet.encrypted.V;
             const point = curve.curve.decodePoint(bG.subarray(1).reverse());
             const bkG = new Uint8Array(
@@ -31,7 +35,9 @@ async function testProxyTransform(
                     .toArray('le', 32)
             );
             const encoded = concatArrays([new Uint8Array([0x40]), bkG]);
+            // @ts-expect-error missing `encrypted` field
             packet.encrypted.V = encoded;
+            // @ts-expect-error missing `publicKeyID` field
             packet.publicKeyID = finalRecipientSubkeyID;
         }
     }

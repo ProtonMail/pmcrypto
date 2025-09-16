@@ -12,8 +12,4 @@
         "types": ["webpack-env", "mocha"], // avoid pulling in node types
         "lib": ["dom", "esnext"]
     },
-    "include": [
-        "./test/**/*"
-    ],
-    "files": ["./lib/index.ts"]
 }

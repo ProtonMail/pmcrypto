@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/lines-between-class-members */
 // Copied from https://github.com/paulmillr/noble-hashes/blob/main/test/misc/md5.ts
 
 import { HashMD } from '@noble/hashes/_md';
@@ -36,6 +35,7 @@ class MD5 extends HashMD<MD5> {
     }
 
     protected process(view: DataView, offset: number): void {
+        // eslint-disable-next-line no-param-reassign
         for (let i = 0; i < 16; i++, offset += 4) MD5_W[i] = view.getUint32(offset, true);
         // Compression function main loop, 64 rounds
         let { A, B, C, D } = this;

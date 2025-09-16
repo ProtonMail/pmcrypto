@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+/* global require, process, module */
 const { firefox, chromium, webkit } = require('playwright');
 
 process.env.CHROME_BIN = chromium.executablePath();
@@ -36,7 +38,7 @@ module.exports = function(config) {
 
         webpack: {
             optimization: {
-                nodeEnv: 'production', // silence OpenPGP.js debug errors, triggered by some tests
+                nodeEnv: 'production' // silence OpenPGP.js debug errors, triggered by some tests
             },
             resolve: {
                 fallback: {
