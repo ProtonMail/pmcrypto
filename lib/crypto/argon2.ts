@@ -30,7 +30,7 @@ const TimeoutHandler = {
             setTimeout(
                 () => Argon2S2K.reloadWasmModule(),
                 10 * SECOND
-            ) as any as number
+            )
             : undefined;
     }
 };

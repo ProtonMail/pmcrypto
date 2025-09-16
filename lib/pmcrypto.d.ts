@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/indent */
+/* eslint-disable @stylistic/indent */
 import {
     type DecryptOptions,
     type DecryptMessageResult as openpgp_DecryptMessageResult,

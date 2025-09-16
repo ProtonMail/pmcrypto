@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/indent */
+/* eslint-disable @stylistic/indent */
 import type {
     VerifyOptions,
     VerifyMessageResult as openpgp_VerifyMessageResult,

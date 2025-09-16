@@ -30,7 +30,7 @@ export function concatArrays(arrays: Uint8Array<ArrayBuffer>[]): Uint8Array<Arra
     return result;
 }
 
-const isString = (data: any): data is string | String => {
+const isString = (data: unknown): data is string => {
     return typeof data === 'string' || data instanceof String;
 };
 

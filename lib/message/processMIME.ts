@@ -1,5 +1,3 @@
-/// <reference path="./verify.d.ts" />
-
 import { removeTrailingSpaces } from './utils';
 import { verifyMessage } from './verify';
 import { VERIFICATION_STATUS, MAX_ENC_HEADER_LENGTH } from '../constants';
