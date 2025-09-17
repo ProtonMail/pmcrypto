@@ -121,16 +121,17 @@ export async function generateForwardingMaterial(
 
         const forwarderSubkeyPacket = forwarderSubkey.keyPacket as SecretSubkeyPacket;
         const forwardeeSubkeyPacket = forwardeeKeyToSetup.subkeys[i].keyPacket as SecretSubkeyPacket;
+        const forwarderKeyFingerprint = forwarderSubkeyPacket.getFingerprintBytes()!;
 
         // Add KDF params for forwarding
-        // @ts-ignore missing publicParams definition
+        // @ts-expect-error missing publicParams definition
         const { hash, cipher } = forwarderSubkeyPacket.publicParams.kdfParams;
-        // @ts-ignore missing publicParams definition
+        // @ts-expect-error missing publicParams definition
         forwardeeSubkeyPacket.publicParams.kdfParams = new KDFParams({
             version: 0xFF,
             hash,
             cipher,
-            replacementFingerprint: forwarderSubkeyPacket.getFingerprintBytes()!.subarray(0, 20)
+            replacementFingerprint: forwarderKeyFingerprint.subarray(0, 20)
         });
 
         // Generate proxy factor k (server secret)
@@ -142,14 +143,15 @@ export async function generateForwardingMaterial(
         );
 
         // fingerprint to be updated with the new KDFParams
-        // @ts-ignore `computeFingerprintAndKeyID` not declared
+        // @ts-expect-error `computeFingerprintAndKeyID` not declared
         await forwardeeSubkeyPacket.computeFingerprintAndKeyID();
+        const forwardeeKeyFingerprint = forwardeeSubkeyPacket.getFingerprintBytes()!;
 
         return {
             keyVersion: forwarderSubkeyPacket.version,
             proxyParameter,
-            forwarderKeyFingerprint: forwarderSubkeyPacket.getFingerprintBytes()!,
-            forwardeeKeyFingerprint: forwardeeSubkeyPacket.getFingerprintBytes()!
+            forwarderKeyFingerprint,
+            forwardeeKeyFingerprint
         };
     }));
 

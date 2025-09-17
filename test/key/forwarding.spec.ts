@@ -107,7 +107,7 @@ yGZuVVMAK/ypFfebDf4D/rlEw3cysv213m8aoK8nAUO8xQX3XQq3Sg+EGm0BNV8E
         const bobSubkey = await bobKey.getEncryptionKey(undefined, serverTime());
         const charlieSubkey = charlieKey.subkeys[0];
 
-        expect(charlieSubkey.bindingSignatures[0].keyFlags![0]).to.equal(enums.keyFlags.forwardedCommunication);
+        expect(charlieSubkey.bindingSignatures[0].keyFlags?.[0]).to.equal(enums.keyFlags.forwardedCommunication);
         // @ts-ignore oid field not defined
         expect(charlieSubkey.keyPacket.publicParams.oid).to.deep.equal(bobSubkey.keyPacket.publicParams.oid);
         // Check KDF params
@@ -148,7 +148,7 @@ P0GnopWOyFNNFWK77LQN
         const bobSubkey = await bobKey.getEncryptionKey();
         const charlieSubkey = charlieKey.subkeys[0];
 
-        expect(charlieSubkey.bindingSignatures[0].keyFlags![0]).to.equal(enums.keyFlags.forwardedCommunication);
+        expect(charlieSubkey.bindingSignatures[0].keyFlags?.[0]).to.equal(enums.keyFlags.forwardedCommunication);
         // @ts-ignore oid field not defined
         expect(charlieSubkey.keyPacket.publicParams.oid).to.deep.equal(bobSubkey.keyPacket.publicParams.oid);
 

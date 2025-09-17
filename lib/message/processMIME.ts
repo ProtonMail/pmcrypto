@@ -26,7 +26,7 @@ const verifySignature = async (
     data: string
 ) => {
     const { headers } = await parseMail(data.split(/\r?\n\s*\r?\n/g)[0] + '\n\n');
-    const [contentType] = headers['content-type'] || [''];
+    const [contentType] = headers['content-type'] ?? [''];
     const [baseContentType] = contentType.split(';');
     if (baseContentType.toLowerCase() !== 'multipart/signed') {
         return { subdata: data, verificationStatus: VERIFICATION_STATUS.NOT_SIGNED, signatures: [] };
@@ -42,8 +42,7 @@ const verifySignature = async (
         return { subdata: data, verificationStatus: VERIFICATION_STATUS.NOT_SIGNED, signatures: [] };
     }
     const { attachments: [sigAttachment] = [] } = await parseMail(parts[2].trim());
-
-    const { contentType: sigAttachmentContentType = '', content: sigAttachmentContent = new Uint8Array() } = sigAttachment || {};
+    const { contentType: sigAttachmentContentType = '', content: sigAttachmentContent = new Uint8Array() } = sigAttachment ?? {};
     if (sigAttachmentContentType.toLowerCase() !== 'application/pgp-signature') {
         return { subdata: data, verificationStatus: VERIFICATION_STATUS.NOT_SIGNED, signatures: [] };
     }

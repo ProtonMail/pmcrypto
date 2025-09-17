@@ -59,7 +59,7 @@ export const getNotationForContext = (contextValue: string, critical: boolean): 
  */
 export const isValidSignatureContext = (contextOptions: ContextVerificationOptions, signature: SignaturePacket) => {
     const { value: expectedValue, required, requiredAfter } = contextOptions;
-    const isContextRequired = requiredAfter ? signature.created! >= normalizeDate(requiredAfter) : !!required;
+    const isContextRequired = requiredAfter ? signature.created! >= normalizeDate(requiredAfter) : required;
 
     // `rawNotations` are always hashed (i.e. signed), otherwise OpenPGP's ignores them on parsing
     const contextNotations = signature.rawNotations.filter(({ name }) => (name === CONTEXT_NOTATION_NAME));

@@ -12,7 +12,7 @@ import pluginStylistic from '@stylistic/eslint-plugin';
 
 export default defineConfig(
     eslint.configs.recommended,
-    tseslint.configs.recommendedTypeChecked,
+    tseslint.configs.strictTypeChecked,
     {
         languageOptions: {
             ecmaVersion: 2022,
@@ -111,6 +111,10 @@ export default defineConfig(
             '@typescript-eslint/no-unsafe-member-access': 'off',
             '@typescript-eslint/no-unsafe-argument': 'off',
             '@typescript-eslint/no-unsafe-assignment': 'off',
+            '@typescript-eslint/no-confusing-void-expression': 'off',
+            '@typescript-eslint/restrict-template-expressions': 'off',
+            '@typescript-eslint/no-unnecessary-condition': 'off', // due to https://typescript-eslint.io/rules/no-unnecessary-condition/#possibly-undefined-indexed-access
+            '@typescript-eslint/no-non-null-assertion': 'off',
             '@stylistic/indent': ['error', 4],
             '@stylistic/quotes': ['error', 'single'],
             '@stylistic/no-multiple-empty-lines': ['error', { max: 1 }],
