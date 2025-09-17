@@ -27,7 +27,7 @@ export async function unsafeSHA1(data: MaybeWebStream<Uint8Array<ArrayBuffer>>) 
         return new Uint8Array(digest);
     }
 
-    const { sha1 } = await import('@noble/hashes/sha1');
+    const { sha1 } = await import('@noble/hashes/legacy');
     const hashInstance = sha1.create();
     const inputReader = data.getReader(); // AsyncInterator is still not widely supported
     while (true) {

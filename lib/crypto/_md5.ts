@@ -73,6 +73,7 @@ class MD5 extends HashMD<MD5> {
         this.set(A, B, C, D);
     }
 
+    // eslint-disable-next-line class-methods-use-this
     protected roundClean() {
         MD5_W.fill(0);
     }
