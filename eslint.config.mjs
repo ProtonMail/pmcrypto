@@ -12,7 +12,7 @@ import pluginStylistic from '@stylistic/eslint-plugin';
 
 export default defineConfig(
     eslint.configs.recommended,
-    tseslint.configs.recommended,
+    tseslint.configs.recommendedTypeChecked,
     {
         languageOptions: {
             ecmaVersion: 2022,
@@ -28,7 +28,7 @@ export default defineConfig(
         },
         settings: {
             'import/resolver': {
-                typescript: { alwaysTryTypes: true }
+                typescript: { 'alwaysTryTypes': true }
             }
         },
         plugins: {
@@ -72,7 +72,7 @@ export default defineConfig(
             'implicit-arrow-linebreak': 'off',
             'no-underscore-dangle': 'off',
             'import/no-unresolved': ['error', {
-                ignore: ['^react$', 'ttag', '.data']
+                ignore: ['.data']
             }],
             'import/prefer-default-export': 'off',
             'import/no-extraneous-dependencies': 'off',
@@ -93,7 +93,7 @@ export default defineConfig(
             'no-multiple-empty-lines': ['error'],
             'no-trailing-spaces': ['error'],
             'eol-last': ['error'],
-            'camelcase': ['error', {allow: ['openpgp_*']}],
+            'camelcase': ['error', { allow: ['openpgp_*'] }],
             'padded-blocks': 'off',
             '@protontech/enforce-uint8array-arraybuffer/enforce-uint8array-arraybuffer': 'error',
 
@@ -107,10 +107,13 @@ export default defineConfig(
             '@typescript-eslint/no-empty-object-type': ['error', { allowInterfaces: 'with-single-extends' }],
             '@typescript-eslint/no-unused-expressions': 'off',
             '@typescript-eslint/no-unused-vars': 'error',
-            '@typescript-eslint/no-empty-function': 'off',
+            '@typescript-eslint/no-unsafe-call': 'off', // function call to fn with `any` type
+            '@typescript-eslint/no-unsafe-member-access': 'off',
+            '@typescript-eslint/no-unsafe-argument': 'off',
+            '@typescript-eslint/no-unsafe-assignment': 'off',
             '@stylistic/indent': ['error', 4],
             '@stylistic/quotes': ['error', 'single'],
-            '@stylistic/no-multiple-empty-lines': ['error', { max: 1 }]
+            '@stylistic/no-multiple-empty-lines': ['error', { max: 1 }],
+            '@typescript-eslint/comma-dangle': 'off'
         }
-    }
-);
+    });

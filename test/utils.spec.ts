@@ -18,19 +18,19 @@ const streamFromChunks = <T extends Data>(chunks: T[]) => {
 };
 
 describe('utils', () => {
-    it('concatArrays - it can correctly concatenate a single array', async () => {
+    it('concatArrays - it can correctly concatenate a single array', () => {
         const arrays = [new Uint8Array([1, 2, 3])];
         const concatenated = concatArrays(arrays);
         expect(concatenated).to.deep.equal(new Uint8Array([1, 2, 3]));
     });
 
-    it('concatArrays - it can correctly concatenate multiple arrays', async () => {
+    it('concatArrays - it can correctly concatenate multiple arrays', () => {
         const arrays = [new Uint8Array([1]), new Uint8Array([2, 3])];
         const concatenated = concatArrays(arrays);
         expect(concatenated).to.deep.equal(new Uint8Array([1, 2, 3]));
     });
 
-    it('utf8ArrayToString - it can decode a Uint8Array', async () => {
+    it('utf8ArrayToString - it can decode a Uint8Array', () => {
         const utf8 = hexStringToArray('68656c6c6f20776f726c64');
         const decoded = utf8ArrayToString(utf8);
         expect(isStream(decoded)).to.be.false;
@@ -58,7 +58,7 @@ describe('utils', () => {
         expect(await readToEnd(decoded)).to.equal('🙂\uFFFD');
     });
 
-    it('stringToUtf8Array - it can encode a string', async () => {
+    it('stringToUtf8Array - it can encode a string', () => {
         const text = 'hello world';
         const encoded = stringToUtf8Array(text);
         expect(isStream(encoded)).to.be.false;

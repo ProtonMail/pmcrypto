@@ -83,7 +83,7 @@ export function stringToUtf8Array(str: MaybeWebStream<string>): MaybeWebStream<U
             }
         },
         cancel() {
-            reader.cancel();
+            return reader.cancel();
         }
     });
 
@@ -119,7 +119,7 @@ export function utf8ArrayToString(utf8: MaybeWebStream<Uint8Array<ArrayBuffer>>)
             }
         },
         cancel() {
-            reader.cancel();
+            return reader.cancel();
         }
     });
 

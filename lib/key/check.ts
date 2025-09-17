@@ -38,8 +38,8 @@ export function checkKeyStrength(publicKey: PublicKey) {
 
     publicKey.getKeys().forEach(({ keyPacket }) => {
         const keyInfo = keyPacket.getAlgorithmInfo();
-        // @ts-ignore missing `write` declaration
-        const keyAlgo = enums.write(enums.publicKey, keyInfo.algorithm);
+        // @ts-expect-error missing `write` declaration
+        const keyAlgo = enums.write(enums.publicKey, keyInfo.algorithm) as enums.publicKey;
 
         if (!allowedPublicKeyAlgorithms.has(keyAlgo)) {
             throw new Error(`${keyInfo.algorithm} keys are considered unsafe`);
@@ -102,8 +102,8 @@ export function checkKeyCompatibility(publicKey: PublicKey, v6KeysAllowed = fals
 
     publicKey.getKeys().forEach(({ keyPacket }) => {
         const keyInfo = keyPacket.getAlgorithmInfo();
-        // @ts-ignore missing `write` declaration
-        const keyAlgo = enums.write(enums.publicKey, keyInfo.algorithm);
+        // @ts-expect-error missing `write` declaration
+        const keyAlgo = enums.write(enums.publicKey, keyInfo.algorithm) as enums.publicKey;
 
         if (!supportedPublicKeyAlgorithms.has(keyAlgo)) {
             throw new Error(`The key algorithm ${keyInfo.algorithm} is currently not supported.`);
