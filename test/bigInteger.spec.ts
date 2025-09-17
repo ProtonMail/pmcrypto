@@ -2,15 +2,16 @@ import { expect } from 'chai';
 
 import BN from 'bn.js';
 import { bigIntToUint8Array, bitLength, byteLength, modExp, modInv } from '../lib/bigInteger';
+import { getRandomBytes } from '../lib/crypto/utils';
 
-async function getRandomBN(min: BN, max: BN) {
+function getRandomBN(min: BN, max: BN) {
     if (max.cmp(min) <= 0) {
         throw new Error('Illegal parameter value: max <= min');
     }
 
     const modulus = max.sub(min);
     const bytes = modulus.byteLength();
-    const r = new BN(crypto.getRandomValues(new Uint8Array(bytes + 8)));
+    const r = new BN(getRandomBytes(bytes + 8));
     return r.mod(modulus).add(min);
 }
 
@@ -65,9 +66,9 @@ describe('BigInt utils', () => {
         expect(got.toString(), expected.toString());
     });
 
-    it('modular inversion is correct', async () => {
+    it('modular inversion is correct', () => {
         const moduloBN = new BN(229); // this is a prime
-        const baseBN = await getRandomBN(new BN(2), moduloBN);
+        const baseBN = getRandomBN(new BN(2), moduloBN);
         const a = BigInt(baseBN.toString());
         const n = BigInt(moduloBN.toString());
         const expected = baseBN.invm(moduloBN);

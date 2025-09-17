@@ -87,12 +87,12 @@ yGZuVVMAK/ypFfebDf4D/rlEw3cysv213m8aoK8nAUO8xQX3XQq3Sg+EGm0BNV8E
         expect(result.data).to.equal('Message for Bob');
     });
 
-    it('proxy parameter computation is correct', async () => {
+    it('proxy parameter computation is correct', () => {
         const secretBob = hexStringToArray('5989216365053dcf9e35a04b2a1fc19b83328426be6bb7d0a2ae78105e2e3188');
         const secretCharlie = hexStringToArray('684da6225bcd44d880168fc5bec7d2f746217f014c8019005f144cc148f16a00');
 
         const expectedProxyFactor = hexStringToArray('e89786987c3a3ec761a679bc372cd11a425eda72bd5265d78ad0f5f32ee64f02');
-        const actualProxyFactor = await computeProxyParameter(secretBob, secretCharlie);
+        const actualProxyFactor = computeProxyParameter(secretBob, secretCharlie);
 
         expect(actualProxyFactor).to.deep.equal(expectedProxyFactor);
     });

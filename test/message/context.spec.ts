@@ -141,7 +141,7 @@ describe('context', () => {
             signatureContext: { value: 'unexpected-context', required: true }
         });
 
-        const decryptionMissingContext = await await decryptMessage({
+        const decryptionMissingContext = await decryptMessage({
             message: await readMessage({ armoredMessage }),
             decryptionKeys: privateKey,
             verificationKeys: publicKey
@@ -188,7 +188,7 @@ describe('context', () => {
             signatureContext: { value: 'unexpected-context', required: true }
         });
 
-        const decryptionMissingContext = await await decryptMessage({
+        const decryptionMissingContext = await decryptMessage({
             message: await readMessage({ armoredMessage }),
             encryptedSignature: await readMessage({ armoredMessage: encryptedSignature }),
             decryptionKeys: privateKey,

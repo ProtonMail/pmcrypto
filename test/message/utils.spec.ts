@@ -67,7 +67,7 @@ sJFJxllC0j4wHCOS9uiSYsZ/pWCqxX/3sFh4VBFOpr0HAA==
         expect(aeadData.packets[0]).to.be.instanceOf(AEADEncryptedDataPacket);
     });
 
-    it('removeTrailingSpaces - it can correctly normalise the text', async () => {
+    it('removeTrailingSpaces - it can correctly normalise the text', () => {
         const data = 'BEGIN:VCARD\r\nVERSION:4.0\r\nFN;PREF=1:   \r\nEND:VCARD';
         const expected = 'BEGIN:VCARD\nVERSION:4.0\nFN;PREF=1:\nEND:VCARD';
         expect(removeTrailingSpaces(data)).to.equal(expected);

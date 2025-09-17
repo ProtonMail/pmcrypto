@@ -4,10 +4,10 @@ import { serverTime } from '../serverTime';
 import { bigIntToUint8Array, mod, modInv, uint8ArrayToBigInt } from '../bigInteger';
 import type { MaybeArray } from '../utils';
 
-export async function computeProxyParameter(
+export function computeProxyParameter(
     forwarderSecret: Uint8Array<ArrayBuffer>,
     forwardeeSecret: Uint8Array<ArrayBuffer>
-): Promise<Uint8Array<ArrayBuffer>> {
+): Uint8Array<ArrayBuffer> {
 
     const dB = uint8ArrayToBigInt(forwarderSecret);
     const dC = uint8ArrayToBigInt(forwardeeSecret);
@@ -134,7 +134,7 @@ export async function generateForwardingMaterial(
         });
 
         // Generate proxy factor k (server secret)
-        const proxyParameter = await computeProxyParameter(
+        const proxyParameter = computeProxyParameter(
             // @ts-ignore privateParams fields are not defined
             forwarderSubkeyPacket.privateParams!.d,
             // @ts-ignore privateParams fields are not defined

@@ -22,7 +22,7 @@ describe('message encryption and decryption', () => {
             await import('web-streams-polyfill/es6');
         }
     });
-    after('restore openpgp config', async () => {
+    after('restore openpgp config', () => {
         globalConfig.minRSABits = minRSABits;
     });
 
