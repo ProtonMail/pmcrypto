@@ -70,5 +70,8 @@
         "webpack": "^5.101.3",
         "webpack-cli": "^4.10.0"
     },
-    "packageManager": "yarn@4.10.2"
+    "packageManager": "yarn@4.10.2",
+    "engines": {
+        "npm": "please use yarn"
+    }
 }
