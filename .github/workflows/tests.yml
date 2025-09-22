@@ -21,11 +21,11 @@ jobs:
       - uses: actions/setup-node@v5
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn --immutable
       
       - if: ${{ matrix.runner  == 'ubuntu-latest' }}
-        run: npm run lint
-      - run: npm run test-type-definitions
+        run: yarn run lint
+      - run: yarn run test-type-definitions
 
       - name: Install Chrome
         run: npx playwright install --with-deps chromium
@@ -37,4 +37,4 @@ jobs:
         run: npx playwright install --with-deps webkit
 
       - name: Run tests
-        run: npm test
+        run: yarn test

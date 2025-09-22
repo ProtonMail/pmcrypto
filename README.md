@@ -127,9 +127,13 @@ const sessionKey = await decryptSessionKey({
 ```
 </details>
 
-## Testing
+## Development
+Yarn is used as package manager; it comes bundled as part of the repository code.
+After checking out the repo, you can just run `yarn` to install dependencies.
+
+###  Testing
 Headless Chrome (or Chromium), Firefox and Webkit are used for the tests.
 To install any missing browsers automatically, you can run `npx playwright install --with-deps <chromium|firefox|webkit>`. Alternatively, you can install them manually as you normally would on your platform.
-If you'd like to test on a subset of browsers, use e.g. `npm test -- --browsers ChromeHeadless,FirefoxHeadless`.
+If you'd like to test on a subset of browsers, use e.g. `yarn test -- --browsers ChromeHeadless,FirefoxHeadless`.
 
 
