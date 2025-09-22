@@ -345,6 +345,7 @@ __metadata:
     "@types/mocha": "npm:^9.1.1"
     "@types/sinon": "npm:^17.0.4"
     "@types/webpack-env": "npm:^1.18.8"
+    "@typescript-eslint/eslint-plugin": "npm:^8.44.0"
     bn.js: "npm:^5.2.2"
     chai: "npm:^5.2.1"
     chai-as-promised: "npm:^8.0.2"
@@ -580,7 +581,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/eslint-plugin@npm:8.44.0":
+"@typescript-eslint/eslint-plugin@npm:8.44.0, @typescript-eslint/eslint-plugin@npm:^8.44.0":
   version: 8.44.0
   resolution: "@typescript-eslint/eslint-plugin@npm:8.44.0"
   dependencies:
