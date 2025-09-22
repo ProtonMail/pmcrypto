@@ -13,7 +13,8 @@ jobs:
         # run on multiple platforms to test platform-specific code, if present
         # (e.g. webkit's WebCrypto API implementation is different in macOS vs Linux)
         runner: ['ubuntu-latest', 'macos-latest', 'windows-latest']
-    runs-on: ${{ matrix.runner }} 
+    runs-on: ${{ matrix.runner }}
+    permissions: {}
     
     steps:
       - uses: actions/checkout@v5
