@@ -22,7 +22,10 @@ jobs:
 
       - name: Install dependencies
         run: yarn --immutable
-      
+
+      - name: Audit dependencies (high severity only)
+        run: yarn npm audit --severity high
+
       - if: ${{ matrix.runner  == 'ubuntu-latest' }}
         run: yarn run lint
       - run: yarn run test-type-definitions
