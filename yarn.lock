@@ -369,7 +369,7 @@ __metadata:
     ts-loader: "npm:^9.5.4"
     typescript: "npm:^5.9.2"
     typescript-eslint: "npm:^8.44.1"
-    web-streams-polyfill: "npm:^3.3.3"
+    web-streams-polyfill: "npm:^4.2.0"
     webpack: "npm:^5.101.3"
     webpack-cli: "npm:^6.0.1"
   languageName: unknown
@@ -5752,10 +5752,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"web-streams-polyfill@npm:^3.3.3":
-  version: 3.3.3
-  resolution: "web-streams-polyfill@npm:3.3.3"
-  checksum: 10c0/64e855c47f6c8330b5436147db1c75cb7e7474d924166800e8e2aab5eb6c76aac4981a84261dd2982b3e754490900b99791c80ae1407a9fa0dcff74f82ea3a7f
+"web-streams-polyfill@npm:^4.2.0":
+  version: 4.2.0
+  resolution: "web-streams-polyfill@npm:4.2.0"
+  checksum: 10c0/d7a5ece7a073f4a687b193d8bc39610347179241a16a5591af6c7059f440242b9caf2fcf87b04d23e23c7d52c1cc1a2ef8470ab6d792d8150bf09beaf880fd36
   languageName: node
   linkType: hard
 
