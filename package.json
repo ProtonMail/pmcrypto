@@ -35,7 +35,7 @@
         "openpgp": "npm:@protontech/openpgp@~6.2.2"
     },
     "devDependencies": {
-        "@eslint/js": "^9.38.0",
+        "@eslint/js": "^9.39.1",
         "@protontech/eslint-plugin-enforce-uint8array-arraybuffer": "^2.0.0",
         "@stylistic/eslint-plugin": "^5.5.0",
         "@types/bn.js": "^5.2.0",
@@ -50,7 +50,7 @@
         "chai": "^5.2.1",
         "chai-as-promised": "^8.0.2",
         "elliptic": "^6.6.1",
-        "eslint": "^9.38.0",
+        "eslint": "^9.39.1",
         "eslint-import-resolver-typescript": "^4.4.4",
         "eslint-plugin-chai-friendly": "^1.1.0",
         "eslint-plugin-import": "^2.32.0",
