@@ -14,7 +14,7 @@ export const SHA512 = async (data: Uint8Array<ArrayBuffer>) => {
  * MD5 is an unsafe hash function. It should normally not be used.
  * It's exposed because it's required for old auth versions.
  */
-export const unsafeMD5 = async (data: Uint8Array<ArrayBuffer>) => import('./_md5').then(({ md5 }) => md5(data) as Uint8Array<ArrayBuffer>);
+export const unsafeMD5 = async (data: Uint8Array<ArrayBuffer>) => import('@noble/hashes/legacy.js').then(({ md5 }) => md5(data) as Uint8Array<ArrayBuffer>);
 
 /**
  * SHA1 is an unsafe hash function. It should not be used for cryptographic purposes.
@@ -27,7 +27,7 @@ export async function unsafeSHA1(data: MaybeWebStream<Uint8Array<ArrayBuffer>>) 
         return new Uint8Array(digest);
     }
 
-    const { sha1 } = await import('@noble/hashes/legacy');
+    const { sha1 } = await import('@noble/hashes/legacy.js');
     const hashInstance = sha1.create();
     const inputReader = data.getReader(); // AsyncInterator is still not widely supported
     while (true) {
