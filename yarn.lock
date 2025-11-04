@@ -298,15 +298,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openpgp/web-stream-tools@npm:~0.1.3":
-  version: 0.1.3
-  resolution: "@openpgp/web-stream-tools@npm:0.1.3"
+"@openpgp/web-stream-tools@npm:~0.2.1":
+  version: 0.2.1
+  resolution: "@openpgp/web-stream-tools@npm:0.2.1"
   peerDependencies:
-    typescript: ">=4.2"
+    "@types/node": ">=18.0.0"
+    typescript: ">=4.7"
   peerDependenciesMeta:
+    "@types/node":
+      optional: true
     typescript:
       optional: true
-  checksum: 10c0/e8f37d523be2b5b04fa86a334f8df45de5213c46e6d1b1b259185233f3e17fee1409030a3fab34300d341c93e7d3d260c62ef1315a786b486737d0ebe114d338
+  checksum: 10c0/02e91bc2258e0edf5a1689b4cc9184d87a4f9c67ee1e8f358ec22a5808d7f47433c7146b9ed5fd857751f764e22a6a3491a22e298bc88a716c1ddbefd9d53a11
   languageName: node
   linkType: hard
 
@@ -335,7 +338,7 @@ __metadata:
   dependencies:
     "@eslint/js": "npm:^9.35.0"
     "@noble/hashes": "npm:^2.0.1"
-    "@openpgp/web-stream-tools": "npm:~0.1.3"
+    "@openpgp/web-stream-tools": "npm:~0.2.1"
     "@protontech/eslint-plugin-enforce-uint8array-arraybuffer": "npm:^2.0.0"
     "@stylistic/eslint-plugin": "npm:^5.3.1"
     "@types/bn.js": "npm:^5.2.0"
