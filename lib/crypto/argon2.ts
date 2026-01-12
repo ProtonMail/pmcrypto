@@ -9,7 +9,7 @@ export interface Argon2Options {
     password: string,
     salt: Uint8Array<ArrayBuffer>,
     /** see https://www.rfc-editor.org/rfc/rfc9106.html#name-parameter-choice */
-    params: Argon2Params
+    params?: Argon2Params
 }
 
 // We manually reload the module if no memory-heavy (128MB+) argon2 computation has been requested in a while,

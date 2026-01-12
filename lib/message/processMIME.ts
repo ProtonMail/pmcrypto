@@ -41,8 +41,10 @@ const verifySignature = async (
     if (parts.length < 3) {
         return { subdata: data, verificationStatus: VERIFICATION_STATUS.NOT_SIGNED, signatures: [] };
     }
-    const { attachments: [sigAttachment] = [] } = await parseMail(parts[2].trim());
-    const { contentType: sigAttachmentContentType = '', content: sigAttachmentContent = new Uint8Array() } = sigAttachment ?? {};
+    const { attachments: [sigAttachment] } = await parseMail(parts[2].trim());
+    const { contentType: sigAttachmentContentType = '', content: sigAttachmentContent = new Uint8Array() } = (
+        sigAttachment as Attachment | undefined /** explicit typing needed due to TS inference limitation with array destructuring */
+    ) ?? {};
     if (sigAttachmentContentType.toLowerCase() !== 'application/pgp-signature') {
         return { subdata: data, verificationStatus: VERIFICATION_STATUS.NOT_SIGNED, signatures: [] };
     }
@@ -93,7 +95,7 @@ const parse = async (
     signatures: OpenPGPSignature[] = []
 ): Promise<ProcessMIMEResult> => {
     // cf. https://github.com/autocrypt/memoryhole subject can be in the MIME headers
-    const { attachments: parsedAttachments = [], body: { text = '', html = '' }, subject: mimeSubject = '' } = await parseMail(mailContent);
+    const { attachments: parsedAttachments, body: { text, html }, subject: mimeSubject = '' } = await parseMail(mailContent);
 
     // normalise attachments and look for encrypted subject
     let encryptedSubjectHeader;
