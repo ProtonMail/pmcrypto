@@ -344,7 +344,7 @@ __metadata:
     "@types/chai": "npm:^5.2.2"
     "@types/chai-as-promised": "npm:^8.0.2"
     "@types/elliptic": "npm:^6.4.18"
-    "@types/mocha": "npm:^9.1.1"
+    "@types/mocha": "npm:^10.0.10"
     "@types/sinon": "npm:^21.0.0"
     "@types/webpack-env": "npm:^1.18.8"
     "@typescript-eslint/eslint-plugin": "npm:^8.50.1"
@@ -537,10 +537,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/mocha@npm:^9.1.1":
-  version: 9.1.1
-  resolution: "@types/mocha@npm:9.1.1"
-  checksum: 10c0/d033742ce0c92b917815b6e515165ee396866d0db0c0bbe0c301e49402abe3a61bd51e5bb1df7577f1fac60c99ee505fa744f515b476cc934ecb57f709f327e9
+"@types/mocha@npm:^10.0.10":
+  version: 10.0.10
+  resolution: "@types/mocha@npm:10.0.10"
+  checksum: 10c0/d2b8c48138cde6923493e42b38e839695eb42edd04629abe480a8f34c0e3f50dd82a55832c2e8d2b6e6f9e4deb492d7d733e600fbbdd5a0ceccbcfc6844ff9d5
   languageName: node
   linkType: hard
 
