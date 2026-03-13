@@ -29,6 +29,9 @@ export const setConfig = () => {
     // `checkKeyCompatibility` errors: v5 entities were allowed in pmcrypto v7, so they might have been
     // uploaded as e.g. contact keys.
     config.enableParsingV5Entities = true;
+
+    // Mobile Safari 26 reloads the page if Argon2 tries to allocate memory above 1GB
+    config.maxArgon2MemoryExponent = 20;
 };
 
 export * from 'openpgp/lightweight';
