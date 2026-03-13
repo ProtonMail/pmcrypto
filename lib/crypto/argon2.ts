@@ -40,7 +40,8 @@ export async function argon2({ password, salt, params = ARGON2_PARAMS.RECOMMENDE
 
     const s2k = new Argon2S2K({ ...defaultConfig, s2kArgon2Params: params });
     s2k.salt = salt;
-    const result = await s2k.produceKey(password, params.tagLength);
+    // @ts-expect-error missing config param declaration
+    const result = await s2k.produceKey(password, params.tagLength, defaultConfig);
 
     TimeoutHandler.setupReloadingTimeout(params.memoryExponent);
     return result;

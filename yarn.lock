@@ -383,7 +383,7 @@ __metadata:
     karma-webkit-launcher: "npm:^2.6.0"
     karma-webpack: "npm:^5.0.1"
     mocha: "npm:^11.7.5"
-    openpgp: "npm:@protontech/openpgp@~6.2.2"
+    openpgp: "npm:@protontech/openpgp@~6.3.0"
     playwright: "npm:^1.58.1"
     sinon: "npm:^21.0.1"
     ts-loader: "npm:^9.5.4"
@@ -4395,10 +4395,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"openpgp@npm:@protontech/openpgp@~6.2.2":
-  version: 6.2.2
-  resolution: "@protontech/openpgp@npm:6.2.2"
-  checksum: 10c0/1bd113aee0c16434b31206d1a1a5c0531b29b3f87c59c07534b74f700ebcd370548c904043339b216eb303332c1c2f2bbe7998cd73500849e8eb75fcdb30d42c
+"openpgp@npm:@protontech/openpgp@~6.3.0":
+  version: 6.3.0
+  resolution: "@protontech/openpgp@npm:6.3.0"
+  checksum: 10c0/17fe52a5d3e904433870c307520fe036860f15ce641c59e32392507bfb2a51ed4a044623da5659b6befb5ad57a2de922c6f8a6d6ed9d52de026e6f4d03f2cd97
   languageName: node
   linkType: hard
 
