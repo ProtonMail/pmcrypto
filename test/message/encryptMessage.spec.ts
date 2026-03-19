@@ -70,7 +70,8 @@ describe('message encryption and decryption', () => {
             format: 'object'
         });
         expect(encryptedWithSEIPDv1.packets).to.have.length(2);
-        const seipdV1 = encryptedWithSEIPDv1.packets[1];
+        // @ts-expect-error https://github.com/openpgpjs/openpgpjs/pull/1991
+        const seipdV1 = encryptedWithSEIPDv1.packets[1] as SymEncryptedIntegrityProtectedDataPacket;
         expect(seipdV1).to.be.instanceOf(SymEncryptedIntegrityProtectedDataPacket);
         // @ts-ignore missing `version` field declaration
         expect(seipdV1.version).to.equal(1);
