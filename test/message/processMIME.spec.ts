@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { describe, it, expect } from 'vitest';
 
 import { readKey, processMIME } from '../../lib';
 import { utf8ArrayToString } from '../../lib/utils';

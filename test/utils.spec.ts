@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { describe, it, expect } from 'vitest';
 import { isStream, readToEnd } from '@openpgp/web-stream-tools';
 import { concatArrays, hexStringToArray, stringToUtf8Array, utf8ArrayToString } from '../lib/utils';
 import type { Data } from '../lib';

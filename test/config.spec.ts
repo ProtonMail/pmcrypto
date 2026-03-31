@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { describe, it, expect } from 'vitest';
 import { config, SymEncryptedSessionKeyPacket, GrammarError } from '../lib/openpgp';
 import { decryptMessage, readMessage, VERIFICATION_STATUS, verifyMessage, readKey, readSignature, readPrivateKey } from '../lib';
 
@@ -115,7 +115,7 @@ habAyxd1AGKaNp1wbGFpbnRleHQgbWVzc2FnZQ==
 
         await expect(
             readMessage({ armoredMessage: skeskPlusLiteralData })
-        ).to.be.rejectedWith(GrammarError);
+        ).rejects.toThrow(GrammarError);
 
         const message = await readMessage({ armoredMessage: skeskPlusLiteralData, config: { enforceGrammar: false } });
         expect(message.packets[0]).to.be.instanceOf(SymEncryptedSessionKeyPacket);

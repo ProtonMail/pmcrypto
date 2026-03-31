@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { readToEnd, toStream, type WebStream } from '@openpgp/web-stream-tools';
 import { config as globalConfig, type CompressedDataPacket, enums, SymEncryptedSessionKeyPacket, type PartialConfig, SymEncryptedIntegrityProtectedDataPacket } from '../../lib/openpgp';
 
@@ -14,7 +14,8 @@ const generateStreamOfData = (): { stream: WebStream<string>, data: string } => 
 
 describe('message encryption and decryption', () => {
     const { minRSABits } = globalConfig;
-    before('downgrade openpgp config and load stream polyfills', async () => {
+    // downgrade openpgp config and load stream polyfills
+    beforeAll(async () => {
         globalConfig.minRSABits = 512;
 
         // load stream polyfills if needed
@@ -22,7 +23,8 @@ describe('message encryption and decryption', () => {
             await import('web-streams-polyfill/es6');
         }
     });
-    after('restore openpgp config', () => {
+    // restore openpgp config
+    afterAll(() => {
         globalConfig.minRSABits = minRSABits;
     });
 
