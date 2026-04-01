@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { describe, it, expect } from 'vitest';
 import { verifyMessage, signMessage, generateKey, readSignature, readMessage, decryptMessage, encryptMessage, readKey, SignatureContextError, serverTime } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
 
@@ -41,7 +41,7 @@ describe('context', () => {
             verificationKeys: [publicKey],
             signatureContext: { value: 'unexpected-context', required: true },
             expectSigned: true
-        })).to.be.rejectedWith(SignatureContextError);
+        })).rejects.toThrow(SignatureContextError);
 
         const verificationMissingContext = await verifyMessage({
             textData,
@@ -212,7 +212,7 @@ describe('context', () => {
             textData: 'message with context',
             sessionKey: { algorithm: 'aes128', data: new Uint8Array(16) }, // unused
             signatureContext: { value: 'test-context', critical: true }
-        })).to.be.rejectedWith(/Unexpected `signatureContext` input without any `signingKeys` provided/);
+        })).rejects.toThrow(/Unexpected `signatureContext` input without any `signingKeys` provided/);
 
         // missing verification keys
         await expect(decryptMessage({
@@ -226,7 +226,7 @@ sJFJxllC0j4wHCOS9uiSYsZ/pWCqxX/3sFh4VBFOpr0HAA==
 -----END PGP MESSAGE-----` }),
             sessionKeys: { algorithm: 'aes128', data: new Uint8Array(16) }, // unused
             signatureContext: { value: 'test-context', required: true }
-        })).to.be.rejectedWith(/Unexpected `signatureContext` input without any `verificationKeys` provided/);
+        })).rejects.toThrow(/Unexpected `signatureContext` input without any `verificationKeys` provided/);
     });
 
     it('does not verify a message without context', async () => {

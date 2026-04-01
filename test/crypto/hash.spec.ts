@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { describe, it, expect } from 'vitest';
 import { unsafeMD5, unsafeSHA1, SHA256, SHA512 } from '../../lib';
 import { arrayToHexString, stringToUtf8Array } from '../../lib/utils';
 

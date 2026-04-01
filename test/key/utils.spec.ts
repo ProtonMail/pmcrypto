@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { describe, it, expect } from 'vitest';
 import { createSandbox as createSinonSandbox } from 'sinon';
 import { revokeKey, sign, createMessage, enums } from '../../lib/openpgp';
 import {

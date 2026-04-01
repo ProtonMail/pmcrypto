@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { describe, it, expect } from 'vitest';
 
 import BN from 'bn.js';
 import { bigIntToUint8Array, bitLength, byteLength, modExp, modInv } from '../lib/bigInteger';

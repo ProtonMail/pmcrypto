@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { describe, it, expect } from 'vitest';
 import { checkKeyStrength, checkKeyCompatibility, readKey } from '../../lib';
 
 // Test vector from https://www.ietf.org/archive/id/draft-ietf-openpgp-pqc-09.html#appendix-A.4.1
