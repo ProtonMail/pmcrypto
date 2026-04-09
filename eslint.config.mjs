@@ -3,8 +3,6 @@ import eslint from '@eslint/js';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
-// @ts-expect-error
-import pluginChaiFriendly from 'eslint-plugin-chai-friendly';
 import pluginImport from 'eslint-plugin-import';
 // @ts-expect-error
 import pluginEnforceUint8ArrayArrayBuffer from '@protontech/eslint-plugin-enforce-uint8array-arraybuffer';
@@ -32,7 +30,6 @@ export default defineConfig(
             }
         },
         plugins: {
-            'chai-friendly': pluginChaiFriendly,
             'import': pluginImport,
             '@protontech/enforce-uint8array-arraybuffer': pluginEnforceUint8ArrayArrayBuffer,
             '@stylistic': pluginStylistic
@@ -65,7 +62,6 @@ export default defineConfig(
                 capIsNew: false
             }],
             'class-methods-use-this': 'error',
-            'chai-friendly/no-unused-expressions': [ 'error', { allowShortCircuit: true } ],
             'arrow-body-style': 'off',
             'space-before-function-paren': 'off',
             'operator-linebreak': 'off',

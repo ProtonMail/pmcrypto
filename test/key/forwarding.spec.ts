@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { describe, it, expect } from 'vitest';
 import { ec as EllipticCurve } from 'elliptic';
 import BN from 'bn.js';
 
@@ -76,7 +76,7 @@ yGZuVVMAK/ypFfebDf4D/rlEw3cysv213m8aoK8nAUO8xQX3XQq3Sg+EGm0BNV8E
         await expect(decryptMessage({
             message: await readMessage({ armoredMessage: fwdCiphertextArmored }),
             decryptionKeys: charlieKey
-        })).to.be.rejectedWith(/Error decrypting message/); // missing config flag
+        })).rejects.toThrow(/Error decrypting message/); // missing config flag
 
         const result = await decryptMessage({
             message: await readMessage({ armoredMessage: fwdCiphertextArmored }),
@@ -189,7 +189,7 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
 
         await expect(
             generateForwardingMaterial(keyWithP256Subkey, [{ name: 'Charlie', email: 'info@charlie.com' }])
-        ).to.be.rejectedWith(/unsuitable for forwarding/);
+        ).rejects.toThrow(/unsuitable for forwarding/);
     });
 
     it('decryption with forwarding - v4 key', async () => {
@@ -235,7 +235,7 @@ z5FbOJXSHsoez1SZ7GKgoxC+X0w=
             decryptionKeys: charlieKey,
             config: { allowForwardedMessages: true }
         });
-        expect(decryptionTrialPromise).to.be.rejectedWith(/Error decrypting message/);
+        await expect(decryptionTrialPromise).rejects.toThrow(/Error decrypting message/);
     });
 
     it('decryption with forwarding - v4 key with multiple subkeys', async () => {
@@ -426,9 +426,9 @@ siLL+xMJ+Hy4AhsMAAAKagEA4Knj6S6nG24nuXfqkkytPlFTHwzurjv3+qqXwWL6
 =un5O
 -----END PGP PRIVATE KEY BLOCK-----` });
 
-        await expect(isForwardingKey(signOnlyKey)).to.eventually.be.false;
-        await expect(isForwardingKey(charlieKeyEncrypted)).to.eventually.be.true;
-        await expect(isForwardingKey(charlieKey)).to.eventually.be.true;
-        await expect(isForwardingKey(bobKey)).to.eventually.be.false;
+        await expect(isForwardingKey(signOnlyKey)).resolves.toBe(false);
+        await expect(isForwardingKey(charlieKeyEncrypted)).resolves.toBe(true);
+        await expect(isForwardingKey(charlieKey)).resolves.toBe(true);
+        await expect(isForwardingKey(bobKey)).resolves.toBe(false);
     });
 });

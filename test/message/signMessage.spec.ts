@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { describe, it, expect } from 'vitest';
 import { readToEnd } from '@openpgp/web-stream-tools';
 import { verifyMessage, signMessage, generateKey, readSignature } from '../../lib';
 import { VERIFICATION_STATUS } from '../../lib/constants';
@@ -89,7 +89,7 @@ describe('message signing', () => {
             signature: await readSignature({ armoredSignature }),
             verificationKeys: [publicKey],
             expectSigned: true
-        })).to.be.rejectedWith(/Signed digest did not match/);
+        })).rejects.toThrow(/Signed digest did not match/);
 
         const verificationResult = await verifyMessage({
             textData,
