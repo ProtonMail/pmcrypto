@@ -1,5 +1,9 @@
 # pmcrypto
 
+> DEPRECATION NOTICE: the pmcrypto code is now part of [Proton WebPackages](https://github.com/ProtonMail/WebPackages), and the [`@protontech/pmcrypto`](https://www.npmjs.com/package/@protontech/pmcrypto) npm package has been deprecated in favor of [`@protontech/crypto`](https://www.npmjs.com/package/@protontech/crypto) .
+
+<hr>
+
 pmcrypto v8 introduces support for [RFC9580](https://datatracker.ietf.org/doc/rfc9580/) (via [OpenPGP.js v6](https://github.com/openpgpjs/openpgpjs/releases/tag/v6.0.0)), which standardizes new OpenPGP packets and algorithms, such as v6 keys and AEAD encryption for keys and messages. The [OpenPGP PQC RFC draft](https://datatracker.ietf.org/doc/draft-ietf-openpgp-pqc/) also builds on top of RFC9580.
 
 The new entities are not supported across Proton clients yet, and most of the library changes compared to v7 are internal, and are about ensuring we don't unexpectedly produce (or accept, e.g. for key imports), artifacts that will break some of our existing clients.
